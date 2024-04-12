@@ -1,0 +1,73 @@
+from comandos.comando_notificacao import tratar_notificar_erros
+import os
+import inspect
+import locale
+
+nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
+nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
+
+
+def valores_para_float(string):
+    try:
+        string_certo = str(string)
+
+        if "R$ " in string_certo:
+            limpa_string = string_certo.replace("R$ ", '')
+        elif "%" in string_certo:
+            limpa_string = string_certo.replace("%", '')
+        else:
+            limpa_string = string_certo
+
+        if limpa_string:
+            if "," in limpa_string:
+                string_com_ponto = limpa_string.replace(',', '.')
+                valor_float = float(string_com_ponto)
+            else:
+                valor_float = float(limpa_string)
+        else:
+            valor_float = 0.00
+
+        return valor_float
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        tratar_notificar_erros(e, nome_funcao, nome_arquivo)
+
+
+def valores_para_virgula(string):
+    try:
+        if "R$ " in string:
+            limpa_string = string.replace("R$ ", '')
+        elif "%" in string:
+            limpa_string = string.replace("%", '')
+        else:
+            limpa_string = string
+
+        if limpa_string:
+            if "." in limpa_string:
+                string_com_virgula = limpa_string.replace('.', ',')
+            else:
+                string_com_virgula = limpa_string
+        else:
+            string_com_virgula = "0,00"
+
+        return string_com_virgula
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        tratar_notificar_erros(e, nome_funcao, nome_arquivo)
+
+
+def float_para_moeda_reais(valor):
+    try:
+        valor_float = valores_para_float(valor)
+
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+        valor_final = locale.currency(valor_float, grouping=True, symbol=True)
+
+        return valor_final
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        tratar_notificar_erros(e, nome_funcao, nome_arquivo)
