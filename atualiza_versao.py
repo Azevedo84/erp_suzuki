@@ -23,4 +23,5 @@ cursor.execute(f"Insert into VERSOES "
 conecta.commit()
 
 print("VERSÃO SALVA COM SUCESSO!")
+teste
 
