@@ -71,3 +71,18 @@ def float_para_moeda_reais(valor):
     except Exception as e:
         nome_funcao = inspect.currentframe().f_code.co_name
         tratar_notificar_erros(e, nome_funcao, nome_arquivo)
+
+
+def moeda_reais_para_float(valor_moeda):
+    try:
+        # Remove o símbolo da moeda e os separadores de milhar
+        valor_moeda = valor_moeda.replace('R$', '').replace('.', '').replace(',', '.')
+
+        # Converte a string para float
+        valor_float = float(valor_moeda.strip())
+
+        return valor_float
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        tratar_notificar_erros(e, nome_funcao, nome_arquivo)

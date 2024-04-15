@@ -44,7 +44,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         self.progressBar.setHidden(True)
         self.label_Excel.setText("")
-        
+
     def layout_proprio(self):
         try:
             cor_widget_cab(self.widget_cabecalho)
@@ -90,7 +90,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-            
+
     def layout_tabela_previsao(self, nome_tabela):
         try:
             layout_cabec_tab(nome_tabela)
@@ -1154,7 +1154,10 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                         else:
                             total_itens = 0
 
-                        porcentagem = ((total_itens - contagem_int) / total_itens) * 100
+                        if total_itens:
+                            porcentagem = ((total_itens - contagem_int) / total_itens) * 100
+                        else:
+                            porcentagem = 0
 
                         porc_int = int(porcentagem)
 
@@ -1236,7 +1239,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                     edita_alinhamento(cell)
 
             for linha in planilha.iter_rows(min_row=1, max_row=planilha.max_row, min_col=1,
-                                                     max_col=planilha.max_column):
+                                            max_col=planilha.max_column):
                 for cell in linha:
                     edita_bordas(cell)
                     edita_alinhamento(cell)
@@ -1255,7 +1258,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                 ajusta_larg_coluna(planilha, coluna, adjusted_width)
 
             for linha in planilha.iter_rows(min_row=2, max_row=planilha.max_row, min_col=7,
-                                                     max_col=9):
+                                            max_col=9):
                 for cell in linha:
                     cell.number_format = '0.00'
 
@@ -1303,8 +1306,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
                     planilha.append([nivius, codigu, descr, ref, um, qtde_e, tipo, grade])
 
-                for row in planilha.iter_rows(min_row=1, max_row=planilha.max_row, min_col=1, 
-                                                      max_col=planilha.max_column):
+                for row in planilha.iter_rows(min_row=1, max_row=planilha.max_row, min_col=1,
+                                              max_col=planilha.max_column):
                     for cell in row:
                         edita_bordas(cell)
                         edita_alinhamento(cell)

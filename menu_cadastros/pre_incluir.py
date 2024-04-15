@@ -280,7 +280,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             descr_compl = self.line_DescrCompl.text()
             if descr_compl:
-                descr_c_certo = remover_acentos(descr.upper())
+                descr_c_certo = remover_acentos(descr_compl.upper())
             else:
                 descr_c_certo = ""
 

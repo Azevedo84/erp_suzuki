@@ -11,6 +11,7 @@ import inspect
 import socket
 from threading import Thread
 import getpass
+import subprocess
 
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
@@ -20,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.0.000"
-        self.data_versao = f"12/04/2024"
+        self.versao = f"Versão 2.00.001"
+        self.data_versao = f"15/04/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -78,6 +79,9 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         cor_fonte(self.label_DataVersao)
 
         Thread(target=self.funcao_macro_tred).start()
+
+        self.ultima_versao()
+        self.salva_versao()
 
     def tamanho_aplicacao(self):
         try:
@@ -292,8 +296,6 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
     def funcao_macro_tred(self):
         try:
             self.envia_email()
-            self.ultima_versao()
-            self.salva_versao()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -389,8 +391,6 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             dados = cursor.fetchall()
             version = dados[0]
             versao_banco = version[0]
-            print("versão app", versao_app)
-            print("versão banco", versao_banco)
 
             resultado_comparacao = self.comparar_versoes(versao_app, versao_banco)
             if resultado_comparacao < 0:
@@ -447,8 +447,6 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
     def chama_tela_atualizar(self):
         try:
-            import subprocess
-
             caminho_exe = r'\\PUBLICO\Python\atualizador\atualizador.exe'
             try:
                 subprocess.run(caminho_exe, check=True)
