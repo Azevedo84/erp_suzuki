@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Status Vendas</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -178,7 +178,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_8">
                  <property name="spacing">
@@ -569,7 +569,7 @@
            <item>
             <widget class="QWidget" name="widget_Cor2" native="true">
              <property name="styleSheet">
-              <string notr="true"/>
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_4">
               <property name="leftMargin">
@@ -780,7 +780,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_9">
                  <property name="spacing">
@@ -1171,7 +1171,7 @@
            <item>
             <widget class="QWidget" name="widget_Cor4" native="true">
              <property name="styleSheet">
-              <string notr="true"/>
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <property name="leftMargin">

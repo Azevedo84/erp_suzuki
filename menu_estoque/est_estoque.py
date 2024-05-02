@@ -82,12 +82,12 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
     def atualizartabela(self):
         try:
             self.table_Estoque.setRowCount(0)
-    
+
             almox = self.check_Almox.isChecked()
             obsoleto = self.check_Obsoleto.isChecked()
-    
+
             nomes_colunas = ['CÓD.', 'DESCRIÇÃO', 'REFERÊNCIA', 'UM']
-    
+
             if not almox and not obsoleto:
                 mensagem_alerta(f'Deve ter no mínimo um local de estoque selecionado!')
             else:
@@ -95,20 +95,20 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                     nomes_colunas.append('ALMOX')
                     nomes_colunas.append('OBSOLETO')
                     self.manipula_dados_acinplas()
-    
+
                 elif almox and not obsoleto:
                     nomes_colunas.append('ALMOX')
                     self.manipula_dados_so_almox()
-    
+
                 elif not almox and obsoleto:
                     nomes_colunas.append('OBSOLETO')
                     self.manipula_dados_so_obsoleto()
-    
+
                 nomes_colunas.extend(['TOTAL'])
-    
+
                 self.table_Estoque.setColumnCount(len(nomes_colunas))
                 self.table_Estoque.setHorizontalHeaderLabels(nomes_colunas)
-            
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
@@ -192,7 +192,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                 saldos_atualizados = [produto for produto in saldos_atualizados if produto[6] != 0]
                 saldos_atualizados_ordenados = sorted(saldos_atualizados, key=lambda x: x[1])
 
-                lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados, edita_largura=False)
+                lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -263,7 +263,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                     saldos_atualizados = [produto for produto in saldos_atualizados if produto[5] != 0]
                     saldos_atualizados_ordenados = sorted(saldos_atualizados, key=lambda x: x[1])
 
-                    lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados, edita_largura=False)
+                    lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -334,7 +334,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                     saldos_atualizados = [produto for produto in saldos_atualizados if produto[5] != 0]
                     saldos_atualizados_ordenados = sorted(saldos_atualizados, key=lambda x: x[1])
 
-                    lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados, edita_largura=False)
+                    lanca_tabela(self.table_Estoque, saldos_atualizados_ordenados)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -438,7 +438,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                 workbook.save(caminho)
 
                 mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
-                                                            f'criado com sucesso!!')
+                                f'criado com sucesso!!')
 
                 self.table_Estoque.setRowCount(0)
 
@@ -511,7 +511,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
             workbook.save(caminho)
 
             mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
-                                                        f'criado com sucesso!!')
+                            f'criado com sucesso!!')
 
             self.table_Estoque.setRowCount(0)
 

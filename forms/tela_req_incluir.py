@@ -926,7 +926,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Incluir Requisição"))
         self.label_3.setText(_translate("MainWindow", "Nº Requisição: "))
         self.label_17.setText(_translate("MainWindow", "Incluir Requisição"))
         self.label_11.setText(_translate("MainWindow", "Data Requisição: "))

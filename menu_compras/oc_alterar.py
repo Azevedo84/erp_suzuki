@@ -459,7 +459,7 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
 
             if erros == 0:
                 if tabela:
-                    lanca_tabela(self.table_Produtos, tabela)
+                    lanca_tabela(self.table_Produtos, tabela, zebra=False)
 
                     self.bloqueios_tabela_produtos(tabela)
                     self.atualiza_valor_total()
@@ -893,7 +893,7 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
             if not ja_existe:
                 extrai_produtos.append(dados)
                 if extrai_produtos:
-                    lanca_tabela(self.table_Produtos, extrai_produtos)
+                    lanca_tabela(self.table_Produtos, extrai_produtos, zebra=False)
 
                 self.bloqueios_tabela_produtos(extrai_produtos)
                 self.atualiza_valor_total()
@@ -956,10 +956,6 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
                 item.setFlags(QtCore.Qt.ItemIsEnabled)
                 self.table_Produtos.setItem(index, 8, item)
 
-                item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][9]))
-                item.setFlags(QtCore.Qt.ItemIsEnabled)
-                self.table_Produtos.setItem(index, 9, item)
-
                 item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][10]))
                 item.setFlags(QtCore.Qt.ItemIsEnabled)
                 self.table_Produtos.setItem(index, 10, item)
@@ -974,12 +970,6 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
     def pinta_tabela(self):
         try:
             dados_tabela = extrair_tabela(self.table_Produtos)
-
-            for row in range(self.table_Produtos.rowCount()):
-                if row % 2 == 0:
-                    for col in range(self.table_Produtos.columnCount()):
-                        item = self.table_Produtos.item(row, col)
-                        item.setBackground(QColor(220, 220, 220))
 
             for index, dados in enumerate(dados_tabela):
                 id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega, qtde_nf = dados

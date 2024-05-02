@@ -209,7 +209,7 @@
                 </size>
                </property>
                <property name="styleSheet">
-                <string notr="true"/>
+                <string notr="true">background-color: rgb(182, 182, 182);</string>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_8">
                 <property name="spacing">
@@ -952,7 +952,7 @@
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">background-color: rgb(182, 182, 182);</string>
             </property>
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <property name="spacing">
@@ -1086,7 +1086,7 @@
        <item>
         <widget class="QWidget" name="widget_Cor3" native="true">
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">background-color: rgb(182, 182, 182);</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
           <property name="leftMargin">

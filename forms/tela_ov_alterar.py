@@ -1079,7 +1079,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Incluir Pedido Externo (OC)"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Alterar Pedido Externo (OV)"))
         self.label_5.setText(_translate("MainWindow", "Nº OV:"))
         self.label_13.setText(_translate("MainWindow", "Editar Ordem de Venda"))
         self.label_Status.setText(_translate("MainWindow", "Status"))

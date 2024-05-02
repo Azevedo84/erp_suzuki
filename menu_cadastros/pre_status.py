@@ -67,7 +67,7 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_Produto, tabela, edita_largura=False)
+                lanca_tabela(self.table_Produto, tabela)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

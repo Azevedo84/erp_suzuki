@@ -25,7 +25,7 @@ def layout_cabec_tab(nome_tabela):
         tratar_notificar_erros(e, nome_funcao, nome_arquivo)
 
 
-def lanca_tabela(nome_tabela, dados_tab, altura_linha=25, zebra=True, edita_largura=True, bloqueia_texto=True):
+def lanca_tabela(nome_tabela, dados_tab, altura_linha=25, zebra=True, largura_auto=True, bloqueia_texto=True):
     try:
         linhas_est = (len(dados_tab))
         colunas_est = (len(dados_tab[0]))
@@ -41,6 +41,9 @@ def lanca_tabela(nome_tabela, dados_tab, altura_linha=25, zebra=True, edita_larg
         nome_tabela.setSelectionBehavior(QAbstractItemView.SelectRows)
         nome_tabela.setSelectionBehavior(QAbstractItemView.SelectRows)
 
+        if largura_auto:
+            nome_tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
         if bloqueia_texto:
             nome_tabela.setEditTriggers(QTableWidget.NoEditTriggers)
 
@@ -50,9 +53,6 @@ def lanca_tabela(nome_tabela, dados_tab, altura_linha=25, zebra=True, edita_larg
                     for col in range(nome_tabela.columnCount()):
                         item = nome_tabela.item(row, col)
                         item.setBackground(QColor(220, 220, 220))
-
-        if not edita_largura:
-            nome_tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     except Exception as e:
         nome_funcao = inspect.currentframe().f_code.co_name

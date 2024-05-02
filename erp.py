@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.00.001"
-        self.data_versao = f"15/04/2024"
+        self.versao = f"Versão 2.00.002"
+        self.data_versao = f"30/04/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)

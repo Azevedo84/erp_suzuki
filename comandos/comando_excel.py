@@ -92,9 +92,9 @@ def edita_preenchimento(cell):
         tratar_notificar_erros(e, nome_funcao, nome_arquivo)
 
 
-def edita_fonte(cell, tamanho=10, negrito=False):
+def edita_fonte(cell, nome_fonte='Calibri', tamanho=10, negrito=False):
     try:
-        cell.font = Font(size=tamanho, bold=negrito)
+        cell.font = Font(name=nome_fonte, size=tamanho, bold=negrito)
 
     except Exception as e:
         nome_funcao = inspect.currentframe().f_code.co_name

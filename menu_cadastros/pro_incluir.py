@@ -42,7 +42,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
         self.lanca_combo_tipo()
         self.lanca_combo_projeto()
         self.data_emissao()
-        
+
     def layout_proprio(self):
         try:
             cor_widget_cab(self.widget_cabecalho)
@@ -108,7 +108,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
     def remover_acentos(self, string):
         try:
             return unidecode(string)
-        
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
@@ -117,9 +117,9 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
         try:
             padrao = re.compile(r'^D \d{2}\.\d{2}\.\d{3}\.\d{2}$')
             correspondencia = padrao.match(referencia)
-    
+
             return correspondencia
-        
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
@@ -130,14 +130,14 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 string_final = string.rstrip()
             else:
                 string_final = string
-    
+
             if string_final.startswith(' '):
                 string_final1 = string_final.lstrip()
             else:
                 string_final1 = string_final.lstrip()
-    
+
             return string_final1
-        
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
@@ -277,6 +277,8 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             if (event.type() == QtCore.QEvent.MouseButtonDblClick and
                     event.buttons() == QtCore.Qt.LeftButton and
                     source is qtable_widget.viewport()):
+
+                self.label_Fornecedor.setText("")
 
                 self.limpa_dados_produto()
 
@@ -475,11 +477,32 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                     if "82 - REAL CENTER" in tip_text:
                         self.combo_Tipo.setCurrentText(tip_text)
 
+            elif prim_palavra == "CONTATOR":
+                tip_count = self.combo_Tipo.count()
+                for i_tip in range(tip_count):
+                    tip_text = self.combo_Tipo.itemText(i_tip)
+                    if "82 - REAL CENTER" in tip_text:
+                        self.combo_Tipo.setCurrentText(tip_text)
+
+            elif prim_palavra == "BOTAO":
+                tip_count = self.combo_Tipo.count()
+                for i_tip in range(tip_count):
+                    tip_text = self.combo_Tipo.itemText(i_tip)
+                    if "82 - REAL CENTER" in tip_text:
+                        self.combo_Tipo.setCurrentText(tip_text)
+
             elif prim_palavra == "RELE":
                 tip_count = self.combo_Tipo.count()
                 for i_tip in range(tip_count):
                     tip_text = self.combo_Tipo.itemText(i_tip)
                     if "82 - REAL CENTER" in tip_text:
+                        self.combo_Tipo.setCurrentText(tip_text)
+
+            elif prim_palavra == "RESISTENCIA":
+                tip_count = self.combo_Tipo.count()
+                for i_tip in range(tip_count):
+                    tip_text = self.combo_Tipo.itemText(i_tip)
+                    if "109 - RESIMAC" in tip_text:
                         self.combo_Tipo.setCurrentText(tip_text)
 
         except Exception as e:

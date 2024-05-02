@@ -490,7 +490,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 tipo_material.append(tete)
 
             if tipo_material:
-                lanca_tabela(self.table_Tipos, tipo_material, edita_largura=False)
+                lanca_tabela(self.table_Tipos, tipo_material)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -509,7 +509,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                            f"ORDER BY prodreq.mestre;")
             extrair_sol_t = cursor.fetchall()
             if extrair_sol_t:
-                lanca_tabela(self.table_SemTipo, extrair_sol_t, edita_largura=False)
+                lanca_tabela(self.table_SemTipo, extrair_sol_t)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -545,7 +545,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 tabela_nova.append(dadus)
 
             if tabela_nova:
-                lanca_tabela(self.table_Orcamento, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_Orcamento, tabela_nova)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -625,7 +625,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             if dados_tabela:
                 lista_de_listas_ordenada = sorted(dados_tabela, key=lambda x: x[2])
 
-                lanca_tabela(self.table_Requisicao, lista_de_listas_ordenada, edita_largura=False, bloqueia_texto=False)
+                lanca_tabela(self.table_Requisicao, lista_de_listas_ordenada, bloqueia_texto=False)
                 self.soma_total_req()
                 self.pinta_tabela_req()
                 self.define_maq_motivo()
@@ -1107,7 +1107,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 if not dados_tabela:
                     self.table_Requisicao.setRowCount(0)
                 else:
-                    lanca_tabela(self.table_Requisicao, dados_tabela, edita_largura=False, bloqueia_texto=False)
+                    lanca_tabela(self.table_Requisicao, dados_tabela, bloqueia_texto=False)
                     self.soma_total_req()
                     self.pinta_tabela_req()
                     self.define_maq_motivo()

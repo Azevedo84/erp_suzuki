@@ -324,7 +324,7 @@ class TelaPiAlterar(QMainWindow, Ui_MainWindow):
 
                     tabela_nova.append(dados)
             if tabela_nova:
-                lanca_tabela(self.table_PI, tabela_nova)
+                lanca_tabela(self.table_PI, tabela_nova, zebra=False)
                 self.pintar_tabela_pi()
 
         except Exception as e:
@@ -588,7 +588,7 @@ class TelaPiAlterar(QMainWindow, Ui_MainWindow):
                 extrai_estrutura.append(dados1)
 
                 if extrai_estrutura:
-                    lanca_tabela(self.table_PI, extrai_estrutura)
+                    lanca_tabela(self.table_PI, extrai_estrutura, zebra=False)
                     self.pintar_tabela_pi()
 
             else:

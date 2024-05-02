@@ -1,16 +1,16 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela
 from comandos.comando_cores import cor_verde_claro, cor_vermelho, cor_cinza_claro, cor_vermelho_claro
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from forms.tela_op_status import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
 from datetime import date, timedelta
 import inspect
 import os
+import traceback
 
 
 class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
@@ -18,7 +18,6 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
@@ -27,7 +26,7 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
         self.layout_tabela_op(self.table_OP)
         self.layout_tabela_estrutura(self.table_Estrutura)
         self.layout_tabela_consumo(self.table_Consumo)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
 
         self.btn_Consultar.clicked.connect(self.define_filtros)
         self.line_Codigo.editingFinished.connect(self.manual_verifica_line_codigo)
@@ -40,68 +39,33 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
         self.qtde_vezes_select = 0
 
         self.definir_datas()
-        
-    def layout_proprio(self):
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
-            cor_widget(self.widget_Cor8)
-
-            cor_fonte(self.label)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_27)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_Status)
-            cor_fonte(self.label_10)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_56)
-            cor_fonte(self.label_51)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_62)
-            cor_fonte(self.label_65)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_67)
-            cor_fonte(self.label_68)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
-
-            cor_fonte(self.check_Aberto)
-            cor_fonte(self.check_Baixado)
-            cor_fonte(self.check_Emissao)
-            cor_fonte(self.check_Entrega)
-            cor_fonte(self.check_0_Consumo)
-            cor_fonte(self.check_Todo_Consumo)
-
-            cor_btn(self.btn_Consultar)
-            cor_btn(self.btn_Consultar1)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_op(self, nome_tabela):
         try:
@@ -120,7 +84,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_estrutura(self, nome_tabela):
         try:
@@ -136,7 +101,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_consumo(self, nome_tabela):
         try:
@@ -151,7 +117,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def definir_datas(self):
         try:
@@ -165,7 +132,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def pintar_tabela(self):
         try:
@@ -228,7 +196,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manual_verifica_line_codigo(self):
         if not self.processando:
@@ -237,17 +206,18 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
                 codigo_produto = self.line_Codigo.text()
                 if len(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio')
                     self.line_Codigo.clear()
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"')
                     self.line_Codigo.clear()
                 else:
                     self.manual_verifica_sql_produto()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -260,14 +230,15 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo.clear()
             else:
                 self.manual_verifica_materia_prima()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manual_verifica_materia_prima(self):
         try:
@@ -283,11 +254,12 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
             if conjunto == 10:
                 self.manual_lanca_dados_produto()
             else:
-                mensagem_alerta("Este produto não está definido como produto acabado!")
+                self.mensagem_alerta("Este produto não está definido como produto acabado!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manual_lanca_dados_produto(self):
         try:
@@ -306,7 +278,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_tudo_tela1(self):
         try:
@@ -319,7 +292,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def conversao_manipula_dados(self, op_abertas):
         try:
@@ -380,11 +354,12 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                 lanca_tabela(self.table_OP, op_ab_editado)
 
             else:
-                mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
+                self.mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def define_filtros(self):
         try:
@@ -446,7 +421,7 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                 self.manipula_codigo_e_fechado()
             elif not emi and not ent and aber and baix and cod and not cem and not zero:
                 print("só código e aberto e baixado")
-
+                self.manipula_codigo_e_aberto_e_fechado()
             elif not emi and not ent and aber and not baix and not cod and cem and not zero:
                 print("só 100 e aberto")
                 self.manipula_cem_e_aberto()
@@ -466,7 +441,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_aberto(self):
         try:
@@ -484,7 +460,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_emissao(self):
         try:
@@ -505,7 +482,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_emissao_e_aberto(self):
         try:
@@ -526,7 +504,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_emissao_e_baixado(self):
         try:
@@ -547,7 +526,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_entrega(self):
         try:
@@ -568,7 +548,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_entrega_e_aberto(self):
         try:
@@ -589,7 +570,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_entrega_e_baixado(self):
         try:
@@ -610,7 +592,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_codigo(self):
         try:
@@ -630,7 +613,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_codigo_e_aberto(self):
         try:
@@ -650,7 +634,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_codigo_e_fechado(self):
         try:
@@ -670,7 +655,30 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def manipula_codigo_e_aberto_e_fechado(self):
+        try:
+            cod = self.line_Codigo.text()
+
+            cursor = conecta.cursor()
+            cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, "
+                           f"prod.codigo, prod.descricao, "
+                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                           f"ordser.quantidade, ordser.status "
+                           f"from ordemservico as ordser "
+                           f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                           f"where prod.codigo = {cod} "
+                           f"order by ordser.numero;")
+            op_abertas = cursor.fetchall()
+
+            self.conversao_manipula_dados(op_abertas)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_cem_e_aberto(self):
         try:
@@ -743,14 +751,15 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                 if op_ab_editado:
                     lanca_tabela(self.table_OP, op_ab_editado)
                 else:
-                    mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
+                    self.mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
 
             else:
-                mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
+                self.mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_zero_e_aberto(self):
         try:
@@ -822,14 +831,15 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                 if op_ab_editado:
                     lanca_tabela(self.table_OP, op_ab_editado)
                 else:
-                    mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
+                    self.mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
 
             else:
-                mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
+                self.mensagem_alerta("Não foi encontrado nenhum resultado para esta pesquisa")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_tudo_tela2(self):
         try:
@@ -843,7 +853,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_verifica_num_op(self):
         if not self.processando:
@@ -853,17 +864,18 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                 id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs = self.tela2_dados_op()
 
                 if not num_op:
-                    mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
                     self.reiniciar()
                 elif int(num_op) == 0:
-                    mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
                     self.reiniciar()
                 else:
                     self.tela2_verifica_sql_op()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -877,14 +889,15 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                            f"FROM ordemservico where numero = {num_op};")
             extrair_dados = cursor.fetchall()
             if not extrair_dados:
-                mensagem_alerta('Este número de "OP" não existe!')
+                self.mensagem_alerta('Este número de "OP" não existe!')
 
             else:
                 self.tela2_verifica_vinculo_materia()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_verifica_vinculo_materia(self):
         try:
@@ -901,14 +914,15 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                     verifica_cadastro = verifica_cadastro + 1
 
             if verifica_cadastro > 0:
-                mensagem_alerta('O material consumido não está vinculado com a estrutura!')
+                self.mensagem_alerta('O material consumido não está vinculado com a estrutura!')
                 self.reiniciar()
             else:
                 self.tela2_verifica_dados_op()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_verifica_dados_op(self):
         try:
@@ -925,16 +939,16 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
                            f"where mestre = {produto_os} ORDER BY produto.descricao;")
             itens_select_estrut = cursor.fetchall()
             if not itens_select_estrut:
-                mensagem_alerta('Este material não tem estrutura cadastrada!')
+                self.mensagem_alerta('Este material não tem estrutura cadastrada!')
                 self.reiniciar()
             elif produto_os is None:
-                mensagem_alerta('Esta "OP" está sem código de produto!')
+                self.mensagem_alerta('Esta "OP" está sem código de produto!')
                 self.reiniciar()
             elif qtde_os is None:
-                mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             elif num_op is None:
-                mensagem_alerta('O número da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('O número da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             else:
                 self.tela2_lanca_dados_op()
@@ -943,7 +957,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_lanca_dados_op(self):
         try:
@@ -955,6 +970,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
             detalhes_produtos = cur.fetchall()
             codigo_id, descricao_id, referencia_id, unidade_id = detalhes_produtos[0]
 
+            self.date_Emissao3.setDate(data_emissao)
+
             self.line_Codigo_Manu.setText(codigo_id)
             self.line_Descricao_Manu.setText(descricao_id)
             self.line_Referencia_Manu.setText(referencia_id)
@@ -964,7 +981,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_dados_op(self):
         try:
@@ -979,7 +997,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_separar_dados_select(self):
         try:
@@ -1025,7 +1044,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_select_mistura(self):
         try:
@@ -1095,7 +1115,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_pintar_tabelas(self):
         try:
@@ -1121,7 +1142,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tela2_jutando_tabelas_extraidas(self):
         try:
@@ -1143,7 +1165,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def reiniciar(self):
         try:
@@ -1161,7 +1184,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

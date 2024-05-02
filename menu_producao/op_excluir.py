@@ -1,14 +1,14 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from forms.tela_op_excluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import datetime, date
 import inspect
 import os
+import traceback
 
 
 class TelaOpExcluir(QMainWindow, Ui_MainWindow):
@@ -16,14 +16,13 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
         self.layout_tabela(self.table_Lista)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
 
         self.table_Lista.viewport().installEventFilter(self)
 
@@ -34,36 +33,34 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
         self.btn_Limpar.clicked.connect(self.limpar_produto)
 
         self.define_tabela()
-        self.label_54.setFocus()
+        self.line_Num.setFocus()
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_10)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_34)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_60)
-            cor_fonte(self.label_61)
-            cor_fonte(self.label_62)
-
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Excluir)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela(self, nome_tabela):
         try:
@@ -81,7 +78,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_op(self):
         try:
@@ -89,22 +87,20 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
                 self.verificacao_em_andamento = True
 
                 num_op = self.line_Num.text()
-                if len(num_op) == 0:
-                    mensagem_alerta('O campo "Código" não pode estar vazio')
-                    self.line_Num.clear()
-                    self.limpar_produto()
-                elif int(num_op) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"')
-                    self.line_Num.clear()
-                    self.limpar_produto()
-                else:
-                    self.verifica_sql_op()
+                if num_op:
+                    if int(num_op) == 0:
+                        self.mensagem_alerta('O campo "Código" não pode ser "0"')
+                        self.line_Num.clear()
+                        self.limpar_produto()
+                    else:
+                        self.verifica_sql_op()
 
                 self.verificacao_em_andamento = False
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_sql_op(self):
         try:
@@ -116,7 +112,7 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
             select_numero = cursor.fetchall()
 
             if not select_numero:
-                mensagem_alerta('Este número de OP não existe!')
+                self.mensagem_alerta('Este número de OP não existe!')
                 self.line_Num.clear()
                 self.limpar_produto()
             else:
@@ -124,7 +120,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_status_op(self):
         try:
@@ -144,18 +141,19 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
                 if itens_consumo == 0:
                     self.lanca_dados_op()
                 else:
-                    mensagem_alerta(f'A OP {num_op} tem material consumido e '
+                    self.mensagem_alerta(f'A OP {num_op} tem material consumido e '
                                                                 f'não pode ser excluída!')
                     self.line_Num.clear()
 
             else:
-                mensagem_alerta('Esta OP está encerrada!')
+                self.mensagem_alerta('Esta OP está encerrada!')
                 self.line_Num.clear()
                 self.limpar_produto()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_op(self):
         try:
@@ -179,7 +177,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def eventFilter(self, source, event):
         try:
@@ -207,14 +206,15 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
                     self.line_UM.setText(um)
                     self.line_Qtde.setText(qtde)
                 else:
-                    mensagem_alerta(f'A OP {op} tem material consumido e '
+                    self.mensagem_alerta(f'A OP {op} tem material consumido e '
                                                                 f'não pdoe ser excluída!')
 
             return super(QMainWindow, self).eventFilter(source, event)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def define_tabela(self):
         try:
@@ -267,7 +267,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpar_produto(self):
         try:
@@ -283,16 +284,17 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_salvamento(self):
         try:
             num_op = self.line_Num.text()
             if len(num_op) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Num.clear()
             elif int(num_op) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Num.clear()
             else:
                 cursor = conecta.cursor()
@@ -301,7 +303,7 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
                 select_numero = cursor.fetchall()
 
                 if not select_numero:
-                    mensagem_alerta('Este número de OP não existe!')
+                    self.mensagem_alerta('Este número de OP não existe!')
                     self.line_Num.clear()
                 else:
                     cursor = conecta.cursor()
@@ -318,17 +320,18 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
                         if itens_consumo == 0:
                             self.salvar_lista()
                         else:
-                            mensagem_alerta(f'A OP {num_op} tem material consumido e '
+                            self.mensagem_alerta(f'A OP {num_op} tem material consumido e '
                                                                         f'não pode ser excluída!')
                             self.line_Num.clear()
 
                     else:
-                        mensagem_alerta('Esta OP está encerrada!')
+                        self.mensagem_alerta('Esta OP está encerrada!')
                         self.line_Num.clear()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def salvar_lista(self):
         try:
@@ -338,12 +341,13 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
             cursor.execute(f"DELETE FROM ordemservico WHERE numero = {num_op};")
 
             conecta.commit()
-            mensagem_alerta(f'A OP {num_op} foi excluída com sucesso!')
+            self.mensagem_alerta(f'A OP {num_op} foi excluída com sucesso!')
             self.reinicia_tela()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def reinicia_tela(self):
         try:
@@ -360,7 +364,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

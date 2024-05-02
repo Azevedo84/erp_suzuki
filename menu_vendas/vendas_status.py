@@ -1,13 +1,13 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import lanca_tabela
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from forms.tela_vendas_status import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
+import traceback
 
 
 class TelaVendasStatus(QMainWindow, Ui_MainWindow):
@@ -15,56 +15,45 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_vendas.png")
         tamanho_aplicacao(self)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
 
         self.btn_Consultar_PI.clicked.connect(self.verifica_filtro_pi)
         self.dados_pi_aberto()
 
         self.btn_Consultar_OV.clicked.connect(self.verifica_filtro_ov)
         self.dados_ov_aberto()
-        
-    def layout_proprio(self):
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_56)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
-
-            cor_fonte(self.check_Aberto_PI)
-            cor_fonte(self.check_Aberto_OV)
-            cor_fonte(self.check_Baixado_OV)
-            cor_fonte(self.check_Baixado_PI)
-
-            cor_btn(self.btn_Consultar_PI)
-            cor_btn(self.btn_Consultar_OV)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_filtro_pi(self):
         try:
@@ -99,7 +88,7 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                 if aberto and baixado:
                     self.table_PI.setRowCount(0)
                     self.dados_pi_aberto()
-                    mensagem_alerta("Defina um cliente para filtrar os pedidos!")
+                    self.mensagem_alerta("Defina um cliente para filtrar os pedidos!")
                     self.combo_Cliente_PI.setFocus()
                     self.check_Aberto_PI.setChecked(True)
                     self.check_Baixado_PI.setChecked(False)
@@ -109,14 +98,15 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                 elif not aberto and baixado:
                     self.table_PI.setRowCount(0)
                     self.dados_pi_aberto()
-                    mensagem_alerta("Defina um cliente para filtrar os pedidos!")
+                    self.mensagem_alerta("Defina um cliente para filtrar os pedidos!")
                     self.combo_Cliente_PI.setFocus()
                     self.check_Aberto_PI.setChecked(True)
                     self.check_Baixado_PI.setChecked(False)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_pi_aberto(self):
         try:
@@ -143,11 +133,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     dados = (emi, num_pi, clie, cod, descr, ref, um, qtde, entreg, solic, num_req, pc, status, obs)
                     tabela_nova.append(dados)
             if tabela_nova:
-                lanca_tabela(self.table_PI, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_PI, tabela_nova)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_pi_baixado_com_cliente(self, id_cliente):
         try:
@@ -175,11 +166,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_PI, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_PI, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_pi_aberto_com_cliente(self, id_cliente):
         try:
@@ -207,11 +199,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_PI, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_PI, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_pi_todos_com_cliente(self, id_cliente):
         try:
@@ -239,11 +232,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_PI, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_PI, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_filtro_ov(self):
         try:
@@ -278,7 +272,7 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                 if aberto and baixado:
                     self.table_OV.setRowCount(0)
                     self.dados_ov_aberto()
-                    mensagem_alerta("Defina um cliente para filtrar os pedidos!")
+                    self.mensagem_alerta("Defina um cliente para filtrar os pedidos!")
                     self.combo_Cliente_OV.setFocus()
                     self.check_Aberto_OV.setChecked(True)
                     self.check_Baixado_OV.setChecked(False)
@@ -288,14 +282,15 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                 elif not aberto and baixado:
                     self.table_OV.setRowCount(0)
                     self.dados_ov_aberto()
-                    mensagem_alerta("Defina um cliente para filtrar os pedidos!")
+                    self.mensagem_alerta("Defina um cliente para filtrar os pedidos!")
                     self.combo_Cliente_OV.setFocus()
                     self.check_Aberto_OV.setChecked(True)
                     self.check_Baixado_OV.setChecked(False)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_ov_aberto(self):
         try:
@@ -325,11 +320,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     dados = (emi, num_ov, clie, cod, descr, ref, um, qtde, qtde_entr, nume_pi, num_req, obs)
                     tabela_nova.append(dados)
             if tabela_nova:
-                lanca_tabela(self.table_OV, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_OV, tabela_nova)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_ov_baixado_com_cliente(self, id_cliente):
         try:
@@ -360,11 +356,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_OV, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_OV, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_ov_aberto_com_cliente(self, id_cliente):
         try:
@@ -396,11 +393,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_OV, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_OV, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_ov_todos_com_cliente(self, id_cliente):
         try:
@@ -430,11 +428,12 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
-                lanca_tabela(self.table_OV, lista_de_listas_ordenada, edita_largura=False)
+                lanca_tabela(self.table_OV, lista_de_listas_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

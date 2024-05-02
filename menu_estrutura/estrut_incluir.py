@@ -1,16 +1,17 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, pergunta_confirmacao, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, limpa_tabela, layout_cabec_tab, excluir_item_tab
+from comandos.comando_notificacao import grava_erro_banco
+from comandos.comando_tabelas import extrair_tabela, lanca_tabela, limpa_tabela, layout_cabec_tab
 from comandos.comando_lines import validador_decimal, validador_inteiro
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from comandos.comando_conversoes import valores_para_float, valores_para_virgula
+from banco_dados.bc_consultas import Produto
 from forms.tela_estrut_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
 from functools import partial
+import traceback
 
 
 class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
@@ -18,14 +19,15 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_estrutura.png")
         tamanho_aplicacao(self)
         self.layout_tabela(self.table_Estrutura)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
+
+        self.tab_prod = Produto()
 
         self.definir_line_bloqueados()
 
@@ -38,7 +40,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         self.line_Tempo_Mao.editingFinished.connect(self.mascara_tempo_mao_de_obra)
 
         self.btn_ExcluirTudo.clicked.connect(partial(limpa_tabela, self.table_Estrutura))
-        self.btn_ExcluirItem.clicked.connect(partial(excluir_item_tab, self.table_Estrutura, "Estrutura"))
+        self.btn_ExcluirItem.clicked.connect(self.verifica_ops_consumidas)
         self.btn_Limpar.clicked.connect(self.limpar)
 
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
@@ -57,59 +59,56 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         self.widget_Terceiros.setHidden(True)
         self.widget_medida_peca.setHidden(True)
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Terceiros)
-            cor_widget(self.widget_MaoObra)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-
-            cor_fonte(self.label)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_26)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_38)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_56)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_60)
-            cor_fonte(self.label_61)
-            cor_fonte(self.label_62)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_67)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_70)
-            cor_fonte(self.label_71)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.check_Converte_Manu)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_Limpar)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def pergunta_confirmacao(self, mensagem):
+        try:
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
+
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela(self, nome_tabela):
         try:
@@ -125,7 +124,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_check_converter_kilos(self):
         try:
@@ -136,7 +136,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def definir_line_bloqueados(self):
         try:
@@ -155,7 +156,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_codigo_acabado(self):
         if not self.processando:
@@ -167,11 +169,11 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 codigo_produto = self.line_Codigo_Estrut.text()
 
                 if not codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.limpa_dados_produto_estrutura()
                     limpa_tabela(self.table_Estrutura)
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                     self.limpa_dados_produto_estrutura()
                     limpa_tabela(self.table_Estrutura)
                 else:
@@ -179,7 +181,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -192,7 +195,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_dados_produto_estrutura()
                 limpa_tabela(self.table_Estrutura)
                 self.line_Codigo_Estrut.clear()
@@ -201,14 +204,15 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 if conjunto == 10:
                     self.lanca_dados_acabado()
                 else:
-                    mensagem_alerta('Este produto não tem o conjunto classificado como "Produtos Acabados"!')
+                    self.mensagem_alerta('Este produto não tem o conjunto classificado como "Produtos Acabados"!')
                     self.limpa_dados_produto_estrutura()
                     limpa_tabela(self.table_Estrutura)
                     self.line_Codigo_Estrut.clear()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_acabado(self):
         try:
@@ -232,9 +236,9 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
             tipo_material = self.line_Tipo_Estrut.text()
 
             if not tipo_material:
-                mensagem_alerta('O campo "Tipo de Material" não pode estar vazio!\n\n'
-                                'Entre no cadastro de produtos e defina o Tipo de Material:\n'
-                                'Exemplos: CONJUNTO, USINAGEM, INDUSTRIALIZACAO')
+                self.mensagem_alerta('O campo "Tipo de Material" não pode estar vazio!\n\n'
+                                     'Entre no cadastro de produtos e defina o Tipo de Material:\n'
+                                     'Exemplos: CONJUNTO, USINAGEM, INDUSTRIALIZACAO')
                 self.limpa_dados_produto_estrutura()
                 limpa_tabela(self.table_Estrutura)
                 self.line_Codigo_Estrut.clear()
@@ -257,7 +261,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_dados_produto_estrutura(self):
         try:
@@ -269,7 +274,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_dados_mao_de_obra_servico(self):
         try:
@@ -280,7 +286,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_dados_manu(self):
         try:
@@ -297,7 +304,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_tudo(self):
         limpa_tabela(self.table_Estrutura)
@@ -339,7 +347,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_descricao_tempo_mao_de_obra(self, codigo):
         try:
@@ -359,7 +368,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def mascara_tempo_mao_de_obra(self):
         try:
@@ -378,7 +388,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_descricao_custo_servico(self, codigo):
         try:
@@ -394,7 +405,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_codigo_manual(self):
         if not self.processando:
@@ -405,20 +417,21 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 codigo_pai = self.line_Codigo_Estrut.text()
 
                 if not codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.line_Codigo_Manu.clear()
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                     self.line_Codigo_Manu.clear()
                 elif codigo_pai == codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode ser igual ao código da estrutura!')
+                    self.mensagem_alerta('O campo "Código" não pode ser igual ao código da estrutura!')
                     self.line_Codigo_Manu.clear()
                 else:
                     self.verifica_sql_produto_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -431,14 +444,15 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Manu.clear()
             else:
                 self.lanca_dados_produto_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -472,7 +486,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_medida_manual(self):
         if not self.processando:
@@ -496,12 +511,13 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                         self.line_Qtde_Manu.setText(qtde_final)
                         self.line_Qtde_Manu.setFocus()
                     else:
-                        mensagem_alerta('O cadastro do produto precisa ter a informação "KG/MT"!')
+                        self.mensagem_alerta('O cadastro do produto precisa ter a informação "KG/MT"!')
                         self.limpa_dados_manu()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -514,11 +530,11 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 qtdezinha = self.line_Qtde_Manu.text()
 
                 if len(qtdezinha) == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 elif qtdezinha == "0":
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 else:
@@ -526,7 +542,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -569,13 +586,14 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     lanca_tabela(self.table_Estrutura, extrai_estrutura)
 
             else:
-                mensagem_alerta("Este produto já foi adicionado a estrutura!")
+                self.mensagem_alerta("Este produto já foi adicionado a estrutura!")
 
             self.limpa_dados_manu()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpar(self):
         self.limpa_tudo()
@@ -587,17 +605,17 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
             codigo_produto = self.line_Codigo_Estrut.text()
 
             if not codigo_produto:
-                mensagem_alerta('O campo "Código" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                 self.limpa_dados_produto_estrutura()
                 limpa_tabela(self.table_Estrutura)
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"!')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                 self.limpa_dados_produto_estrutura()
                 limpa_tabela(self.table_Estrutura)
             else:
                 extrai_tabela = extrair_tabela(self.table_Estrutura)
                 if not extrai_tabela:
-                    if pergunta_confirmacao(f'A tabela "Estrutura" está vazia! Deseja mesmo continuar?'):
+                    if self.pergunta_confirmacao(f'A tabela "Estrutura" está vazia! Deseja mesmo continuar?'):
                         self.define_dados_salvamento(extrai_tabela)
                 else:
                     tipo_material = self.line_Tipo_Estrut.text()
@@ -606,7 +624,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                         descr_servico = self.line_Descricao_Servico.text()
 
                         if not descr_servico:
-                            mensagem_alerta('O campo "Descrição do Serviço" não pode estar vazio!')
+                            self.mensagem_alerta('O campo "Descrição do Serviço" não pode estar vazio!')
                         else:
                             self.define_dados_salvamento(extrai_tabela)
                     else:
@@ -614,13 +632,89 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                         tempo = self.line_Tempo_Mao.text()
 
                         if not descr_mao or not tempo:
-                            mensagem_alerta('Os campos "Descrição e Tempo de Serviço" não podem estar vazio!')
+                            self.mensagem_alerta('Os campos "Descrição e Tempo de Serviço" não podem estar vazio!')
                         else:
                             self.define_dados_salvamento(extrai_tabela)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def verifica_ops_consumidas(self):
+        try:
+            nome_tabela = self.table_Estrutura
+            cod_pai = self.line_Codigo_Estrut.text()
+            print(cod_pai)
+
+            dados_prod = self.tab_prod.consulta_por_codigo(cod_pai)
+            id_pai = dados_prod[0][0]
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Estrutura" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    dados_linha = []
+                    for coluna in range(nome_tabela.columnCount()):
+                        item = nome_tabela.item(linha_selecao, coluna)
+                        dados_linha.append(item.text() if item else "")
+                    cod_filho = dados_linha[0]
+
+                    if id_pai:
+                        cursor = conecta.cursor()
+                        cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
+                                       f"prod.descricao, "
+                                       f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                       f"ordser.quantidade "
+                                       f"from ordemservico as ordser "
+                                       f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                                       f"where ordser.status = 'A' AND prod.id = {id_pai} "
+                                       f"order by ordser.numero;")
+                        op_abertas = cursor.fetchall()
+
+                        if op_abertas:
+                            for i in op_abertas:
+                                num_op = i[2]
+                                id_produto = i[3]
+
+                                cursor = conecta.cursor()
+                                cursor.execute(f"SELECT mat.id, prod.codigo, prod.descricao, "
+                                               f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                               f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                                               f"(mat.quantidade)) AS Qtde, "
+                                               f"COALESCE(prod.localizacao, ''), prod.quantidade "
+                                               f"FROM materiaprima as mat "
+                                               f"INNER JOIN produto as prod ON mat.produto = prod.id "
+                                               f"where mat.mestre = {id_produto} and prod.codigo = {cod_filho} "
+                                               f"ORDER BY prod.descricao;")
+                                select_estrut = cursor.fetchall()
+                                if select_estrut:
+                                    for dados_estrut in select_estrut:
+                                        id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
+
+                                        cursor = conecta.cursor()
+                                        cursor.execute(f"SELECT max(mat.id), max(prod.codigo), max(prod.descricao), "
+                                                       f"sum(p_op.qtde_materia)as total "
+                                                       f"FROM materiaprima as mat "
+                                                       f"INNER JOIN produto as prod ON mat.produto = prod.id "
+                                                       f"INNER JOIN produtoos as p_op ON mat.id = p_op.id_materia "
+                                                       f"where mat.mestre = {id_produto} "
+                                                       f"and p_op.numero = {num_op} and mat.id = {id_mat_e} "
+                                                       f"group by p_op.id_materia;")
+                                        select_os_resumo = cursor.fetchall()
+
+                                        if not select_os_resumo:
+                                            nome_tabela.removeRow(linha_selecao)
+                                        else:
+                                            self.mensagem_alerta(f"O produto {cod_filho} está sendo consumido em OP "
+                                                                 f"e não pode ser excluído!")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def define_dados_salvamento(self, extrai_tabela):
         try:
@@ -675,8 +769,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 descr = self.line_Descricao_Estrut.text()
 
                 if reg_a_inserir or reg_atualizados or reg_a_excluir:
-                    mensagem_alerta(f'O produto {descr}\ntem ordens de produção (OP) encerradas e a '
-                                    f'estrutura não pode ser editada!')
+                    self.mensagem_alerta(f'O produto {descr}\ntem ordens de produção (OP) encerradas e a '
+                                         f'estrutura não pode ser editada!')
                 self.salvar_dados_sem_produtos(idez)
 
                 self.limpa_tudo()
@@ -686,7 +780,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def salvar_dados_com_produtos(self, mestre, insert, update, delete):
         try:
@@ -708,6 +803,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                                    f"values (GEN_ID(GEN_MATERIAPRIMA_ID,1), "
                                    f"{mestre}, {qtde_ins}, {idez_ins}, {cod_ins});")
                     conecta.commit()
+
             if update:
                 for item_update in update:
                     cod_up = item_update[0]
@@ -717,6 +813,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     cursor.execute(f"UPDATE materiaprima SET quantidade = '{qtde_up}' "
                                    f"where mestre = {mestre} and codigo = {cod_up};")
                     conecta.commit()
+
             if delete:
                 for cod_delete in delete:
                     cursor = conecta.cursor()
@@ -765,7 +862,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 conecta.commit()
 
             if insert or update or delete or tips_mat or obis:
-                mensagem_alerta(f"Estrutura do produto {descr} salvo com Sucesso!!")
+                self.mensagem_alerta(f"Estrutura do produto {descr} salvo com Sucesso!!")
 
                 self.limpa_tudo()
                 self.line_Codigo_Estrut.clear()
@@ -774,7 +871,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def salvar_dados_sem_produtos(self, mestre):
         try:
@@ -822,7 +920,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                 conecta.commit()
 
             if tips_mat or obis:
-                mensagem_alerta(f"Cadastro do produto {descr} foi atualizado com Sucesso!!")
+                self.mensagem_alerta(f"Cadastro do produto {descr} foi atualizado com Sucesso!!")
 
                 self.limpa_tudo()
                 self.line_Codigo_Estrut.clear()
@@ -831,7 +929,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

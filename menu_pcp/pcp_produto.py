@@ -40,7 +40,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
         self.processando = False
 
         self.definir_line_bloqueados()
-        
+
     def layout_proprio(self):
         try:
             cor_widget_cab(self.widget_cabecalho)
@@ -301,7 +301,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                         f"where sald.produto_id = {id_prod} order by loc.nome;")
             detalhes_saldos = cur.fetchall()
             if detalhes_saldos:
-                lanca_tabela(self.table_Estoque, detalhes_saldos, edita_largura=False)
+                lanca_tabela(self.table_Estoque, detalhes_saldos)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -367,7 +367,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                     op_ab_editado.append(dados)
 
                 if op_ab_editado:
-                    lanca_tabela(self.table_Producao, op_ab_editado, edita_largura=False)
+                    lanca_tabela(self.table_Producao, op_ab_editado)
                     self.widget_Producao.setStyleSheet(f"background-color: {cor_verde};")
                 else:
                     self.widget_Producao.setStyleSheet(f"background-color: {widgets};")
@@ -408,7 +408,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                     nova_tabela.append(dados)
 
             if nova_tabela:
-                lanca_tabela(self.table_Estrutura, nova_tabela, edita_largura=False)
+                lanca_tabela(self.table_Estrutura, nova_tabela)
                 self.widget_Estrutura.setStyleSheet(f"background-color: {widgets};")
 
             else:
@@ -449,7 +449,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
             if planilha_nova:
                 planilha_nova_ordenada = sorted(planilha_nova, key=lambda x: x[1])
 
-                lanca_tabela(self.table_Usado, planilha_nova_ordenada, edita_largura=False)
+                lanca_tabela(self.table_Usado, planilha_nova_ordenada)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -626,7 +626,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                     data = f'{emis.day}/{emis.month}/{emis.year}'
                     didis = (data, oper_e, op_e, qtde_e, oper_s, op_s, qtde_s, soli, loc_)
                     tabela_nova2.append(didis)
-                lanca_tabela(self.table_Mov, tabela_nova2, edita_largura=False)
+                lanca_tabela(self.table_Mov, tabela_nova2)
                 self.table_Mov.scrollToBottom()
 
         except Exception as e:
@@ -680,7 +680,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dados)
 
             if tabela_nova:
-                lanca_tabela(self.table_Venda, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_Venda, tabela_nova)
                 self.widget_Vendas.setStyleSheet(f"background-color: {cor_verde};")
             else:
                 self.widget_Vendas.setStyleSheet(f"background-color: {widgets};")
@@ -764,7 +764,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
                     tabela_nova.append(dedos_oc)
 
             if tabela_nova:
-                lanca_tabela(self.table_Compra, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_Compra, tabela_nova)
                 self.widget_Compras.setStyleSheet(f"background-color: {cor_verde};")
             else:
                 self.widget_Compras.setStyleSheet(f"background-color: {widgets};")
@@ -841,7 +841,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
             self.label_Op_Nec.setText("")
 
             if tabela_nova:
-                lanca_tabela(self.table_Consumo, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_Consumo, tabela_nova)
                 if qtde_necessidade > 0:
                     arred = round(qtde_necessidade, 2)
                     msg = f"Nec. {arred}"

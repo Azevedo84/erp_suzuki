@@ -1,18 +1,18 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.comando_cores import cor_cinza_claro, cor_vermelho, cor_branco
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from comandos.comando_telas import cor_fundo_tela
 from forms.tela_op_consumir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut, QMessageBox
+from PyQt5.QtGui import QColor, QFont, QKeySequence
 from PyQt5.QtCore import Qt
 from datetime import date, datetime
 import inspect
 import os
+import traceback
 
 
 class TelaOpConsumir(QMainWindow, Ui_MainWindow):
@@ -20,7 +20,6 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
@@ -32,7 +31,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
         tamanho_aplicacao(self)
         self.layout_tabela_estrutura(self.table_Estrutura)
         self.layout_tabela_consumo(self.table_ConsumoOS)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
 
         self.tab_shortcut = QShortcut(QKeySequence(Qt.Key_Tab), self)
         self.tab_shortcut.activated.connect(self.manipula_tab)
@@ -91,77 +90,50 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         self.op_encerra = []
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-
-            cor_fonte(self.label)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_17)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_27)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_Emissao)
-            cor_fonte(self.label_imagem)
-            cor_fonte(self.label_10)
-            cor_fonte(self.label_26)
-            cor_fonte(self.label_21)
-            cor_fonte(self.label_29)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_38)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_36)
-            cor_fonte(self.label_33)
-            cor_fonte(self.label_32)
-            cor_fonte(self.label_31)
-            cor_fonte(self.label_35)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Consome_Manu)
-            cor_btn(self.btn_Consome_Subs)
-            cor_btn(self.btn_Excluir_Item)
-            cor_btn(self.btn_ConsumoTodos)
-            cor_btn(self.btn_Define_Substituto)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_estrutura(self, nome_tabela):
         try:
             layout_cabec_tab(nome_tabela)
 
-            nome_tabela.setColumnWidth(0, 43)
-            nome_tabela.setColumnWidth(1, 42)
-            nome_tabela.setColumnWidth(2, 220)
-            nome_tabela.setColumnWidth(3, 110)
-            nome_tabela.setColumnWidth(4, 35)
+            nome_tabela.setColumnWidth(0, 42)
+            nome_tabela.setColumnWidth(1, 41)
+            nome_tabela.setColumnWidth(2, 210)
+            nome_tabela.setColumnWidth(3, 95)
+            nome_tabela.setColumnWidth(4, 30)
             nome_tabela.setColumnWidth(5, 55)
             nome_tabela.setColumnWidth(6, 70)
-            nome_tabela.setColumnWidth(7, 55)
+            nome_tabela.setColumnWidth(7, 52)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_consumo(self, nome_tabela):
         try:
@@ -177,7 +149,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_tab(self):
         try:
@@ -198,32 +171,24 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def remove_layout_substituto(self):
         try:
-            self.label_29.setHidden(True)
-            self.widget_12.setHidden(True)
-            self.widget_18.setHidden(True)
-            self.widget_19.setHidden(True)
-            self.widget_20.setHidden(True)
-            self.widget_21.setHidden(True)
+            self.widget_Subs.setHidden(True)
 
             self.btn_Consome_Subs.setHidden(True)
             self.label_imagem.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def adiciona_layout_substituto(self):
         try:
-            self.label_29.setHidden(False)
-            self.widget_12.setHidden(False)
-            self.widget_18.setHidden(False)
-            self.widget_19.setHidden(False)
-            self.widget_20.setHidden(False)
-            self.widget_21.setHidden(False)
+            self.widget_Subs.setHidden(False)
 
             self.btn_Consome_Subs.setEnabled(False)
             self.btn_Consome_Manu.setHidden(True)
@@ -232,7 +197,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_linenumero_os(self):
         try:
@@ -249,17 +215,18 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             self.line_Qtde_Manu.clear()
             numero_os_line = self.line_Num_OP.text()
             if len(numero_os_line) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
                 self.reiniciar()
             elif int(numero_os_line) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
                 self.reiniciar()
             else:
                 self.verifica_sql_os()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_sql_os(self):
         try:
@@ -269,7 +236,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                            f"FROM ordemservico where numero = {numero_os_line};")
             extrair_dados = cursor.fetchall()
             if not extrair_dados:
-                mensagem_alerta('Este número de "OP" não existe!')
+                self.mensagem_alerta('Este número de "OP" não existe!')
                 self.reiniciar()
             else:
                 cursor = conecta.cursor()
@@ -278,14 +245,15 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                 select_status = cursor.fetchall()
 
                 if not select_status:
-                    mensagem_alerta('Esta Ordem de Produção está encerrada!')
+                    self.mensagem_alerta('Esta Ordem de Produção está encerrada!')
                     self.reiniciar()
                 else:
                     self.verifica_vinculo_materia()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_vinculo_materia(self):
         try:
@@ -301,14 +269,15 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     verifica_cadastro = verifica_cadastro + 1
 
             if verifica_cadastro > 0:
-                mensagem_alerta('O material consumido não está vinculado com a estrutura!')
+                self.mensagem_alerta('O material consumido não está vinculado com a estrutura!')
                 self.reiniciar()
             else:
                 self.verifica_dados_os()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_dados_os(self):
         try:
@@ -325,22 +294,22 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                            f"where mestre = {produto_os} ORDER BY produto.descricao;")
             itens_select_estrut = cursor.fetchall()
             if not itens_select_estrut:
-                mensagem_alerta('Este material não tem estrutura cadastrada!')
+                self.mensagem_alerta('Este material não tem estrutura cadastrada!')
                 self.reiniciar()
             elif status_os != "A":
-                mensagem_alerta('Esta "OP" está encerrada!')
+                self.mensagem_alerta('Esta "OP" está encerrada!')
                 self.reiniciar()
             elif data_emissao is None:
-                mensagem_alerta('Esta "OP" está sem data de emissão!')
+                self.mensagem_alerta('Esta "OP" está sem data de emissão!')
                 self.reiniciar()
             elif produto_os is None:
-                mensagem_alerta('Esta "OP" está sem código de produto!')
+                self.mensagem_alerta('Esta "OP" está sem código de produto!')
                 self.reiniciar()
             elif qtde_os is None:
-                mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             elif numero_os is None:
-                mensagem_alerta('O número da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('O número da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             else:
                 self.lanca_dados_os()
@@ -354,7 +323,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_os(self):
         try:
@@ -380,7 +350,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def dados_os(self):
         try:
@@ -395,7 +366,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def select_mistura(self):
         try:
@@ -465,7 +437,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def separar_dados_select(self):
         try:
@@ -504,12 +477,13 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                 lista_os = (id_mat, data_os, cod_os, descr_os, ref_os, um_os, qtde_os_red)
                 tabela_consumo_os.append(lista_os)
 
-            lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-            lanca_tabela(self.table_Estrutura, tabela_estrutura)
+            lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+            lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def jutando_tabelas_extraidas(self):
         try:
@@ -531,7 +505,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def pintar_tabelas(self):
         try:
@@ -603,7 +578,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def consumirtodos(self):
         try:
@@ -643,20 +619,22 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_todos(self):
         try:
             tabela_estrutura, tabela_consumo_os = self.consumirtodos()
 
-            lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-            lanca_tabela(self.table_Estrutura, tabela_estrutura)
+            lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+            lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
             self.pintar_tabelas()
             self.btn_Salvar.setEnabled(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def eventFilter(self, source, event):
         try:
@@ -716,10 +694,10 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                             tabela_consumo_os.append(lista_os)
 
                 if item_sem_saldo > 0:
-                    mensagem_alerta(f'Este material não tem saldo suficiente!')
+                    self.mensagem_alerta(f'Este material não tem saldo suficiente!')
 
-                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-                lanca_tabela(self.table_Estrutura, tabela_estrutura)
+                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+                lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
                 self.pintar_tabelas()
                 self.btn_Salvar.setEnabled(True)
 
@@ -727,7 +705,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_cod_manu(self):
         try:
@@ -737,17 +716,18 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
             codigo_produto = self.line_Cod_Manu.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Cod_Manu.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Cod_Manu.clear()
             else:
                 self.verifica_sql_produto_manu()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_sql_produto_manu(self):
         try:
@@ -758,14 +738,15 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Cod_Manu.clear()
             else:
                 self.lanca_dados_produtomanu()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_produtomanu(self):
         try:
@@ -781,7 +762,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             numero = str(quantidade_id).replace('.', ',')
 
             if quantidade_id_float < 0:
-                mensagem_alerta(f'Este produto está com saldo negativo!\n'
+                self.mensagem_alerta(f'Este produto está com saldo negativo!\n'
                                                             f'Saldo Total = {quantidade_id_float}')
                 self.line_Cod_Manu.clear()
             else:
@@ -797,7 +778,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_estrutura_produto_manu(self):
         try:
@@ -823,13 +805,14 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_qtde_manu(self):
         try:
             qtdezinha = self.line_Qtde_Manu.text()
             if not qtdezinha:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde_Manu.clear()
                 self.line_Qtde_Manu.setFocus()
             else:
@@ -840,7 +823,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     qtdezinha_float = float(qtdezinha)
 
                 if qtdezinha_float == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 else:
@@ -848,7 +831,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_saldo_produtomanual(self):
         try:
@@ -867,15 +851,16 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                 saldozinho_float = float(saldozinho)
             if qtdezinha_float > saldozinho_float:
                 diferenca = round((qtdezinha_float - saldozinho_float), 2)
-                mensagem_alerta(f'Saldo deste produto é insuficiente!\n '
-                                f'Falta {diferenca} {unidadezinha} para consumir este produto')
+                self.mensagem_alerta(f'Saldo deste produto é insuficiente!\n '
+                                     f'Falta {diferenca} {unidadezinha} para consumir este produto')
                 self.line_Qtde_Manu.clear()
             else:
                 self.verifica_qtde_estrutura_manu()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_qtde_estrutura_manu(self):
         try:
@@ -903,7 +888,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipulando_dados_manu(self):
         try:
@@ -952,17 +938,17 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             dia_atual = data_hoje.strftime("%d")
 
             if ano_text != ano_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no ano de {ano_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if mes_text != mes_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no mês {mes_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if dia_text != dia_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no dia {dia_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
@@ -977,7 +963,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     soma_qtde_item = soma_qtde_item + qtde_est_float1
 
             if soma_qtde_item == qtde_prod_float:
-                mensagem_alerta('Este material já foi consumido na estrutura!')
+                self.mensagem_alerta('Este material já foi consumido na estrutura!')
                 self.limpa_manual()
             else:
                 nova_lista_total = []
@@ -989,7 +975,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
                     if id_mat_sel_str == id_mat and cod_os == "":
                         if qtde_manu_float > qtde_est_float:
-                            mensagem_alerta('A quantidade é maior do que a necessidade da estrutura!')
+                            self.mensagem_alerta('A quantidade é maior do que a necessidade da estrutura!')
                             dados = (id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo,
                                      data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
                             nova_lista_total.append(dados)
@@ -1027,15 +1013,16 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     lista_os = (id_mat, data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
                     tabela_consumo_os.append(lista_os)
 
-                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-                lanca_tabela(self.table_Estrutura, tabela_estrutura)
+                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+                lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
                 self.pintar_tabelas()
                 self.btn_Salvar.setEnabled(True)
                 self.limpa_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_manual(self):
         try:
@@ -1061,7 +1048,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_tudo(self):
         try:
@@ -1088,23 +1076,25 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_cod_subs(self):
         try:
             codigo_produto = self.line_Cod_Subs.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Cod_Subs.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Cod_Subs.clear()
             else:
                 self.verifica_sql_produto_subs()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_sql_produto_subs(self):
         try:
@@ -1115,20 +1105,21 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Cod_Subs.clear()
             else:
                 self.lanca_dados_produto_subs()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_produto_subs(self):
         try:
             codigo_manu = self.line_Cod_Manu.text()
             if not codigo_manu:
-                mensagem_alerta('Primeiro defina o item que deseja consumir,\n '
+                self.mensagem_alerta('Primeiro defina o item que deseja consumir,\n '
                                                             'para depois indicar o seu substituto!')
             else:
                 codigo_produto = self.line_Cod_Subs.text()
@@ -1154,7 +1145,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                 item_estrutura = cursor.fetchall()
 
                 if not item_estrutura:
-                    mensagem_alerta('Este produto não faz parte da estrutura!')
+                    self.mensagem_alerta('Este produto não faz parte da estrutura!')
                     self.line_Cod_Subs.clear()
 
                 else:
@@ -1174,7 +1165,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                             soma_qtde_item = soma_qtde_item + qtde_est_float1
 
                     if soma_qtde_item == qtde_prod_float:
-                        mensagem_alerta('Este material já foi consumido na estrutura!')
+                        self.mensagem_alerta('Este material já foi consumido na estrutura!')
                         self.line_Cod_Subs.clear()
 
                     else:
@@ -1187,13 +1178,14 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_qtde_subs(self):
         try:
             qtdezinha = self.line_Qtde_Manu.text()
             if not qtdezinha:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde_Manu.clear()
                 self.line_Qtde_Manu.setFocus()
             else:
@@ -1204,7 +1196,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     qtdezinha_float = float(qtdezinha)
 
                 if qtdezinha_float == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 else:
@@ -1215,11 +1207,11 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     else:
                         qtdezinha_float = float(qtdezinha)
                     if len(qtdezinha) == 0:
-                        mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                        self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                         self.line_Qtde_Subs.clear()
                         self.line_Qtde_Subs.setFocus()
                     elif qtdezinha_float == 0:
-                        mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                        self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                         self.line_Qtde_Subs.clear()
                         self.line_Qtde_Subs.setFocus()
                     else:
@@ -1238,15 +1230,16 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                             saldozinho_float = float(saldozinho)
                         if qtdezinha_float > saldozinho_float:
                             diferenca = round((qtdezinha_float - saldozinho_float), 2)
-                            mensagem_alerta(f'Saldo deste produto é insuficiente!\n '
-                                            f'Falta {diferenca} {unidadezinha} para consumir este produto')
+                            self.mensagem_alerta(f'Saldo deste produto é insuficiente!\n '
+                                                 f'Falta {diferenca} {unidadezinha} para consumir este produto')
                             self.line_Qtde_Manu.clear()
                         else:
                             self.manipulando_dados_subs()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipulando_dados_subs(self):
         try:
@@ -1312,17 +1305,17 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             dia_atual = data_hoje.strftime("%d")
 
             if ano_text != ano_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no ano de {ano_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if mes_text != mes_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no mês {mes_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if dia_text != dia_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no dia {dia_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
@@ -1337,7 +1330,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     soma_qtde_item = soma_qtde_item + qtde_est_float1
 
             if soma_qtde_item == qtde_prod_float:
-                mensagem_alerta('Este material já foi consumido na estrutura!')
+                self.mensagem_alerta('Este material já foi consumido na estrutura!')
                 self.limpa_subs()
             else:
                 nova_lista_total = []
@@ -1350,7 +1343,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
                     if id_mat_sel_str == id_mat and cod_os == "":
                         if qtde_subs_float > qtde_est_float:
-                            mensagem_alerta('A quantidade é maior do que resta consumir na "OP"!')
+                            self.mensagem_alerta('A quantidade é maior do que resta consumir na "OP"!')
                             dados = (id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo,
                                      data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
                             nova_lista_total.append(dados)
@@ -1388,15 +1381,16 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     lista_os = (id_mat, data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
                     tabela_consumo_os.append(lista_os)
 
-                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-                lanca_tabela(self.table_Estrutura, tabela_estrutura)
+                lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+                lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
                 self.pintar_tabelas()
                 self.btn_Salvar.setEnabled(True)
                 self.limpa_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_subs(self):
         try:
@@ -1411,7 +1405,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def exibe_substituto(self):
         try:
@@ -1426,7 +1421,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def excluir_item(self):
         try:
@@ -1434,7 +1430,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             extrai_total = self.jutando_tabelas_extraidas()
 
             if not consumo_os:
-                mensagem_alerta('A tabela "Consumo OP" não tem itens para excluir')
+                self.mensagem_alerta('A tabela "Consumo OP" não tem itens para excluir')
 
             else:
                 tabela_estrutura = []
@@ -1459,7 +1455,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                         achado_sem_codigo = achado_sem_codigo + 1
 
                 if cod_os_exc == "":
-                    mensagem_alerta('Escolha um item para excluir!')
+                    self.mensagem_alerta('Escolha um item para excluir!')
                 else:
                     for dados in enumerate(extrai_total):
                         id_mat_est, cod_est, desc_est, ref_est, um_est, qtde_est, local_est, saldo_est, \
@@ -1505,13 +1501,14 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                             lista_os = (id_mat_est, data_os, cod_os, desc_os, ref_os, um_os, qtde_os)
                             tabela_consumo_os.append(lista_os)
 
-                    lanca_tabela(self.table_ConsumoOS, tabela_consumo_os)
-                    lanca_tabela(self.table_Estrutura, tabela_estrutura)
+                    lanca_tabela(self.table_ConsumoOS, tabela_consumo_os, zebra=False)
+                    lanca_tabela(self.table_Estrutura, tabela_estrutura, zebra=False)
                     self.pintar_tabelas()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_salvamento1(self):
         try:
@@ -1543,7 +1540,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                         prod_sem_saldo.append(dados)
 
             if diferentes > 0:
-                mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
+                self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
             elif sem_saldo > 0:
                 texto_composto = ""
                 if len(prod_sem_saldo) > 1:
@@ -1552,14 +1549,14 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                         texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
                         texto_composto = texto_composto + "\n" + texto
 
-                    mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
+                    self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
                                                                 f'encerrar a\n'
                                                                 f'Ordem de Produção Nº {num_op}\n'
                                                                 f'{texto_composto}!')
                 else:
                     cod_os, descr_os, quantidade = prod_sem_saldo[0]
                     texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                    mensagem_alerta(f'O produto abaixo está sem saldo para '
+                    self.mensagem_alerta(f'O produto abaixo está sem saldo para '
                                                                 f'encerrar a\n'
                                                                 f'Ordem de Produção Nº {num_op}\n'
                                                                 f'{texto}!')
@@ -1568,20 +1565,22 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_salvamento2(self):
         try:
             consumo_os = extrair_tabela(self.table_ConsumoOS)
 
             if not consumo_os:
-                mensagem_alerta('A Tabela "Consumo OP" não possui produtos lançados!')
+                self.mensagem_alerta('A Tabela "Consumo OP" não possui produtos lançados!')
             else:
                 self.salvar_lista()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def salvar_lista(self):
         try:
@@ -1639,7 +1638,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
                     itens_para_excluir.append(select_antigo[i])
 
             if not itens_para_excluir and not itens_para_adicionar:
-                mensagem_alerta('Não foi consumido nenhum item nesta OP!')
+                self.mensagem_alerta('Não foi consumido nenhum item nesta OP!')
             else:
                 if not itens_para_excluir:
                     pass
@@ -1742,17 +1741,18 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
                 if somando_negativos > 0:
                     conecta.rollback()
-                    mensagem_alerta(f"O código {cod_item_negativo} ficou com saldo "
+                    self.mensagem_alerta(f"O código {cod_item_negativo} ficou com saldo "
                                                                 f"negativo e o consumo não foi salvo!")
                 else:
                     conecta.commit()
-                    mensagem_alerta("Material lançado com sucesso!")
+                    self.mensagem_alerta("Material lançado com sucesso!")
 
             self.reiniciar()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def reiniciar(self):
         try:
@@ -1783,7 +1783,8 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

@@ -937,7 +937,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Incluir Ordem de Produção (Lote)"))
         self.label_9.setText(_translate("MainWindow", "Próximo Nº OP:"))
         self.label_13.setText(_translate("MainWindow", "Incluir OP\'S por Estrutura (Lote)"))
         self.label_11.setText(_translate("MainWindow", "Data Emissao: "))

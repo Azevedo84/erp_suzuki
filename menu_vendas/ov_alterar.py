@@ -58,7 +58,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
         self.line_Num_OV.setFocus()
 
         self.processando = False
-        
+
     def layout_proprio(self):
         try:
             cor_widget_cab(self.widget_cabecalho)
@@ -391,7 +391,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                         extrai_produtos.append(dados)
 
             if extrai_produtos:
-                lanca_tabela(self.table_OV, extrai_produtos)
+                lanca_tabela(self.table_OV, extrai_produtos, zebra=False)
                 self.soma_totais()
                 self.remover_itens_pi()
                 self.pintar_tabela_ov()
@@ -795,7 +795,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             if not ja_existe:
                 extrai_produtos.append(dados)
-                lanca_tabela(self.table_OV, extrai_produtos)
+                lanca_tabela(self.table_OV, extrai_produtos, zebra=False)
                 self.soma_totais()
                 self.remover_itens_pi()
                 self.pintar_tabela_ov()

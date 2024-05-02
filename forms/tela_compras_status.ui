@@ -10,6 +10,11 @@
     <height>720</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>14</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Status Compras</string>
   </property>
@@ -193,7 +198,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_12">
                  <property name="spacing">
@@ -418,7 +423,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_9">
                  <property name="spacing">
@@ -665,7 +670,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_13">
                  <property name="spacing">
@@ -1169,7 +1174,25 @@
                </widget>
               </item>
               <item>
-               <widget class="QWidget" name="widget_11" native="true"/>
+               <widget class="QWidget" name="widget_11" native="true">
+                <layout class="QVBoxLayout" name="verticalLayout_18">
+                 <item>
+                  <widget class="QLabel" name="label_aguarde">
+                   <property name="font">
+                    <font>
+                     <pointsize>14</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -1177,7 +1200,7 @@
            <item>
             <widget class="QWidget" name="widget_Cor4" native="true">
              <property name="styleSheet">
-              <string notr="true"/>
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <property name="leftMargin">
@@ -1381,7 +1404,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_16">
                  <property name="spacing">
@@ -1606,7 +1629,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_10">
                  <property name="spacing">
@@ -1853,7 +1876,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_14">
                  <property name="spacing">
@@ -2369,7 +2392,7 @@
            <item>
             <widget class="QWidget" name="widget_Cor8" native="true">
              <property name="styleSheet">
-              <string notr="true"/>
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_5">
               <property name="leftMargin">
@@ -2570,7 +2593,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_17">
                  <property name="spacing">
@@ -2610,7 +2633,7 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>Por Cliente/Status</string>
+                    <string>Por Fornecedor/Status</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
@@ -2896,7 +2919,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_11">
                  <property name="spacing">
@@ -3143,7 +3166,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true"/>
+                 <string notr="true">background-color: rgb(182, 182, 182);</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_15">
                  <property name="spacing">
@@ -3647,7 +3670,25 @@
                </widget>
               </item>
               <item>
-               <widget class="QWidget" name="widget_12" native="true"/>
+               <widget class="QWidget" name="widget_12" native="true">
+                <property name="font">
+                 <font>
+                  <pointsize>14</pointsize>
+                 </font>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <widget class="QLabel" name="label_Aguarde_OC">
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -3655,7 +3696,7 @@
            <item>
             <widget class="QWidget" name="widget_Cor12" native="true">
              <property name="styleSheet">
-              <string notr="true"/>
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_8">
               <property name="leftMargin">
@@ -3811,7 +3852,7 @@
         <height>30</height>
        </size>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <layout class="QHBoxLayout" name="horizontalLayout_12">
        <property name="spacing">
         <number>6</number>
        </property>

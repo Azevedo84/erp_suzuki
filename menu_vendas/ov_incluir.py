@@ -49,6 +49,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             cor_widget(self.widget_Cor1)
             cor_widget(self.widget_Cor2)
             cor_widget(self.widget_Cor3)
+            cor_widget(self.widget_Cor4)
 
             cor_fonte(self.label)
             cor_fonte(self.label_13)
@@ -263,7 +264,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                             mensagem_alerta(f"Verifique a estrutura do produto {cod}!")
 
             if tabela_nova:
-                lanca_tabela(self.table_OV, tabela_nova, edita_largura=False)
+                lanca_tabela(self.table_OV, tabela_nova)
                 self.soma_totais()
 
                 cursor = conecta.cursor()

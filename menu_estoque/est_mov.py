@@ -1,20 +1,20 @@
 import sys
 from banco_dados.conexao import conecta
 from arquivos.chamar_arquivos import definir_caminho_arquivo
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
+from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from comandos.comando_excel import lanca_dados_mesclado, lanca_dados_coluna, edita_alinhamento, edita_bordas
 from comandos.comando_excel import adiciona_imagem, dataframe_pandas, escritor_dataframe, escritor_direto_dataframe
 from comandos.comando_excel import carregar_workbook
 from forms.tela_est_mov import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import inspect
 import os
 from threading import Thread
+import traceback
 
 
 class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
@@ -22,14 +22,13 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_estoque.png")
         tamanho_aplicacao(self)
         self.layout_tabela(self.table_OP)
-        self.layout_proprio()
+        cor_widget_cab(self.widget_cabecalho)
 
         data_hoje = date.today()
 
@@ -42,31 +41,38 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         self.widget_Progress.setHidden(True)
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
         try:
-            cor_widget_cab(self.widget_cabecalho)
-
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label)
-            cor_fonte(self.label_Excel)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Conultar)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            print("1")
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            print("2")
+            alert.setText(mensagem)
+            print("3")
+            alert.setWindowTitle("Atenção")
+            print("4")
+            alert.setStandardButtons(QMessageBox.Ok)
+            print("5")
+            alert.exec_()
+            print("6")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela(self, nome_tabela):
         try:
@@ -88,11 +94,13 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def consulta(self):
         try:
             self.label_Excel.setText("")
+            self.label_Msg.setText("")
 
             self.widget_Progress.setHidden(False)
 
@@ -100,18 +108,17 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def consulta_tred(self):
         try:
             self.define_tabela()
-            self.layout_tabela(self.table_OP)
-
-            self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def select_mov(self, data_inicio, data_fim, num_tipo, nome_tipo):
         try:
@@ -186,12 +193,12 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def define_tabela(self):
         try:
             results = []
-            ops_entradas = []
 
             data_inicio = self.date_Inicio.text()
             data_inicio_certa = datetime.strptime(data_inicio, '%d/%m/%Y').date()
@@ -220,7 +227,9 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                 results0 = self.select_movimentis(data_inicio_certa, data_fim_certa)
 
                 if not results0:
-                    mensagem_alerta(f'Neste período não houve movimentações!')
+                    msg = f'Neste período não houve movimentações!'
+                    self.label_Msg.setText(msg)
+                    self.widget_Progress.setHidden(True)
                     results = []
                 else:
                     movimento, ops_entradas = self.tititutu(data_muda, data_muda)
@@ -230,11 +239,12 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             if results:
                 lanca_tabela(self.table_OP, results)
 
-            return ops_entradas
+                self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def select_movimentis(self, data_inicio, data_fim):
         try:
@@ -299,7 +309,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tipos_movimentos(self):
         try:
@@ -329,7 +340,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def datas_relatorio(self):
         try:
@@ -375,7 +387,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def tititutu(self, data_inicial, data_final):
         try:
@@ -421,7 +434,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def select_mistura_op(self, cod, num_op):
         try:
@@ -528,7 +542,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def excel_op(self, dados_para_op):
         try:
@@ -676,7 +691,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def remove_modelo_op(self, caminho):
         try:
@@ -687,7 +703,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def excel_mov(self, dados_tabela, arquivo_modelo, caminho, aba_sheet):
         try:
@@ -734,7 +751,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def final(self):
         try:
@@ -746,7 +764,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def final1(self):
         try:
@@ -804,7 +823,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

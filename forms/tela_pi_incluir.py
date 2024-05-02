@@ -1088,7 +1088,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Incluir Pedido Interno"))
         self.label_3.setText(_translate("MainWindow", "Nº PED:"))
         self.label_13.setText(_translate("MainWindow", "Incluir Pedido Interno"))
         self.label_11.setText(_translate("MainWindow", "Data Emissao: "))

@@ -163,7 +163,7 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">background-color: rgb(182, 182, 182);</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="leftMargin">
@@ -390,6 +390,20 @@
            </widget>
           </item>
           <item>
+           <widget class="QLabel" name="label_Msg">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QWidget" name="widget_Progress" native="true">
             <property name="minimumSize">
              <size>
@@ -444,7 +458,7 @@
     <item>
      <widget class="QWidget" name="widget_Cor2" native="true">
       <property name="styleSheet">
-       <string notr="true"/>
+       <string notr="true">background-color: rgb(182, 182, 182);</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="leftMargin">
@@ -692,7 +706,7 @@
     <item>
      <widget class="QWidget" name="widget_Cor3" native="true">
       <property name="styleSheet">
-       <string notr="true"/>
+       <string notr="true">background-color: rgb(182, 182, 182);</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_6">
        <property name="leftMargin">
