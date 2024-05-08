@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.00.002"
-        self.data_versao = f"30/04/2024"
+        self.versao = f"Versão 2.01.000"
+        self.data_versao = f"08/05/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -30,6 +30,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.pre_incluir = []
         self.pre_status = []
         self.prod_incluir = []
+        self.prod_consultar = []
 
         self.sol_incluir = []
         self.req_incluir = []
@@ -114,6 +115,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.action_Pre_Incluir_2.triggered.connect(self.definir_tela_action)
             self.action_Pre_Status_2.triggered.connect(self.definir_tela_action)
             self.action_Prod_Incluir.triggered.connect(self.definir_tela_action)
+            self.action_Consultar_Produto.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
@@ -168,6 +170,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_cadastros.pro_incluir import TelaProdutoIncluir
                 self.prod_incluir = TelaProdutoIncluir()
                 self.prod_incluir.show()
+
+            elif sender == self.action_Consultar_Produto:
+                from menu_cadastros.prod_consultar import TelaProdutoConsulta
+                self.prod_consultar = TelaProdutoConsulta("", False)
+                self.prod_consultar.show()
 
             elif sender == self.action_Sol_Incluir:
                 from menu_compras.sol_incluir import TelaSolIncluir
@@ -384,10 +391,21 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
     def ultima_versao(self):
         try:
+            import fdb
+
+            conecta_robo = fdb.connect(database=r'C:\HallSys\db\Horus\Suzuki\ROBOZINHO.GDB',
+                                  host='PUBLICO',
+                                  port=3050,
+                                  user='sysdba',
+                                  password='masterkey',
+                                  charset='ANSI')
+
             versao_app = self.versao[7:]
 
-            cursor = conecta.cursor()
-            cursor.execute("SELECT versao FROM versoes ORDER BY data_criacao DESC ROWS 1;")
+            cursor = conecta_robo.cursor()
+            cursor.execute("SELECT versao FROM CONTROLE_VERSOES "
+                           "where programa = 'ERP SUZUKI' "
+                           "ORDER BY data_criacao DESC ROWS 1;")
             dados = cursor.fetchall()
             version = dados[0]
             versao_banco = version[0]

@@ -214,6 +214,7 @@
       <string>Produto</string>
      </property>
      <addaction name="action_Prod_Incluir"/>
+     <addaction name="action_Consultar_Produto"/>
     </widget>
     <widget class="QMenu" name="menuProduto_Preliminar">
      <property name="title">
@@ -655,6 +656,11 @@
   <action name="action_Prod_Incluir">
    <property name="text">
     <string>Incluir Produto</string>
+   </property>
+  </action>
+  <action name="action_Consultar_Produto">
+   <property name="text">
+    <string>Consultar Produto</string>
    </property>
   </action>
  </widget>

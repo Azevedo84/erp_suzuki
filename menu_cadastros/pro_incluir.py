@@ -376,6 +376,13 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                             if "88 - USINAGEM" in tip_text:
                                 self.combo_Tipo.setCurrentText(tip_text)
 
+                    if tp == 7:
+                        tip_count = self.combo_Tipo.count()
+                        for i_tip in range(tip_count):
+                            tip_text = self.combo_Tipo.itemText(i_tip)
+                            if "119 - INDUSTRIALIZACAO" in tip_text:
+                                self.combo_Tipo.setCurrentText(tip_text)
+
                     conj_count = self.combo_Conjunto.count()
                     for i_conj in range(conj_count):
                         conj_text = self.combo_Conjunto.itemText(i_conj)

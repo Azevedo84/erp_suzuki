@@ -8,11 +8,12 @@ from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_wid
 from comandos.comando_telas import cor_fundo_tela
 from comandos.comando_banco import definir_proximo_generator
 from comandos.comando_conversoes import valores_para_float
+from arquivos.chamar_arquivos import definir_caminho_arquivo
 from banco_dados.bc_consultas import Produto, ProdutoOrdemSolicitacao, ProdutoOrdemRequisicao, ProdutoOrdemCompra
 from banco_dados.bc_consultas import Projeto, MateriaPrima
 from forms.tela_sol_incluir import *
 from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QMainWindow
-from PyQt5.QtGui import QKeySequence, QFont, QColor
+from PyQt5.QtGui import QKeySequence, QFont, QColor, QIcon
 from PyQt5.QtCore import Qt
 from datetime import date, datetime
 from unidecode import unidecode
@@ -34,6 +35,17 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
+
+        caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
+        caminho_arquivo = definir_caminho_arquivo(caminho)
+
+        icon = QIcon(caminho_arquivo)
+
+        # Definir o ícone para o botão
+        self.btn_Lupa_Prod.setIcon(icon)
+
+        self.escolher_produto = []
+        self.btn_Lupa_Prod.clicked.connect(self.abrir_tela_escolher_produto)
 
         cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
@@ -945,7 +957,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 if codigo_produto:
                     if int(codigo_produto) == 0:
                         mensagem_alerta('O campo "Código" não pode ser "0"')
-                        self.line_Codigo_Manu.clear()
+                        self.limpa_produto_manual()
                     else:
                         self.verifica_sql_produtomanual()
 
@@ -964,7 +976,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             if not dados_prod:
                 mensagem_alerta('Este código de produto não existe!')
-                self.line_Codigo_Manu.clear()
+                self.limpa_produto_manual()
             else:
                 self.verifica_materia_prima()
 
@@ -989,7 +1001,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                                   '- O custo do serviço vinculado a Estrutura.\n\n' \
                                   '- O "Tipo de Material" cadastrado como "INDUSTRIALIZACAO."'
                     mensagem_alerta(f'{msg_produto}')
-                    self.line_Codigo_Manu.clear()
+                    self.limpa_produto_manual()
 
             else:
                 self.lanca_dados_produtomanual()
@@ -1010,6 +1022,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             saldo = dados_prod[0][6]
             embalagem = dados_prod[0][7]
             kg_mt = dados_prod[0][8]
+            ncm = dados_prod[0][9]
 
             self.line_Descricao_Manu.setText(descr)
             self.line_UM_Manu.setText(um)
@@ -1018,6 +1031,12 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             self.line_Saldo_Manu.setText(numero)
             self.line_Qtde_Manu.setEnabled(True)
             self.btn_Consome_Manu.setEnabled(True)
+            self.line_NCM_Manu.setText(ncm)
+
+            if ncm:
+                self.line_NCM_Manu.setStyleSheet(f"background-color: {cor_branco};")
+            else:
+                self.line_NCM_Manu.setStyleSheet(f"background-color: {cor_amarelo};")
 
             if embalagem == "SIM":
                 if um == "KG" and not kg_mt:
@@ -1208,6 +1227,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         self.line_Qtde_Manu.clear()
                         self.line_Saldo_Manu.clear()
                         self.line_Referencia_Manu.clear()
+                        self.line_NCM_Manu.clear()
                         self.line_Codigo_Manu.setFocus()
                         self.btn_Consome_Manu.setEnabled(False)
                         self.desaparece_referencia_editada()
@@ -1223,10 +1243,19 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
     def limpa_tudo(self):
         try:
             self.table_Recomendacao.clearContents()
+            self.limpa_produto_manual()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+
+    def limpa_produto_manual(self):
+        try:
             self.line_Codigo_Manu.clear()
             self.line_Descricao_Manu.clear()
             self.line_Referencia_Manu.clear()
             self.line_UM_Manu.clear()
+            self.line_NCM_Manu.clear()
             self.line_Qtde_Manu.clear()
             self.line_Saldo_Manu.clear()
 
@@ -1918,6 +1947,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             self.line_Destino_Manu.clear()
             self.line_Qtde_Manu.clear()
             self.line_Referencia_Manu.clear()
+            self.line_NCM_Manu.clear()
 
             data_hoje = date.today()
             ano_atual = data_hoje.strftime("%Y")
@@ -2106,6 +2136,18 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+
+    def abrir_tela_escolher_produto(self):
+        cod_prod = self.line_Codigo_Manu.text()
+        from menu_cadastros.prod_consultar import TelaProdutoConsulta
+
+        self.escolher_produto = TelaProdutoConsulta(cod_prod, True)
+        self.escolher_produto.produto_escolhido.connect(self.atualizar_produto_entry)
+        self.escolher_produto.show()
+
+    def atualizar_produto_entry(self, produto):
+        self.line_Codigo_Manu.setText(produto)
+        self.verifica_line_codigo_manu()
 
 
 if __name__ == '__main__':

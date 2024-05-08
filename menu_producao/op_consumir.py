@@ -4,7 +4,6 @@ from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.comando_cores import cor_cinza_claro, cor_vermelho, cor_branco
 from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_op_consumir import *
 from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut, QMessageBox
 from PyQt5.QtGui import QColor, QFont, QKeySequence
@@ -881,7 +880,7 @@ class TelaOpConsumir(QMainWindow, Ui_MainWindow):
             if not item_estrutura:
                 self.line_Cod_Subs.setFocus()
             else:
-                if self.widget_Subs.isHidden() is True:
+                if self.widget_Subs.isHidden() is False:
                     self.line_Cod_Subs.setFocus()
                 else:
                     self.manipulando_dados_manu()

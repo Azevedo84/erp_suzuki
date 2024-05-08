@@ -18,7 +18,7 @@ nomes_colunas = [row[0] for row in cursor.fetchall()]
 cursor = conecta.cursor()
 cursor.execute(f"Insert into VERSOES "
                f"(ID, VERSAO) "
-               f"values (GEN_ID(GEN_VERSOES_ID,1), '2.00.002');")
+               f"values (GEN_ID(GEN_VERSOES_ID,1), '2.01.000');")
 
 conecta.commit()
 
