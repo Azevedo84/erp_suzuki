@@ -645,7 +645,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         try:
             nome_tabela = self.table_Estrutura
             cod_pai = self.line_Codigo_Estrut.text()
-            print(cod_pai)
 
             dados_prod = self.tab_prod.consulta_por_codigo(cod_pai)
             id_pai = dados_prod[0][0]
@@ -670,46 +669,64 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                                        f"ordser.quantidade "
                                        f"from ordemservico as ordser "
                                        f"INNER JOIN produto prod ON ordser.produto = prod.id "
-                                       f"where ordser.status = 'A' AND prod.id = {id_pai} "
-                                       f"order by ordser.numero;")
-                        op_abertas = cursor.fetchall()
+                                       f"where prod.id = {id_pai};")
+                        op_existente = cursor.fetchall()
 
-                        if op_abertas:
-                            for i in op_abertas:
-                                num_op = i[2]
-                                id_produto = i[3]
+                        if op_existente:
+                            cursor = conecta.cursor()
+                            cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
+                                           f"prod.descricao, "
+                                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                           f"ordser.quantidade "
+                                           f"from ordemservico as ordser "
+                                           f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                                           f"where ordser.status = 'A' AND prod.id = {id_pai};")
+                            op_abertas = cursor.fetchall()
 
-                                cursor = conecta.cursor()
-                                cursor.execute(f"SELECT mat.id, prod.codigo, prod.descricao, "
-                                               f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                                               f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
-                                               f"(mat.quantidade)) AS Qtde, "
-                                               f"COALESCE(prod.localizacao, ''), prod.quantidade "
-                                               f"FROM materiaprima as mat "
-                                               f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                               f"where mat.mestre = {id_produto} and prod.codigo = {cod_filho} "
-                                               f"ORDER BY prod.descricao;")
-                                select_estrut = cursor.fetchall()
-                                if select_estrut:
-                                    for dados_estrut in select_estrut:
-                                        id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
+                            if op_abertas:
+                                for i in op_abertas:
+                                    num_op = i[2]
+                                    id_produto = i[3]
 
-                                        cursor = conecta.cursor()
-                                        cursor.execute(f"SELECT max(mat.id), max(prod.codigo), max(prod.descricao), "
-                                                       f"sum(p_op.qtde_materia)as total "
-                                                       f"FROM materiaprima as mat "
-                                                       f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                                       f"INNER JOIN produtoos as p_op ON mat.id = p_op.id_materia "
-                                                       f"where mat.mestre = {id_produto} "
-                                                       f"and p_op.numero = {num_op} and mat.id = {id_mat_e} "
-                                                       f"group by p_op.id_materia;")
-                                        select_os_resumo = cursor.fetchall()
+                                    cursor = conecta.cursor()
+                                    cursor.execute(f"SELECT mat.id, prod.codigo, prod.descricao, "
+                                                   f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                                   f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                                                   f"(mat.quantidade)) AS Qtde, "
+                                                   f"COALESCE(prod.localizacao, ''), prod.quantidade "
+                                                   f"FROM materiaprima as mat "
+                                                   f"INNER JOIN produto as prod ON mat.produto = prod.id "
+                                                   f"where mat.mestre = {id_produto} and prod.codigo = {cod_filho} "
+                                                   f"ORDER BY prod.descricao;")
+                                    select_estrut = cursor.fetchall()
+                                    if select_estrut:
+                                        for dads_estrut in select_estrut:
+                                            id_mat_e, cod_e, des_e, ref_e, um_e, qtde_e, local_e, saldo_e = dads_estrut
 
-                                        if not select_os_resumo:
-                                            nome_tabela.removeRow(linha_selecao)
-                                        else:
-                                            self.mensagem_alerta(f"O produto {cod_filho} está sendo consumido em OP "
-                                                                 f"e não pode ser excluído!")
+                                            cursor = conecta.cursor()
+                                            cursor.execute(f"SELECT max(mat.id), max(prod.codigo), "
+                                                           f"max(prod.descricao), "
+                                                           f"sum(p_op.qtde_materia)as total "
+                                                           f"FROM materiaprima as mat "
+                                                           f"INNER JOIN produto as prod ON mat.produto = prod.id "
+                                                           f"INNER JOIN produtoos as p_op ON mat.id = p_op.id_materia "
+                                                           f"where mat.mestre = {id_produto} "
+                                                           f"and p_op.numero = {num_op} and mat.id = {id_mat_e} "
+                                                           f"group by p_op.id_materia;")
+                                            select_os_resumo = cursor.fetchall()
+
+                                            if not select_os_resumo:
+                                                nome_tabela.removeRow(linha_selecao)
+                                            else:
+                                                self.mensagem_alerta(f"O produto {cod_filho} está sendo consumido "
+                                                                     f"em OP e não pode ser excluído!")
+
+                            else:
+                                self.mensagem_alerta(f"O produto {cod_pai} tem Ordens de Produção finalizadas"
+                                                     f" e não pode ser excluído!")
+
+                        else:
+                            nome_tabela.removeRow(linha_selecao)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
