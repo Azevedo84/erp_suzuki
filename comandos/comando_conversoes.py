@@ -9,6 +9,9 @@ nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
 def valores_para_float(string):
     try:
+        if string is None:
+            return 0.00
+
         string_certo = str(string)
 
         if "R$ " in string_certo:
@@ -29,9 +32,15 @@ def valores_para_float(string):
 
         return valor_float
 
+    except ValueError:
+        # Se a conversão falhar, retornar 0.00 e logar o erro
+        nome_funcao = inspect.currentframe().f_code.co_name
+        tratar_notificar_erros(f"Valor inválido para conversão: {string}", nome_funcao, nome_arquivo)
+        return 0.00
     except Exception as e:
         nome_funcao = inspect.currentframe().f_code.co_name
         tratar_notificar_erros(e, nome_funcao, nome_arquivo)
+        return 0.00
 
 
 def valores_para_virgula(string):

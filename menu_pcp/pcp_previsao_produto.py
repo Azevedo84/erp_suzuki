@@ -1,16 +1,17 @@
 import sys
 from banco_dados.conexao import conecta
 from forms.tela_pcp_previsao_prod import *
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
+from comandos.comando_notificacao import grava_erro_banco
 from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela
 from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab, cor_btn, cor_widget, cor_fonte
 from comandos.comando_telas import cor_fundo_tela
 from comandos.comando_conversoes import valores_para_float
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import timedelta
 import inspect
 import os
 from threading import Thread
+import traceback
 
 
 class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
@@ -39,6 +40,39 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         self.progressBar.setHidden(True)
         self.label_Excel.setText("")
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo):
+        try:
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            print("1")
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            print("2")
+            alert.setText(mensagem)
+            print("3")
+            alert.setWindowTitle("Atenção")
+            print("4")
+            alert.setStandardButtons(QMessageBox.Ok)
+            print("5")
+            alert.exec_()
+            print("6")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_proprio(self):
         try:
@@ -69,7 +103,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_pi(self, nome_tabela):
         try:
@@ -87,7 +122,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def layout_tabela_previsao(self, nome_tabela):
         try:
@@ -106,7 +142,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def verifica_line_codigo_manual(self):
         if not self.processando:
@@ -116,17 +153,18 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
                 codigo_produto = self.line_Codigo_Manu.text()
 
                 if not codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.line_Codigo_Manu.clear()
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                     self.line_Codigo_Manu.clear()
                 else:
                     self.verifica_sql_produto_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
             finally:
                 self.processando = False
@@ -139,14 +177,15 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Manu.clear()
             else:
                 self.lanca_dados_produto_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -166,7 +205,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpa_dados_manual(self):
         try:
@@ -179,7 +219,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def retorna_oc_abertas(self, cod_prod):
         try:
@@ -247,7 +288,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def retorna_ops_saldo_ops_abertas(self, cod_pai, cod_filho):
         try:
@@ -308,7 +350,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_ordens_compra(self, dados_total):
         try:
@@ -337,7 +380,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_ordens_producao(self, dados_total):
         try:
@@ -369,7 +413,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def definir_folgas(self, data_inicio, data_fim):
         try:
@@ -389,7 +434,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def retorna_data_entrega(self, id_pais):
         try:
@@ -424,7 +470,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_dados_tabela_producao(self, cod_prod):
         try:
@@ -450,7 +497,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def manipula_dados_pi(self):
         try:
@@ -479,7 +527,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def calculo_1_chamar_funcao(self):
         try:
@@ -487,7 +536,7 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
             cod_manu = self.line_Codigo_Manu.text()
 
             if not dados:
-                mensagem_alerta(f'A tabela "Pedidos Internos Pendentes" está vazia!')
+                self.mensagem_alerta(f'A tabela "Pedidos Internos Pendentes" está vazia!')
             else:
                 if cod_manu:
                     self.limpar_tudo()
@@ -497,7 +546,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def calculo_2_dados_previsao(self):
         try:
@@ -535,7 +585,7 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
             if tudo_tudo:
                 lanca_tabela(self.table_Previsao, tudo_tudo)
             else:
-                mensagem_alerta(f'Este Plano de produção está concluído!')
+                print(f'Este Plano de produção está concluído!')
 
                 self.limpar_tudo()
                 self.label_procura.setHidden(True)
@@ -546,7 +596,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def calculo_3_verifica_estrutura(self, dados_total):
         try:
@@ -561,6 +612,10 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
                            f"where prod.codigo = {codigos};")
             detalhes_pai = cursor.fetchall()
             id_pai, cod_pai, descr_pai, ref_pai, um_pai, saldo, tipo = detalhes_pai[0]
+
+            if cod_pai == "19702":
+                print(cod_pai)
+                print("detalhes_pai[0]", detalhes_pai[0])
 
             msg1 = "Verificando Estrutura:"
             msg2 = f"Código: {cod_pai}"
@@ -600,7 +655,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
     def limpar_tudo(self):
         try:
@@ -611,7 +667,8 @@ class TelaPcpPrevisaoProduto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
+            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
 
 
 if __name__ == '__main__':

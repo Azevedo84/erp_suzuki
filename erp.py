@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.01.000"
-        self.data_versao = f"08/05/2024"
+        self.versao = f"Versão 2.01.001"
+        self.data_versao = f"13/06/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -409,6 +409,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             dados = cursor.fetchall()
             version = dados[0]
             versao_banco = version[0]
+            print(versao_banco)
 
             resultado_comparacao = self.comparar_versoes(versao_app, versao_banco)
             if resultado_comparacao < 0:

@@ -84,14 +84,13 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['ERP SUZUKI: ADICIONADO "CONSULTAR PRODUTO"',
-                  'INCLUIR PRODUTO: INDENTIFICAR NUMERO DE DESENHO QUANDO FOR FINAL "07". INDUSTRIALIZACAO',
-                  'INCLUIR SOLICITACAO DE COMPRA: ADICIONADO "CONSULTAR PRODUTO"',
-                  'INCLUIR SOLICITACAO DE COMPRA: ADICIONADO CAMPO DA "NCM" NO LANCAMENTO MANUAL',
-                  'CONSUMIR ORDEM DE PRODUCAO: CORRIGIDO PROBLEMA DE CONSUMO PARCIAL']
+lista_modifica = ['(13/05) TELA PCP PREVISÃO: ADICIONADO LABEL ENTRE TITULO PARA EVITAR BLOQUEIO DO THREAD NA MSG"',
+                  '(13/05) PCP PREVISÃO PRODUTO: REMOVIDO MENSAGEM COM BLOQUEIO DO THREAD',
+                  '(10/06) PCP PRODUTO: ADICIONADO VALIDADOR CODIGO PRODUTO',
+                  '(10/06) COMANDO_CONVERSORES: ALTERADO FUNÇÃO QUE CONVERTE VALORES PARA FLOAT']
 
 programa = "ERP SUZUKI"
-versao = "2.01.000"
+versao = "2.01.001"
 nome_computador = socket.gethostname()
 
 cursor = conecta.cursor()

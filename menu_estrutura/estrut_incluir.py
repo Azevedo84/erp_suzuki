@@ -49,8 +49,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
         self.check_Converte_Manu.stateChanged.connect(self.verifica_check_converter_kilos)
 
-        validador_inteiro(self.line_Codigo_Estrut, 123456)
-        validador_inteiro(self.line_Codigo_Manu, 123456)
+        validador_inteiro(self.line_Codigo_Estrut, 1234567)
+        validador_inteiro(self.line_Codigo_Manu, 1234567)
 
         validador_decimal(self.line_Qtde_Manu, 9999999.000)
         validador_decimal(self.line_Medida_Manu, 9999999.000)

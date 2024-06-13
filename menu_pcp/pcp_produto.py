@@ -6,6 +6,7 @@ from comandos.comando_tabelas import lanca_tabela, limpa_tabela, layout_cabec_ta
 from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte
 from comandos.comando_telas import cor_fundo_tela
 from comandos.comando_cores import cor_verde, widgets, cor_vermelho
+from comandos.comando_lines import validador_inteiro
 from comandos.comando_conversoes import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow
 import inspect
@@ -32,6 +33,8 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
         self.layout_tabela_estrutura(self.table_Estrutura)
         self.layout_tabela_usado(self.table_Usado)
         self.layout_tabela_mov(self.table_Mov)
+
+        validador_inteiro(self.line_Codigo, 123456)
 
         self.showMaximized()
 
