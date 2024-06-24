@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from functools import partial
 import inspect
 import os
+from spellchecker import SpellChecker
 
 
 class TelaPreIncluir(QMainWindow, Ui_MainWindow):
@@ -143,20 +144,29 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
 
+    def correcao_ortogafica(self, texto):
+        try:
+            spell = SpellChecker(language='pt')
+
+            palavras = texto.split()
+            palavras_erradas = spell.unknown(palavras)
+
+            if palavras_erradas:
+                msg = "Palavras com erro de ortografia:\n\n"
+                for palavra in palavras_erradas:
+                    mensagem_alerta(f"{msg}{palavra} -> Sugestões: {spell.candidates(palavra)}")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+
     def manual_verifica_descricao_preposicoes(self):
         try:
             descr = self.line_Descricao.text().upper()
 
-            if "BANDEIJA" in descr:
-                mensagem_alerta('Ô trem bão, sô! "BANDEJA" não tem "I"!')
+            self.correcao_ortogafica(descr)
 
-            elif "TRAZEIRA" in descr:
-                mensagem_alerta('A PALAVRA TRASEIRA É COM "S"!')
-
-            elif "TRAZEIRO" in descr:
-                mensagem_alerta('A PALAVRA TRASEIRO É COM "S"!')
-
-            elif " DE " in descr \
+            if " DE " in descr \
                     or " DO " in descr \
                     or " DA " in descr \
                     or " PARA " in descr \

@@ -360,21 +360,24 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                     self.label_Maquina_Des.setText(descr_maq)
 
                 tp = int(ref_sem_d[-2:])
+                conj_peca = (ref_sem_d[3:5])
 
                 if tp == 1 or tp == 3 or tp == 4 or tp == 5 or tp == 6 or tp == 7:
-                    if tp == 1 or tp == 4:
+                    if conj_peca == "00":
                         tip_count = self.combo_Tipo.count()
                         for i_tip in range(tip_count):
                             tip_text = self.combo_Tipo.itemText(i_tip)
                             if "87 - CONJUNTO" in tip_text:
                                 self.combo_Tipo.setCurrentText(tip_text)
 
-                    if tp == 3 or tp == 5 or tp == 6:
-                        tip_count = self.combo_Tipo.count()
-                        for i_tip in range(tip_count):
-                            tip_text = self.combo_Tipo.itemText(i_tip)
-                            if "88 - USINAGEM" in tip_text:
-                                self.combo_Tipo.setCurrentText(tip_text)
+                    elif conj_peca == "01":
+                        if tp == 3 or tp == 5 or tp == 6:
+                            if conj_peca == "01":
+                                tip_count = self.combo_Tipo.count()
+                                for i_tip in range(tip_count):
+                                    tip_text = self.combo_Tipo.itemText(i_tip)
+                                    if "88 - USINAGEM" in tip_text:
+                                        self.combo_Tipo.setCurrentText(tip_text)
 
                     if tp == 7:
                         tip_count = self.combo_Tipo.count()

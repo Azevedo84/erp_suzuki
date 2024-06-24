@@ -1050,6 +1050,11 @@
            <string>ESTRUTURA</string>
           </property>
          </column>
+         <column>
+          <property name="text">
+           <string>Nº PI</string>
+          </property>
+         </column>
         </widget>
        </item>
       </layout>

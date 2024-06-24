@@ -6,13 +6,15 @@ from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from comandos.comando_telas import cor_fundo_tela
 from comandos.comando_conversoes import valores_para_virgula, valores_para_float
 from comandos.comando_excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao
-from comandos.comando_excel import criar_workbook, edita_fonte, edita_preenchimento, letra_coluna
+from comandos.comando_excel import edita_fonte, edita_preenchimento, letra_coluna
 from forms.tela_prod_consultar import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtCore import pyqtSignal
 import inspect
 import os
 from pathlib import Path
-from PyQt5.QtCore import pyqtSignal
+from openpyxl.utils import get_column_letter as letra_coluna
+from openpyxl import Workbook
 
 
 class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
@@ -1440,7 +1442,25 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
         try:
             extrai_dados_tabela = extrair_tabela(self.table_Resultado)
             if extrai_dados_tabela:
-                workbook = criar_workbook()
+
+                texto = ""
+                descricao1 = self.line_Descricao1.text()
+                localizacao = self.line_Local.text()
+
+                if localizacao:
+                    texto += localizacao.upper()
+                elif descricao1:
+                    texto += descricao1.upper()
+
+                import re
+
+                # Definindo o padrão para caracteres especiais (qualquer coisa que não seja letra ou número)
+                pattern = r'[^a-zA-Z0-9\s]'
+
+                # Substituindo caracteres especiais por uma string vazia
+                string_sem = re.sub(pattern, '', texto)
+
+                workbook = Workbook()
                 sheet = workbook.active
                 sheet.title = "Estoque Final"
 
@@ -1480,14 +1500,22 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
                 for cell in linhas_colunas_p_edicao(sheet, 2, sheet.max_row, 7, 9):
                     cell.number_format = '0.000'
 
-                desktop = Path.home() / "Desktop"
-                desk_str = str(desktop)
-                nome_req = f'\Lista de Produtos.xlsx'
-                caminho = (desk_str + nome_req)
+                default_filename = f"LISTA PRODUTOS {string_sem}.xlsx"
 
-                workbook.save(caminho)
-
-                self.label_Excel.setText(f'Excel criado com sucesso!!')
+                options = QFileDialog.Options()
+                options |= QFileDialog.DontUseNativeDialog
+                file_dialog = QFileDialog(self, "Salvar Arquivo Excel",
+                                          str(Path.home() / "Desktop" / default_filename),
+                                          "Excel Files (*.xlsx);;All Files (*)")
+                file_dialog.setAcceptMode(QFileDialog.AcceptSave)
+                file_dialog.setOptions(options)
+                file_dialog.setLabelText(QFileDialog.Accept, "Salvar")
+                file_dialog.setLabelText(QFileDialog.Reject, "Cancelar")
+                if file_dialog.exec_() == QFileDialog.Accepted:
+                    file_path = file_dialog.selectedFiles()[0]
+                    if file_path:
+                        workbook.save(file_path)
+                        self.label_Excel.setText(f'Excel criado com sucesso!!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

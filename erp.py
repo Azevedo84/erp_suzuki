@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.01.002"
-        self.data_versao = f"13/06/2024"
+        self.versao = f"Versão 2.01.003"
+        self.data_versao = f"24/06/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -394,11 +394,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             import fdb
 
             conecta_robo = fdb.connect(database=r'C:\HallSys\db\Horus\Suzuki\ROBOZINHO.GDB',
-                                  host='PUBLICO',
-                                  port=3050,
-                                  user='sysdba',
-                                  password='masterkey',
-                                  charset='ANSI')
+                                       host='PUBLICO',
+                                       port=3050,
+                                       user='sysdba',
+                                       password='masterkey',
+                                       charset='ANSI')
 
             versao_app = self.versao[7:]
 
