@@ -84,14 +84,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(14/06) PCP PREVISAO: ADICIONADO NOME DO CONJ. A GRADE DE COMPRADO E ACABADO',
-                  '(18/06) PRE CADASTRO INCLUIR: ADICIONADO CORRETOR ORTOGRAFICO',
-                  '(20/06) PRE CADASTRO INCLUIR: VERIFICA SE DESENHO E CONJUNTO OU PECA (00 OU 01)',
-                  '(24/06) PCP PREVISAO: ADICIONADO Nº PI A LISTA DE MATERIAIS PENDENTES',
-                  '(24/06) PRODUTO CONSULTAR: VERIFICADO NOME DO ARQUIVO EXCEL PARA SER SALVO', ]
+lista_modifica = ['(25/06) PRODUTO CONSULTAR: REMOVIDO CORRETOR ORTOGRAFICO', ]
 
 programa = "ERP SUZUKI"
-versao = "2.01.003"
+versao = "2.01.005"
 nome_computador = socket.gethostname()
 
 cursor = conecta.cursor()

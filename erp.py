@@ -12,6 +12,7 @@ import socket
 from threading import Thread
 import getpass
 import subprocess
+from datetime import datetime
 
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
@@ -21,8 +22,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         cor_fundo_tela_menu(self)
 
-        self.versao = f"Versão 2.01.003"
-        self.data_versao = f"24/06/2024"
+        self.versao = f"Versão 2.01.005"
+        self.data_versao = f"25/06/2024"
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -445,6 +446,9 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
     def salva_versao(self):
         try:
             versao_app = self.versao[7:]
+
+            agora = datetime.now()
+            timestamp = agora.strftime('%Y-%m-%d %H:%M:%S')
 
             cur = conecta.cursor()
             cur.execute(f"SELECT id, descricao, versao FROM ENVIA_PC;")

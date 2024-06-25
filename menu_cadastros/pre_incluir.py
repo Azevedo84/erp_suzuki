@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from functools import partial
 import inspect
 import os
-from spellchecker import SpellChecker
 
 
 class TelaPreIncluir(QMainWindow, Ui_MainWindow):
@@ -144,36 +143,30 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
 
-    def correcao_ortogafica(self, texto):
-        try:
-            spell = SpellChecker(language='pt')
-
-            palavras = texto.split()
-            palavras_erradas = spell.unknown(palavras)
-
-            if palavras_erradas:
-                msg = "Palavras com erro de ortografia:\n\n"
-                for palavra in palavras_erradas:
-                    mensagem_alerta(f"{msg}{palavra} -> Sugestões: {spell.candidates(palavra)}")
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
     def manual_verifica_descricao_preposicoes(self):
         try:
             descr = self.line_Descricao.text().upper()
 
-            self.correcao_ortogafica(descr)
+            if "BANDEIJA" in descr:
+                mensagem_alerta('A PALAVRA BANDEJA NÃO TEM "I"!')
 
-            if " DE " in descr \
+            elif "TRAZEIRA" in descr:
+                mensagem_alerta('A PALAVRA TRASEIRA É COM "S"!')
+
+            elif "ESTERIA" in descr:
+                mensagem_alerta('VERIFIQUE A PALAVRA "ESTERIA"!')
+
+            elif "TRAZEIRO" in descr:
+                mensagem_alerta('A PALAVRA TRASEIRO É COM "S"!')
+
+            elif " DE " in descr \
                     or " DO " in descr \
                     or " DA " in descr \
                     or " PARA " in descr \
                     or " DE " in descr \
                     or " COM " in descr:
                 msg = 'Não podemos utilizar preposições (da, do, em, com, etc..) em nossos cadastros.\n' \
-                         'Tem certeza que deseja continuar?'
+                      'Tem certeza que deseja continuar?'
                 if pergunta_confirmacao(msg):
                     self.manual_verifica_descricao_no_banco()
             else:
