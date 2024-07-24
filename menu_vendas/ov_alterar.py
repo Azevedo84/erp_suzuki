@@ -1,17 +1,17 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float
-from comandos.comando_cores import cor_cinza_claro
 from forms.tela_ov_alterar import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float
+from comandos.cores import cor_cinza_claro
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
 from datetime import date, timedelta, datetime
 import inspect
 import os
+import traceback
 
 
 class TelaOvAlterar(QMainWindow, Ui_MainWindow):
@@ -19,15 +19,13 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_vendas.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_ov(self.table_OV)
-        self.layout_tabela_pi(self.table_PI_Aberto)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_OV)
+        layout_cabec_tab(self.table_PI_Aberto)
 
         self.campos_bloqueados()
 
@@ -58,95 +56,42 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
         self.line_Num_OV.setFocus()
 
         self.processando = False
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_Status)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_17)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_21)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_26)
-            cor_fonte(self.label_27)
-            cor_fonte(self.label_30)
-            cor_fonte(self.label_31)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_39)
-            cor_fonte(self.label_44)
-            cor_fonte(self.label_47)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Adicionar)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_Excluir_Pedido)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_ov(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 55)
-            nome_tabela.setColumnWidth(1, 45)
-            nome_tabela.setColumnWidth(2, 210)
-            nome_tabela.setColumnWidth(3, 120)
-            nome_tabela.setColumnWidth(4, 50)
-            nome_tabela.setColumnWidth(5, 50)
-            nome_tabela.setColumnWidth(6, 80)
-            nome_tabela.setColumnWidth(7, 50)
-            nome_tabela.setColumnWidth(8, 80)
-            nome_tabela.setColumnWidth(9, 80)
-            nome_tabela.setColumnWidth(10, 80)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_pi(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 45)
-            nome_tabela.setColumnWidth(1, 140)
-            nome_tabela.setColumnWidth(2, 45)
-            nome_tabela.setColumnWidth(3, 240)
-            nome_tabela.setColumnWidth(4, 40)
-            nome_tabela.setColumnWidth(5, 55)
-            nome_tabela.setColumnWidth(6, 85)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def campos_bloqueados(self):
         try:
@@ -161,7 +106,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_pi(self):
         try:
@@ -191,7 +137,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao(self):
         try:
@@ -200,7 +147,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_entrega(self):
         try:
@@ -209,7 +157,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_num_ov_e_id_cliente(self):
         if not self.processando:
@@ -230,7 +179,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -243,7 +193,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             if num_ov:
                 if int(num_ov) == 0:
-                    mensagem_alerta('O campo "Nº OV" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Nº OV" não pode ser "0"!')
                     self.limpa_tudo()
                     self.line_Num_OV.clear()
                 else:
@@ -251,7 +201,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_id_cliente(self):
         try:
@@ -277,11 +228,12 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 self.lanca_dados_ov()
                 self.lanca_produtos_ov()
             else:
-                mensagem_alerta("Este número de OV não existe!")
+                self.mensagem_alerta("Este número de OV não existe!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_ov(self):
         try:
@@ -332,7 +284,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_produtos_ov(self):
         try:
@@ -401,7 +354,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def bloquear_campos_pi(self):
         try:
@@ -410,7 +364,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def liberar_campos_pi(self):
         try:
@@ -419,7 +374,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         self.limpa_num_pi_e_cliente()
@@ -435,7 +391,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_pedido(self):
         try:
@@ -449,7 +406,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_manual(self):
         try:
@@ -466,7 +424,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tabelas(self):
         try:
@@ -475,7 +434,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_ov(self):
         try:
@@ -504,7 +464,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_manual(self):
         if not self.processando:
@@ -516,32 +477,34 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 num_oc = self.line_Num_OV.text()
 
                 if not num_oc:
-                    mensagem_alerta('O campo "Nº OC" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Nº OC" não pode estar vazio!')
                     self.line_Num_OV.setFocus()
                     self.line_Codigo_Manu.clear()
                 else:
                     cliente = self.combo_Cliente.currentText()
                     if not cliente:
-                        mensagem_alerta('O campo "Cliente" não pode estar vazio!')
+                        self.mensagem_alerta('O campo "Cliente" não pode estar vazio!')
                         self.combo_Cliente.setFocus()
                         self.line_Codigo_Manu.clear()
                     else:
                         if not codigo_produto:
                             self.line_Codigo_Manu.clear()
                         elif int(codigo_produto) == 0:
-                            mensagem_alerta('O campo "Código" não pode ser "0"!')
+                            self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                             self.line_Codigo_Manu.clear()
                         else:
                             status = self.label_Status.text()
                             if status == "BAIXADO":
-                                mensagem_alerta("Este pedido já está encerrado e não pode ser adicionado produtos!")
+                                self.mensagem_alerta("Este pedido já está encerrado e não pode ser "
+                                                     "adicionado produtos!")
                                 self.line_Codigo_Manu.clear()
                             else:
                                 self.verifica_sql_produto_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -554,14 +517,15 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Manu.clear()
             else:
                 self.verifica_pi_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_pi_manual(self):
         try:
@@ -587,13 +551,14 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                         break
 
             if not tem_produto_pi:
-                mensagem_alerta("Não existe Pedido Interno deste produto para este cliente!")
+                self.mensagem_alerta("Não existe Pedido Interno deste produto para este cliente!")
                 self.line_Codigo_Manu.clear()
                 self.line_Codigo_Manu.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -612,7 +577,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_qtde_manual(self):
         if not self.processando:
@@ -637,7 +603,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -662,7 +629,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_ipi_manual(self):
         try:
@@ -683,7 +651,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_frete(self):
         try:
@@ -691,7 +660,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_desconto(self):
         try:
@@ -699,7 +669,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_valor_total_manual(self):
         try:
@@ -720,7 +691,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_dados_completos_manual(self):
         if not self.processando:
@@ -735,29 +707,30 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 num_pi = self.line_Num_PI_Manu.text()
 
                 if not num_ov:
-                    mensagem_alerta('O campo "Nº OV" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Nº OV" não pode estar vazio')
                     self.line_Num_OV.setFocus()
                 elif not cliente:
-                    mensagem_alerta('O campo "Cliente" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Cliente" não pode estar vazio')
                     self.combo_Cliente.setFocus()
                 elif not cod_produto:
-                    mensagem_alerta('O campo "Código:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Código:" não pode estar vazio')
                     self.line_Codigo_Manu.setFocus()
                 elif not num_pi:
-                    mensagem_alerta('O campo "Nº PI" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Nº PI" não pode estar vazio')
                     self.line_Num_PI_Manu.setFocus()
                 elif not qtde:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde_Manu.setFocus()
                 elif not unit:
-                    mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
                     self.line_Unit_Manu.setFocus()
                 else:
                     self.manipula_dados_completos_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -803,12 +776,13 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 self.line_Codigo_Manu.setFocus()
                 self.limpa_dados_manual()
             else:
-                mensagem_alerta(f'O item selecionado já está presente na tabela "Produtos Ordem de Venda".')
+                self.mensagem_alerta(f'O item selecionado já está presente na tabela "Produtos Ordem de Venda".')
                 self.limpa_dados_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_totais(self):
         try:
@@ -866,7 +840,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def remover_itens_pi(self):
         try:
@@ -884,7 +859,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def adicionar_itens_pi(self, id_cliente, codigo_produto):
         try:
@@ -916,7 +892,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_ov(self):
         try:
@@ -926,7 +903,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             extrai_tabela_ov = extrair_tabela(self.table_OV)
             if not extrai_tabela_ov:
-                mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
             else:
                 for i in extrai_tabela_ov:
                     qtde_ent = float(i[10])
@@ -935,7 +912,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                         itens_encerrados += 1
 
             if itens_encerrados:
-                mensagem_alerta('Produtos com notas fiscais vinculadas, não podem ser excluídos!')
+                self.mensagem_alerta('Produtos com notas fiscais vinculadas, não podem ser excluídos!')
             else:
                 for dados in extrai_tabela_ov:
                     num_pi, cod, desc, ref, um, qtde, unit, ipi, tot, ent, qtde_ent = dados
@@ -972,7 +949,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_ov(self):
         try:
@@ -980,7 +958,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
             extrai_recomendados = extrair_tabela(self.table_OV)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
             else:
                 linha_selecao = self.table_OV.currentRow()
                 if linha_selecao >= 0:
@@ -994,7 +972,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                     qtde_entr = float(dados[10])
 
                     if qtde_entr > 0:
-                        mensagem_alerta("Este produto tem notas fiscais vinculadas e não pode ser excluído!")
+                        self.mensagem_alerta("Este produto tem notas fiscais vinculadas e não pode ser excluído!")
                     else:
                         if num_pi:
                             cursor = conecta.cursor()
@@ -1028,7 +1006,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_dados_ov_banco(self):
         try:
@@ -1065,7 +1044,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -1074,11 +1054,11 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
             tabela_produtos = extrair_tabela(self.table_OV)
 
             if not num_ov:
-                mensagem_alerta('O campo "Nº OV" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Nº OV" não pode estar vazio!')
             elif not cliente:
-                mensagem_alerta('O campo "Cliente" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Cliente" não pode estar vazio!')
             elif not tabela_produtos:
-                mensagem_alerta('A tabela "Produtos Ordem de Venda" não pode estar vazia"')
+                self.mensagem_alerta('A tabela "Produtos Ordem de Venda" não pode estar vazia"')
             else:
                 num_ov = self.line_Num_OV.text()
 
@@ -1100,13 +1080,14 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 if dados_interno:
                     cliente_b, status_b, desconto_b, frete_b, obs_b = dados_interno[0]
                     if status_b == "B":
-                        mensagem_alerta("Esta Ordem de Venda (OV) já está encerrada e não pode ser alterada!")
+                        self.mensagem_alerta("Esta Ordem de Venda (OV) já está encerrada e não pode ser alterada!")
                     else:
                         self.salvar_ov_existente()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_ov_existente(self):
         try:
@@ -1278,7 +1259,7 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
                 print("entrei no commit")
                 conecta.commit()
                 print("salvado")
-                mensagem_alerta(f'Ordem de Compra foi alterada com sucesso!')
+                self.mensagem_alerta(f'Ordem de Compra foi alterada com sucesso!')
 
                 if lista_pi_b:
                     lista_sem_duplicatas = list(set(lista_pi_b))
@@ -1339,7 +1320,8 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

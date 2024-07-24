@@ -1,28 +1,28 @@
 import sys
 from banco_dados.conexao import conecta
-from arquivos.chamar_arquivos import definir_caminho_arquivo
-from comandos.comando_conversoes import float_para_moeda_reais
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_cores import cor_amarelo
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_req_incluir import *
+from banco_dados.controle_erros import grava_erro_banco
+from arquivos.chamar_arquivos import definir_caminho_arquivo
+from comandos.conversores import float_para_moeda_reais
+from comandos.cores import cor_amarelo
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 import os
 import inspect
 from datetime import timedelta, date, datetime
 from unidecode import unidecode
 import socket
-import pandas as pd
-from openpyxl import load_workbook
-from openpyxl.styles import Side, Alignment, Border, Font, PatternFill
-from sympy import frac
 import shutil
 from collections import defaultdict
 import calendar
 from threading import Thread
+import traceback
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Side, Alignment, Border, Font, PatternFill
+from sympy import frac
 
 
 class TelaReqIncluir(QMainWindow, Ui_MainWindow):
@@ -30,17 +30,16 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_compra_sol.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_tipo(self.table_Tipos)
-        self.layout_tabela_sem_tipo(self.table_SemTipo)
-        self.layout_tabela_orcamento(self.table_Orcamento)
-        self.layout_tabela_requisicao(self.table_Requisicao)
-        self.layout_proprio()
+
+        layout_cabec_tab(self.table_Tipos)
+        layout_cabec_tab(self.table_SemTipo)
+        layout_cabec_tab(self.table_Orcamento)
+        layout_cabec_tab(self.table_Requisicao)
 
         self.definir_emissao()
 
@@ -66,82 +65,42 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
         self.total_itens()
 
         Thread(target=self.consultar_valor_total_compras).start()
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
-            cor_widget(self.widget_Cor8)
-            cor_widget(self.widget_Cor9)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_33)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_17)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_Titulo_2)
-            cor_fonte(self.label_TotalItens_2)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_Titulo_4)
-            cor_fonte(self.label_Titulo_5)
-            cor_fonte(self.label_Titulo_3)
-            cor_fonte(self.label_TotalItens)
-            cor_fonte(self.label_Total)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Excluir_Item)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_tipo(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_sem_tipo(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_orcamento(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_requisicao(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def consultar_valor_total_compras(self):
         try:
@@ -195,7 +154,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def criar_pasta_requisicao(self, num_sol):
         try:
@@ -209,7 +169,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def abrir_anexo(self, nome_arquivo):
         try:
@@ -224,7 +185,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def copiar_anexos_pasta_requisicao(self, caminho_pasta, arquivo):
         try:
@@ -235,14 +197,19 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             try:
                 shutil.copy2(origem_arquivo, destino_arquivo)
             except FileNotFoundError:
-                mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
+                self.mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
             except shutil.Error as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                tb = traceback.extract_tb(exc_traceback)
+                num_linha_erro = tb[-1][1]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, num_linha_erro)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo, num_linha_erro)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_anexos_publico(self, arquivo):
         pasta_origem = r'\\PUBLICO\Python\0 - Versões Antigas\anexos'
@@ -250,11 +217,12 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
         try:
             os.remove(origem_arquivo)
         except FileNotFoundError:
-            mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
+            self.mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_validador(self):
         try:
@@ -275,7 +243,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao(self):
         try:
@@ -284,7 +253,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, sources, event):
         try:
@@ -301,7 +271,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                 if num_tipo:
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT prodreq.mestre, prod.codigo, "
+                    cursor.execute(f"SELECT prodreq.mestre, prodreq.item, prod.codigo, "
                                    f"CASE prod.id when 28761 then prodreq.descricao else prod.descricao end "
                                    f"as DESCRICAO, "
                                    f"(CASE WHEN prod.embalagem = 'SIM' THEN prodreq.referencia "
@@ -341,7 +311,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                     for tip in extrair_tipo:
                         numero_sol = tip[0]
-                        codigo_prod = tip[1]
+                        codigo_prod = tip[2]
 
                         cursor = conecta.cursor()
                         cursor.execute(
@@ -366,13 +336,13 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                                     if extrair_anex:
                                         problemas += 1
                     if problemas:
-                        mensagem_alerta(f'Este tipo de material tem anexos vinculados!')
+                        self.mensagem_alerta(f'Este tipo de material tem anexos vinculados!')
                     else:
                         self.manipula_dados_requisicao(extrair_tipo)
 
                 if num_sol:
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT prodsol.mestre, prod.codigo, "
+                    cursor.execute(f"SELECT prodsol.item, prodsol.mestre, prod.codigo, "
                                    f"CASE prod.id when 28761 then prodsol.descricao else prod.descricao end "
                                    f"as DESCRICAO, "
                                    f"(CASE WHEN prod.embalagem = 'SIM' THEN prodsol.referencia "
@@ -387,8 +357,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                     lista_nova = []
                     for i in extrair_sol:
-                        num_sol, cod, descr, ref, um, qtde, destino, pc = i
-                        dados = (num_sol, cod, descr, ref, um, qtde, "", "", "", destino, pc)
+                        item_sol, num_sol, cod, descr, ref, um, qtde, destino, pc = i
+                        dados = (num_sol, item_sol, cod, descr, ref, um, qtde, "", "", "", destino, pc)
                         lista_nova.append(dados)
 
                     self.manipula_dados_requisicao(lista_nova)
@@ -408,7 +378,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def total_itens(self):
         try:
@@ -424,7 +395,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_tipos(self):
         try:
@@ -494,7 +466,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_semtipo(self):
         try:
@@ -513,7 +486,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_anexo(self):
         try:
@@ -549,7 +523,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_requisicao(self, dados_select):
         try:
@@ -559,7 +534,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             dados_tabela = extrair_tabela(self.table_Requisicao)
 
             for valores in dados_select:
-                num_sol, cod, descr, ref, um, qtde, unit, ipi, fornc, destino, pc = valores
+                num_sol, item_sol, cod, descr, ref, um, qtde, unit, ipi, fornc, destino, pc = valores
 
                 if pc == "HALLMAQMAQUINAS":
                     solic = "ANDERSON"
@@ -597,8 +572,9 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                 if dados_tabela:
                     for dados in dados_tabela:
-                        num_e, cod_e, des_e, ref_e, um_e, qt_e, uni_e, ipi_e, tot_e, dat_e, for_e, des_e, soli_e = dados
-                        if cod_e == cod and num_e == num_sol:
+                        num_e, item_sol_e, cod_e, des_e, ref_e, um_e, qt_e, uni_e, ipi_e, tot_e, dat_e, for_e, \
+                        des_e, soli_e = dados
+                        if cod_e == cod and num_e == num_sol and item_sol_e == item_sol:
                             ja_existe = True
                             break
 
@@ -618,7 +594,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                     referencia = ref
 
                 if not ja_existe:
-                    dad = [num_sol, cod, descr, referencia, um, qtde_str, unit_str, ipi_str, total_str,
+                    dad = [num_sol, item_sol, cod, descr, referencia, um, qtde_str, unit_str, ipi_str, total_str,
                            data_prev, fornec, destinos, solic]
                     dados_tabela.append(dad)
 
@@ -632,7 +608,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_req(self):
         try:
@@ -651,10 +628,6 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             self.line_Referencia.clear()
 
             self.definir_validador()
-            self.layout_tabela_tipo(self.table_Tipos)
-            self.layout_tabela_sem_tipo(self.table_SemTipo)
-            self.layout_tabela_orcamento(self.table_Orcamento)
-            self.layout_tabela_requisicao(self.table_Requisicao)
             self.manipula_dados_tipos()
             self.manipula_dados_semtipo()
             self.manipula_dados_anexo()
@@ -663,7 +636,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_total_req(self):
         try:
@@ -672,7 +646,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 valor_final = 0.00
 
                 for dados in dados_tabela:
-                    total = dados[8]
+                    total = dados[9]
                     if "," in total:
                         total_1_com_ponto = total.replace(',', '.')
                         total_1_float = float(total_1_com_ponto)
@@ -693,7 +667,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def atualiza_campos_tabela_req(self, row, column):
         try:
@@ -703,11 +678,12 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def atualiza_unitario(self, row):
         try:
-            item_unitario = self.table_Requisicao.item(row, 6)
+            item_unitario = self.table_Requisicao.item(row, 7)
             if item_unitario:
                 texto_unitario = item_unitario.text()
                 if texto_unitario:
@@ -719,12 +695,12 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 else:
                     valor_unitario = 0
 
-                item_qtde = self.table_Requisicao.item(row, 5)
+                item_qtde = self.table_Requisicao.item(row, 6)
                 if item_qtde:
                     texto_qtde = item_qtde.text()
 
                     if texto_qtde == '0':
-                        mensagem_alerta(f'A coluna "Qtde" não pode ser "0" na linha {row + 1}')
+                        self.mensagem_alerta(f'A coluna "Qtde" não pode ser "0" na linha {row + 1}')
                     else:
                         if texto_qtde:
                             if "," in item_qtde.text():
@@ -733,7 +709,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                             else:
                                 valor_qtde = float(item_qtde.text())
 
-                            item_ipi = self.table_Requisicao.item(row, 7)
+                            item_ipi = self.table_Requisicao.item(row, 8)
                             if item_ipi:
                                 texto_ipi = item_ipi.text()
                                 if texto_ipi:
@@ -747,7 +723,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                                 ipiz_porc = valor_ipi / 100
 
-                                item_total = self.table_Requisicao.item(row, 8)
+                                item_total = self.table_Requisicao.item(row, 9)
                                 if item_total:
                                     totalz_certo = valor_qtde * ((valor_unitario * ipiz_porc) + valor_unitario)
                                     totalz_dois = ("%.2f" % totalz_certo)
@@ -756,11 +732,12 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                                     item_total.setText(f"{total}")
                         else:
-                            mensagem_alerta(f'A coluna "Qtde" não pode estar vazia na linha {row + 1}')
+                            self.mensagem_alerta(f'A coluna "Qtde" não pode estar vazia na linha {row + 1}')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pinta_tabela_req(self):
         try:
@@ -770,35 +747,40 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             repetidos = set()
 
             for dados in dados_tabela:
-                num_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, destino, solic = dados
+                num_sol, item_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, \
+                destino, solic = dados
                 if cod not in valores:
                     valores.append(cod)
                 else:
                     repetidos.add(cod)
 
             for index, dados in enumerate(dados_tabela):
-                num_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, destino, solic = dados
+                num_sol, item_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, \
+                destino, solic = dados
+
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT id, descricao, embalagem FROM produto where codigo = {cod};")
                 dados_produto = cursor.fetchall()
                 ides, descr, embalagem = dados_produto[0]
+
                 if embalagem == "SIM":
-                    self.table_Requisicao.item(index, 3).setBackground(QColor(cor_amarelo))
+                    self.table_Requisicao.item(index, 4).setBackground(QColor(cor_amarelo))
                     if num_sol == "X":
                         self.table_Requisicao.item(index, 0).setBackground(QColor(cor_amarelo))
                 elif embalagem == "SER":
-                    self.table_Requisicao.item(index, 3).setBackground(QColor(cor_amarelo))
+                    self.table_Requisicao.item(index, 4).setBackground(QColor(cor_amarelo))
                     if num_sol == "X":
                         self.table_Requisicao.item(index, 0).setBackground(QColor(cor_amarelo))
                 elif cod in repetidos:
-                    self.table_Requisicao.item(index, 1).setBackground(QColor(cor_amarelo))
                     self.table_Requisicao.item(index, 2).setBackground(QColor(cor_amarelo))
+                    self.table_Requisicao.item(index, 3).setBackground(QColor(cor_amarelo))
                     if num_sol == "X":
                         self.table_Requisicao.item(index, 0).setBackground(QColor(cor_amarelo))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_codigo_manual(self):
         try:
@@ -807,12 +789,12 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                 codigo_produto = self.line_Codigo.text()
                 if len(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio')
                     self.line_Codigo.clear()
                     self.funcao_ativa = False
 
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"')
                     self.line_Codigo.clear()
                     self.funcao_ativa = False
                 else:
@@ -820,7 +802,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_produto_manual(self):
         try:
@@ -830,7 +813,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo.clear()
                 self.funcao_ativa = False
             else:
@@ -838,7 +821,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -863,7 +847,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_manual(self):
         try:
@@ -883,24 +868,24 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 descricao_id, referencia_id, unidade_id, local_id, quantidade_id, embalagem_id = detalhes_produto[0]
 
                 if len(qtdezinha) == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                     self.funcao_ativa = False
                 elif len(destino) == 0:
-                    mensagem_alerta('O campo "Destino" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Destino" não pode estar vazio')
                     self.line_Destino.clear()
                     self.line_Destino.setFocus()
                     self.funcao_ativa = False
                 elif qtdezinha == "0":
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                     self.funcao_ativa = False
                 else:
                     if embalagem_id == "SIM":
                         if not referencia_com_medida:
-                            mensagem_alerta('Informe as medidas no campo "Referência"')
+                            self.mensagem_alerta('Informe as medidas no campo "Referência"')
                             self.line_Referencia.clear()
                             self.line_Referencia.setFocus()
                             self.funcao_ativa = False
@@ -911,7 +896,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_item_produto_manual(self):
         try:
@@ -991,52 +977,18 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def define_maq_motivo(self):
         try:
-            picote = [10, "MAQ. PICOTE"]
-            polimaq = [11, "POLIMAQ"]
-            bob_picote = [12, "BOB. PICOTE"]
-            flowpack = [13, "FLOWPACK"]
-            triangulo = [14, "TRIANGULO"]
-            aglutinadora = [15, "AGLUTINADORA"]
-            injetora = [16, "INJETORA"]
-            bobinadeira = [20, "BOBINADEIRA"]
-            ponto_bob = [21, "PONTO BOBINA"]
-            corte_solda = [22, "CORTE SOLDA"]
-            impr_duascor = [23, "IMPRESSORA 2 CORES"]
-            corta_solda106 = [24, "CORTE SOLDA 106"]
-            extrusora_pp = [26, "EXTRUSORA PP"]
-            extr_5c = [27, "EXTRUSORA 5 CAM."]
-            micro_furo = [28, "MICRO FURO"]
-            impr_carnev = [29, "IMPR. CARNEVALLI"]
-            ext_pac = [33, "EXTRUSORA PACIFIL"]
-            impr_roto = [34, "IMPR. ROTO"]
-            extr_tabua = [38, "EXT. TABUA"]
-            extrusora = [42, "EXTRUSORA"]
-            ext_5cam = [47, "EXT. 5 CAMADAS"]
-            dobra_lona = [48, "DOBRADORA LONA"]
-            arm_bolsa = [52, "ARMACAO BOLSA"]
-            mesa_5pes = [55, "MESA DOBRA 5"]
-            mesa_9pes = [56, "MESA DOBRA 9"]
-            mesa_10pes = [57, "MESA DOBRA 9/10"]
-            mesa_12pes = [60, "MESA DOBRA 12"]
-            mesa_12ret = [61, "MESA RET. 12"]
-            lacre_mesa = [62, "LACRE BOLSA"]
-
-            todas_maquinas = [picote, polimaq, bob_picote, flowpack, triangulo, aglutinadora, injetora,
-                              bobinadeira, ponto_bob, corte_solda, impr_duascor, corta_solda106, extrusora_pp,
-                              extr_5c, micro_furo, impr_carnev, ext_pac, impr_roto, extr_tabua, extrusora,
-                              ext_5cam, dobra_lona, arm_bolsa, mesa_5pes, mesa_9pes, mesa_10pes, mesa_12pes,
-                              mesa_12ret, lacre_mesa]
-
             dados_tabela = extrair_tabela(self.table_Requisicao)
 
             maquina = ""
             motivo = ""
             for tabi in dados_tabela:
-                num_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, destino, solic = tabi
+                num_sol, item_sol, cod, descr, ref, um, qtde, unit, ipi, total_dois, data_pr_txt, fornc, \
+                destino, solic = tabi
 
                 if num_sol:
                     if num_sol != "X":
@@ -1091,14 +1043,15 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item(self):
         try:
             dados_tabela = extrair_tabela(self.table_Requisicao)
 
             if not dados_tabela:
-                mensagem_alerta('A tabela da Requisição não tem itens para excluir')
+                self.mensagem_alerta('A tabela da Requisição não tem itens para excluir')
             else:
                 linha_selecao = self.table_Requisicao.currentRow()
                 item_para_excluir = dados_tabela[linha_selecao]
@@ -1114,7 +1067,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -1123,19 +1077,20 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             destino_requisicao = self.lineMotivo.text()
             dados_alterados = extrair_tabela(self.table_Requisicao)
             if not dados_alterados:
-                mensagem_alerta('A Tabela "Lista Requisição" não possui produtos lançados!')
+                self.mensagem_alerta('A Tabela "Lista Requisição" não possui produtos lançados!')
             elif not num_requisicao:
-                mensagem_alerta(f'A requisição está sem número!')
+                self.mensagem_alerta(f'A requisição está sem número!')
             elif not maquina_requisicao:
-                mensagem_alerta(f'A requisição está sem máquina definida!')
+                self.mensagem_alerta(f'A requisição está sem máquina definida!')
             elif not destino_requisicao:
-                mensagem_alerta(f'A requisição está sem destino definido!')
+                self.mensagem_alerta(f'A requisição está sem destino definido!')
             else:
                 dados_tabela = extrair_tabela(self.table_Requisicao)
                 soma_sem_cod = 0
                 lista_sem_cod = []
                 for tabi in dados_tabela:
-                    num_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, solic = tabi
+                    num_sol, item_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, \
+                    solic = tabi
 
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT id, codigo, embalagem FROM produto where codigo = '{cod}';")
@@ -1148,13 +1103,14 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                     for dados in lista_sem_cod:
                         cod, descr, ref = dados
                         produto = cod + " - " + descr + " - " + ref
-                        mensagem_alerta(f'O código {produto} não está cadastrado!')
+                        self.mensagem_alerta(f'O código {produto} não está cadastrado!')
                 else:
                     self.salvar_lista()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_lista(self):
         try:
@@ -1174,8 +1130,10 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                            f"{num_req}, '{data_hoje}', 'A', '{motivo}');")
 
             dados_tabela = extrair_tabela(self.table_Requisicao)
-            for tabi in dados_tabela:
-                num_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, solic = tabi
+
+            for indice, tabi in enumerate(dados_tabela, start=1):
+                num_sol, item_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, \
+                solic = tabi
 
                 date_mov = datetime.strptime(data_pr, '%d/%m/%Y').date()
                 data_mov_certa = str(date_mov)
@@ -1194,7 +1152,9 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 if num_sol != "X":
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT id, produto FROM produtoordemsolicitacao "
-                                   f"where produto = '{id_produto}' and mestre = '{num_sol}';")
+                                   f"where produto = '{id_produto}' "
+                                   f"and mestre = '{num_sol}' "
+                                   f"and item = {item_sol};")
                     dados_prodsolicitacao = cursor.fetchall()
                     id_prodsol, produto = dados_prodsolicitacao[0]
 
@@ -1203,34 +1163,34 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
                     if embalagem == "SIM":
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, REFERENCIA, ID_PROD_SOL, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', '{ref}', "
                                        f"{id_prodsol}, '{destino}', {num_req});")
 
                     else:
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, ID_PROD_SOL, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', {id_prodsol}, "
                                        f"'{destino}', {num_req});")
 
                 else:
                     if embalagem == "SIM":
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, REFERENCIA, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', '{ref}', "
                                        f"'{destino}', {num_req});")
 
                     else:
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                        cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', "
                                        f"'{destino}', {num_req});")
 
@@ -1240,7 +1200,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_anexos(self):
         try:
@@ -1255,8 +1216,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
             for dados in dados_tabela:
                 num = dados[0]
-                cod = dados[1]
-                ref_req = dados[3]
+                cod = dados[2]
+                ref_req = dados[4]
 
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT id, tipomaterial FROM produto WHERE codigo = {cod};")
@@ -1301,7 +1262,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gera_excel(self, caminho_pasta):
         try:
@@ -1323,11 +1285,11 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             cor_cinza = "A6A6A6"
 
             if not num_requisicao:
-                mensagem_alerta(f'A requisição está sem número!')
+                self.mensagem_alerta(f'A requisição está sem número!')
             elif not maquina_requisicao:
-                mensagem_alerta(f'A requisição está sem máquina definida!')
+                self.mensagem_alerta(f'A requisição está sem máquina definida!')
             elif not destino_requisicao:
-                mensagem_alerta(f'A requisição está sem destino definido!')
+                self.mensagem_alerta(f'A requisição está sem destino definido!')
             else:
                 maquina = maquina_requisicao
                 maq_req_maiuscula = maquina.upper()
@@ -1348,7 +1310,8 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 d_um = []
 
                 for tabi in dados_tabela:
-                    num_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, solic = tabi
+                    num_sol, item_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, \
+                    destino, solic = tabi
 
                     if unit == 0.00:
                         unit_1_final = 0.00
@@ -1604,12 +1567,13 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 df.to_excel(writer, 'Sheet1', startrow=10, startcol=0, header=False, index=False)
 
                 writer.save()
-                mensagem_alerta(f'Requisição {num_requisicao} criada e excel gerado com sucesso!')
+                self.mensagem_alerta(f'Requisição {num_requisicao} criada e excel gerado com sucesso!')
                 self.limpa_req()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

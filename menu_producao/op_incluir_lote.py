@@ -1,13 +1,12 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, pergunta_confirmacao, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela, excluir_item_tab
-from comandos.comando_cores import cor_amarelo
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_banco import definir_proximo_registro
 from forms.tela_op_incluir_lote import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from banco_dados.bc_consultas import definir_proximo_registro
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.cores import cor_amarelo
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor, QFont
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -16,124 +15,128 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 import inspect
 import os
-from functools import partial
+import traceback
 
 
 class TelaOpLote(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
-
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_estrutura(self.table_Estrutura)
-        self.layout_tabela_op(self.table_OP)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Estrutura)
+        layout_cabec_tab(self.table_OP)
 
         self.abre_progresso = []
 
         self.table_Estrutura.viewport().installEventFilter(self)
 
-        self.btn_ExcluirTudo_OP.clicked.connect(partial(limpa_tabela, self.table_OP))
-        self.btn_ExcluirItem_OP.clicked.connect(partial(excluir_item_tab, self.table_OP, "Lista de OP'S"))
+        self.btn_ExcluirTudo_OP.clicked.connect(self.limpa_tabela_op)
+        self.btn_ExcluirItem_OP.clicked.connect(self.excluir_item_tab_op)
 
-        self.btn_ExcluirItem_Est.clicked.connect(partial(limpa_tabela, self.table_Estrutura))
+        self.btn_ExcluirItem_Est.clicked.connect(self.limpa_tabela_estrut)
 
         self.definir_botoes_e_comandos()
         self.reiniciando_tudo()
         definir_proximo_registro(self.line_NumOP, "numero", "ordemservico")
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_119)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_249)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_33)
-            cor_fonte(self.label_34)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_62)
-            cor_fonte(self.label_61)
-            cor_fonte(self.label_60)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.label_Titulo)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_fonte(self.check_Nivel)
-            cor_fonte(self.check_Excel)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Consultar_Manu)
-            cor_btn(self.btn_Consultar_Estrut)
-            cor_btn(self.btn_Limpar_Estrut)
-            cor_btn(self.btn_ExcluirItem_OP)
-            cor_btn(self.btn_ExcluirTudo_OP)
-            cor_btn(self.btn_Adicionar_SemSaldo)
-            cor_btn(self.btn_Adicionar_Todos)
-            cor_btn(self.btn_Adicionar_Usinagem)
-            cor_btn(self.btn_ExcluirItem_Est)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_op(self, nome_tabela):
+    def pergunta_confirmacao(self, mensagem):
         try:
-            layout_cabec_tab(nome_tabela)
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
 
-            nome_tabela.setColumnWidth(0, 45)
-            nome_tabela.setColumnWidth(1, 40)
-            nome_tabela.setColumnWidth(2, 215)
-            nome_tabela.setColumnWidth(3, 115)
-            nome_tabela.setColumnWidth(4, 40)
-            nome_tabela.setColumnWidth(5, 45)
-            nome_tabela.setColumnWidth(6, 80)
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_estrutura(self, nome_tabela):
+    def limpa_tabela_estrut(self):
         try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 40)
-            nome_tabela.setColumnWidth(1, 210)
-            nome_tabela.setColumnWidth(2, 110)
-            nome_tabela.setColumnWidth(3, 40)
-            nome_tabela.setColumnWidth(4, 45)
-            nome_tabela.setColumnWidth(5, 60)
-            nome_tabela.setColumnWidth(6, 55)
+            self.table_Estrutura.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def limpa_tabela_op(self):
+        try:
+            self.table_OP.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_tab_op(self):
+        try:
+            nome_tabela = self.table_OP
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Lista de OPs" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_e_classifica(self, dados):
         try:
@@ -162,7 +165,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_estrutura_filhos(self, dados_tabela):
         try:
@@ -192,8 +196,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                     dados_sem_estrut += f"- Código {cod_vem} - {descr}\n"
 
             if dados_sem_estrut:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
-                                f'{dados_sem_estrut}\nAntes de criar a Ordem de Produção, defina a estrutura.')
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                                     f'{dados_sem_estrut}\nAntes de criar a Ordem de Produção, defina a estrutura.')
             else:
                 tem_estrutura = True
 
@@ -201,7 +205,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao_previsao(self):
         try:
@@ -213,7 +218,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_botoes_e_comandos(self):
         try:
@@ -237,7 +243,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_validador_lineedit(self):
         try:
@@ -258,7 +265,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipulacao_total(self, dados):
         try:
@@ -303,7 +311,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
                     msg += "\nDeseja continuar?  "
 
-                    if pergunta_confirmacao(msg):
+                    if self.pergunta_confirmacao(msg):
                         confirmacao = True
                 else:
                     confirmacao = True
@@ -340,7 +348,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -379,27 +388,29 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_estrut(self):
         try:
             self.line_Qtde_Estrut.clear()
             codigo_produto = self.line_Codigo_Estrut.text()
             if "." in codigo_produto:
-                mensagem_alerta('O campo "Código" deve ter somente números!')
+                self.mensagem_alerta('O campo "Código" deve ter somente números!')
                 self.line_Codigo_Estrut.clear()
             elif len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo_Estrut.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo_Estrut.clear()
             else:
                 self.verifica_sql_codigo_estrut()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_codigo_estrut(self):
         try:
@@ -415,17 +426,18 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
             produto_acabado = cursor.fetchall()
 
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Estrut.clear()
             elif not produto_acabado:
-                mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
+                self.mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
                 self.excluir_tudo_estrut()
             else:
                 self.lanca_dados_codigo_estrut()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_codigo_estrut(self):
         try:
@@ -442,7 +454,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
             quantidade_id_int = int(quantidade_id)
 
             if quantidade_id_int < 0:
-                mensagem_alerta(f'Este produto está com saldo negativo!\n'
+                self.mensagem_alerta(f'Este produto está com saldo negativo!\n'
                                                             f'Saldo Total = {quantidade_id_int}')
                 self.line_Codigo_Estrut.clear()
             else:
@@ -453,13 +465,14 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_estrut(self):
         try:
             qtdezinha = self.line_Qtde_Estrut.text()
             if not qtdezinha:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde_Estrut.clear()
                 self.line_Qtde_Estrut.setFocus()
             else:
@@ -470,7 +483,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                     qtdezinha_int = int(qtdezinha)
 
                 if qtdezinha_int == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Estrut.clear()
                     self.line_Qtde_Estrut.setFocus()
                 else:
@@ -481,7 +494,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_estrutura(self):
         try:
@@ -512,7 +526,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
             nova_tabela = []
 
             if not tabela_estrutura:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
                                                             f'Antes de criar a Ordem de Produção, defina a estrutura.')
                 self.limpa_produto_estrutura()
 
@@ -532,11 +546,12 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                 lanca_tabela(self.table_Estrutura, nova_tabela)
                 self.pintar_tabela_estrutura()
             else:
-                mensagem_alerta(f'Esta estrutura não possui produtos acabados!')
+                self.mensagem_alerta(f'Esta estrutura não possui produtos acabados!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_todos_niveis(self):
         try:
@@ -558,7 +573,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
             nova_tabela = []
             if not tabela_estrutura:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
                                                             f'Antes de criar a Ordem de Produção, defina a estrutura.')
                 self.limpa_produto_estrutura()
 
@@ -578,11 +593,12 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                 lanca_tabela(self.table_Estrutura, nova_tabela)
                 self.pintar_tabela_estrutura()
             else:
-                mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
+                self.mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_estrutura(self, codigos, qtde):
         try:
@@ -614,7 +630,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_produto_estrutura(self):
         try:
@@ -627,7 +644,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_produto_manual(self):
         try:
@@ -641,7 +659,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_estrutura(self):
         try:
@@ -661,7 +680,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_op(self):
         try:
@@ -689,24 +709,26 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_manu(self):
         try:
             self.line_Qtde_Manu.clear()
             codigo_produto = self.line_Codigo_Manu.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo_Manu.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo_Manu.clear()
             else:
                 self.verifica_sql_produtomanual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_produtomanual(self):
         try:
@@ -716,14 +738,15 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Manu.clear()
             else:
                 self.verifica_materia_manu()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_materia_manu(self):
         try:
@@ -737,12 +760,13 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
             if not terceirizado and conjunto == 10:
                 self.lanca_dados_produtomanual()
             else:
-                mensagem_alerta('O Material não está definido como "Produto-Acabado"!')
+                self.mensagem_alerta('O Material não está definido como "Produto-Acabado"!')
                 self.line_Codigo_Manu.clear()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produtomanual(self):
         try:
@@ -764,18 +788,19 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_manu(self):
         try:
             qtdezinha = self.line_Qtde_Manu.text()
 
             if len(qtdezinha) == 0:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde_Manu.clear()
                 self.line_Qtde_Manu.setFocus()
             elif qtdezinha == "0":
-                mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                 self.line_Qtde_Manu.clear()
                 self.line_Qtde_Manu.setFocus()
             else:
@@ -783,7 +808,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def item_produtomanual(self):
         try:
@@ -807,7 +833,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         try:
@@ -821,16 +848,18 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_estrut(self):
         try:
-            limpa_tabela(self.table_Estrutura)
+            self.table_Estrutura.setRowCount(0)
             self.limpa_produto_estrutura()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_tudo_estrutura(self):
         try:
@@ -860,11 +889,12 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
                 self.manipulacao_total(tabela_nova)
             else:
-                mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
+                self.mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_semsaldo_estrutura(self):
         try:
@@ -897,13 +927,14 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                 if tabela_nova:
                     self.manipulacao_total(tabela_nova)
                 else:
-                    mensagem_alerta(f'Não possui produtos sem saldo nesta estrutura!')
+                    self.mensagem_alerta(f'Não possui produtos sem saldo nesta estrutura!')
             else:
-                mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
+                self.mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_usinagem_estrutura(self):
         try:
@@ -940,13 +971,14 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                 if tabela_nova:
                     self.manipulacao_total(tabela_nova)
                 else:
-                    mensagem_alerta(f'Não possui produtos com Tipo de Material: Usinagem!')
+                    self.mensagem_alerta(f'Não possui produtos com Tipo de Material: Usinagem!')
             else:
-                mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
+                self.mensagem_alerta(f'A tabela "Estrutura" está vazia!!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -975,11 +1007,12 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                     self.manipulacao_total(nova_tabela)
                     self.verifica_salvamento()
             else:
-                mensagem_alerta(f'A tabela "Lista de OPS" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de OPS" está vazia!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_lista(self):
         try:
@@ -1023,7 +1056,7 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                                f"'{cod_op}', '{previsao}');")
 
             conecta.commit()
-            mensagem_alerta(f'As Ordens de Produção em Lote foi criadas com sucesso!')
+            self.mensagem_alerta(f'As Ordens de Produção em Lote foi criadas com sucesso!')
 
             if self.check_Excel.isChecked():
                 self.gera_excel()
@@ -1031,7 +1064,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciando_tudo(self):
         try:
@@ -1046,14 +1080,15 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gera_excel(self):
         try:
             nova_table = extrair_tabela(self.table_OP)
 
             if not nova_table:
-                mensagem_alerta(f'A Tabela do Plano de Produção está vazia!')
+                self.mensagem_alerta(f'A Tabela do Plano de Produção está vazia!')
             else:
                 workbook = Workbook()
                 sheet = workbook.active
@@ -1118,7 +1153,8 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

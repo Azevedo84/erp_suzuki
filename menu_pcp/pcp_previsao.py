@@ -1,14 +1,13 @@
 import sys
 from banco_dados.conexao import conecta
 from forms.tela_pcp_previsao import *
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float
-from comandos.comando_excel import carregar_workbook, edita_alinhamento, edita_bordas, edita_preenchimento
-from comandos.comando_excel import edita_fonte, criar_workbook, letra_coluna, ajusta_larg_coluna
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float
+from comandos.excel import carregar_workbook, edita_alinhamento, edita_bordas, edita_preenchimento
+from comandos.excel import edita_fonte, criar_workbook, letra_coluna, ajusta_larg_coluna
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QHeaderView
 from datetime import timedelta, date, datetime
 import inspect
 import os
@@ -16,6 +15,7 @@ from threading import Thread
 import math
 from pathlib import Path
 import re
+import traceback
 
 
 class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
@@ -23,15 +23,13 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_pi(self.table_PI)
-        self.layout_tabela_previsao(self.table_Previsao)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_PI)
+        layout_cabec_tab(self.table_Previsao)
 
         self.line_SemanCompra = "1"
 
@@ -45,71 +43,42 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         self.progressBar.setHidden(True)
         self.label_Excel.setText("")
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Atualizar)
-            cor_btn(self.btn_GeraExcel)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_pi(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 40)
-            nome_tabela.setColumnWidth(1, 60)
-            nome_tabela.setColumnWidth(2, 230)
-            nome_tabela.setColumnWidth(3, 150)
-            nome_tabela.setColumnWidth(4, 40)
-            nome_tabela.setColumnWidth(5, 45)
-            nome_tabela.setColumnWidth(6, 85)
-            nome_tabela.setColumnWidth(7, 85)
-            nome_tabela.setColumnWidth(8, 80)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_previsao(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 40)
-            nome_tabela.setColumnWidth(1, 55)
-            nome_tabela.setColumnWidth(2, 200)
-            nome_tabela.setColumnWidth(3, 110)
-            nome_tabela.setColumnWidth(4, 30)
-            nome_tabela.setColumnWidth(5, 40)
-            nome_tabela.setColumnWidth(6, 80)
-            nome_tabela.setColumnWidth(7, 120)
-            nome_tabela.setColumnWidth(8, 55)
-            nome_tabela.setColumnWidth(9, 270)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def retorna_calculo_meses(self, dados_tabela):
         try:
@@ -147,7 +116,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def retorna_oc_abertas(self, cod_prod):
         try:
@@ -215,7 +185,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def retorna_ops_saldo_ops_abertas(self, cod_pai, cod_filho):
         try:
@@ -276,7 +247,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_ordens_compra(self, dados_total):
         try:
@@ -305,7 +277,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_ordens_producao(self, dados_total):
         try:
@@ -324,20 +297,21 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                     lanca_saldo = (cod_pai, qtde_ops)
                     lista_ops.append(lanca_saldo)
 
-                    qtde_float_com_op = qtdei_float - qtde_ops
+                    qtde_float_op = qtdei_float - qtde_ops
                 else:
-                    qtde_float_com_op = qtdei_float
+                    qtde_float_op = qtdei_float
             else:
                 if qtde_ops > 0:
-                    qtde_float_com_op = qtdei_float - qtde_ops
+                    qtde_float_op = qtdei_float - qtde_ops
                 else:
-                    qtde_float_com_op = qtdei_float
+                    qtde_float_op = qtdei_float
 
-            return lista_ops, qtde_float_com_op
+            return lista_ops, qtde_float_op
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_folgas(self, data_inicio, data_fim):
         try:
@@ -357,7 +331,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def retorna_data_entrega(self, id_pais):
         try:
@@ -392,7 +367,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_tabela_producao(self, cod_prod):
         try:
@@ -418,7 +394,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_pi(self):
         try:
@@ -458,7 +435,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_predefinidos(self):
         try:
@@ -478,7 +456,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def configura_lineedit(self):
         try:
@@ -494,14 +473,15 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_1_chamar_funcao(self):
         try:
             dados = extrair_tabela(self.table_PI)
 
             if not dados:
-                mensagem_alerta(f'A tabela "Pedidos Internos Pendentes" está vazia!')
+                self.mensagem_alerta(f'A tabela "Pedidos Internos Pendentes" está vazia!')
             else:
                 self.limpar_tudo()
                 self.progressBar.setHidden(False)
@@ -510,7 +490,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_2_dados_previsao(self):
         try:
@@ -554,7 +535,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
             if tudo_tudo:
                 self.calculo_4_final_lanca_tabelas(tudo_tudo)
             else:
-                mensagem_alerta(f'Este Plano de produção está concluído!')
+                self.mensagem_alerta(f'Este Plano de produção está concluído!')
 
                 self.limpar_tudo()
                 self.label_procura.setHidden(True)
@@ -563,7 +544,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_3_verifica_estrutura(self, dados_total):
         try:
@@ -656,7 +638,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_4_final_lanca_tabelas(self, estrutura_final):
         try:
@@ -684,7 +667,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_5_recebe_dados(self, estrutura_ord):
         try:
@@ -799,7 +783,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_6_manipula_final_tab(self, lista_final):
         try:
@@ -839,15 +824,17 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                     tabela_p_pi.append(dados1)
 
             if tabela_nova:
-                lanca_tabela(self.table_Previsao, tabela_nova)
-
                 self.progressBar.setHidden(True)
 
                 self.calculo_7_manipula_previsao_pi(tabela_p_pi)
 
+                lanca_tabela(self.table_Previsao, tabela_nova)
+                self.table_Previsao.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_7_manipula_previsao_pi(self, dados_previsao):
         try:
@@ -893,7 +880,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_8_manipula_previsao_pi2(self, dados_pi, nova_lista):
         try:
@@ -932,18 +920,20 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpar_tudo(self):
         try:
             self.progressBar.setHidden(True)
             self.widget_Barra.setHidden(False)
-            limpa_tabela(self.table_Previsao)
+            self.table_Previsao.setRowCount(0)
             self.label_Excel.setText("")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excel(self):
         try:
@@ -959,7 +949,7 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
             dados_extraidos = extrair_tabela(self.table_Previsao)
             if not dados_extraidos:
-                mensagem_alerta(f'A Tabela "Lista de Materiais" está vazia!')
+                self.mensagem_alerta(f'A Tabela "Lista de Materiais" está vazia!')
             else:
                 self.excel_total(caminho, dados_extraidos)
 
@@ -1018,7 +1008,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excel_total(self, caminho, nova_tabela):
         try:
@@ -1107,7 +1098,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excel_pedido_interno(self, caminho_arquivo):
         try:
@@ -1216,7 +1208,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excel_comprado(self, caminho_arquivo, nova_tabela):
         try:
@@ -1293,7 +1286,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excel_acabado(self, caminho_arquivo, nova_tabela):
         try:
@@ -1381,7 +1375,8 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

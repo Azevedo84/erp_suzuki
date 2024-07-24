@@ -1,10 +1,10 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import grava_erro_banco
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela
-from comandos.comando_cores import cor_verde_claro, cor_vermelho, cor_cinza_claro, cor_vermelho_claro
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from forms.tela_op_status import *
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.cores import cor_verde_claro, cor_vermelho, cor_cinza_claro, cor_vermelho_claro
+from comandos.telas import tamanho_aplicacao, icone
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
 from datetime import date, timedelta
@@ -23,10 +23,9 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_op(self.table_OP)
-        self.layout_tabela_estrutura(self.table_Estrutura)
-        self.layout_tabela_consumo(self.table_Consumo)
-        cor_widget_cab(self.widget_cabecalho)
+        layout_cabec_tab(self.table_OP)
+        layout_cabec_tab(self.table_Estrutura)
+        layout_cabec_tab(self.table_Consumo)
 
         self.btn_Consultar.clicked.connect(self.define_filtros)
         self.line_Codigo.editingFinished.connect(self.manual_verifica_line_codigo)
@@ -39,19 +38,28 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
         self.qtde_vezes_select = 0
 
         self.definir_datas()
-
-    def trata_excecao(self, nome_funcao, mensagem, arquivo):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
+
             traceback.print_exc()
-            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
             self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
                                  f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
                                  f'{nome_funcao}: {mensagem}')
 
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
         except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
     def mensagem_alerta(self, mensagem):
         try:
@@ -64,61 +72,35 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_op(self, nome_tabela):
+    def limpa_tabela_op(self):
         try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 90)
-            nome_tabela.setColumnWidth(1, 90)
-            nome_tabela.setColumnWidth(2, 50)
-            nome_tabela.setColumnWidth(3, 50)
-            nome_tabela.setColumnWidth(4, 280)
-            nome_tabela.setColumnWidth(5, 140)
-            nome_tabela.setColumnWidth(6, 30)
-            nome_tabela.setColumnWidth(7, 35)
-            nome_tabela.setColumnWidth(8, 65)
-            nome_tabela.setColumnWidth(9, 50)
+            self.table_OP.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_estrutura(self, nome_tabela):
+    def limpa_tabela_estrut(self):
         try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 38)
-            nome_tabela.setColumnWidth(1, 42)
-            nome_tabela.setColumnWidth(2, 220)
-            nome_tabela.setColumnWidth(3, 35)
-            nome_tabela.setColumnWidth(4, 55)
-            nome_tabela.setColumnWidth(5, 70)
-            nome_tabela.setColumnWidth(6, 55)
+            self.table_Estrutura.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_consumo(self, nome_tabela):
+    def limpa_tabela_consumo(self):
         try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 38)
-            nome_tabela.setColumnWidth(1, 65)
-            nome_tabela.setColumnWidth(2, 45)
-            nome_tabela.setColumnWidth(3, 200)
-            nome_tabela.setColumnWidth(4, 35)
-            nome_tabela.setColumnWidth(5, 50)
+            self.table_Consumo.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_datas(self):
         try:
@@ -132,8 +114,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela(self):
         try:
@@ -196,8 +178,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_line_codigo(self):
         if not self.processando:
@@ -216,8 +198,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -237,8 +219,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_materia_prima(self):
         try:
@@ -258,8 +240,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_lanca_dados_produto(self):
         try:
@@ -278,12 +260,12 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo_tela1(self):
         try:
-            limpa_tabela(self.table_OP)
+            self.limpa_tabela_op()
 
             self.line_Codigo.clear()
             self.line_UM.clear()
@@ -292,8 +274,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def conversao_manipula_dados(self, op_abertas):
         try:
@@ -358,8 +340,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def define_filtros(self):
         try:
@@ -441,8 +423,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_aberto(self):
         try:
@@ -460,8 +442,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_emissao(self):
         try:
@@ -482,8 +464,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_emissao_e_aberto(self):
         try:
@@ -504,8 +486,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_emissao_e_baixado(self):
         try:
@@ -526,8 +508,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_entrega(self):
         try:
@@ -548,8 +530,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_entrega_e_aberto(self):
         try:
@@ -570,8 +552,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_entrega_e_baixado(self):
         try:
@@ -592,8 +574,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_codigo(self):
         try:
@@ -613,8 +595,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_codigo_e_aberto(self):
         try:
@@ -634,8 +616,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_codigo_e_fechado(self):
         try:
@@ -655,8 +637,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_codigo_e_aberto_e_fechado(self):
         try:
@@ -677,8 +659,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_cem_e_aberto(self):
         try:
@@ -758,8 +740,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_zero_e_aberto(self):
         try:
@@ -838,13 +820,13 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo_tela2(self):
         try:
-            limpa_tabela(self.table_Estrutura)
-            limpa_tabela(self.table_Consumo)
+            self.limpa_tabela_estrut()
+            self.limpa_tabela_consumo()
 
             self.line_Codigo_Manu.clear()
             self.line_UM_Manu.clear()
@@ -853,8 +835,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_verifica_num_op(self):
         if not self.processando:
@@ -874,8 +856,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-                grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -896,8 +878,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_verifica_vinculo_materia(self):
         try:
@@ -921,8 +903,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_verifica_dados_op(self):
         try:
@@ -957,8 +939,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_lanca_dados_op(self):
         try:
@@ -981,8 +963,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_dados_op(self):
         try:
@@ -997,8 +979,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_separar_dados_select(self):
         try:
@@ -1044,8 +1026,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_select_mistura(self):
         try:
@@ -1115,8 +1097,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_pintar_tabelas(self):
         try:
@@ -1142,8 +1124,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tela2_jutando_tabelas_extraidas(self):
         try:
@@ -1165,8 +1147,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciar(self):
         try:
@@ -1184,8 +1166,8 @@ class TelaOpStatus(QMainWindow, Ui_ConsultaOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

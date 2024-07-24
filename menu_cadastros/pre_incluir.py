@@ -1,33 +1,29 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, pergunta_confirmacao, \
-    tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, limpa_tabela, layout_cabec_tab, excluir_item_tab
-from comandos.comando_lines import validador_decimal, definir_data_atual
-from comandos.comando_string import remover_acentos
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_banco import definir_proximo_generator
 from forms.tela_pre_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from functools import partial
+from banco_dados.controle_erros import grava_erro_banco
+from banco_dados.bc_consultas import definir_proximo_generator
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.lines import validador_decimal, definir_data_atual
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
+import traceback
+from unidecode import unidecode
 
 
 class TelaPreIncluir(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
-
-        cor_fundo_tela(self)
+        
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
-        self.layout_tabela(self.table_Produto)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Produto)
 
         self.line_Fornecedor.editingFinished.connect(self.manual_verifica_pelo_line)
 
@@ -35,8 +31,8 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
         self.btn_Salvar.clicked.connect(self.salvar_verifica_salvamento)
         self.btn_Limpar.clicked.connect(self.limpa_tudo)
 
-        self.btn_ExcluirTudo.clicked.connect(partial(limpa_tabela, self.table_Produto))
-        self.btn_ExcluirItem.clicked.connect(partial(excluir_item_tab, self.table_Produto, "Lista de Produtos"))
+        self.btn_ExcluirTudo.clicked.connect(self.limpa_tabela)
+        self.btn_ExcluirItem.clicked.connect(self.excluir_item_tab)
 
         validador_decimal(self.line_NCM, 9999999.000)
 
@@ -46,62 +42,94 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
         self.line_Obs.setFocus()
 
         self.processando = False
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_26)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_50)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_68)
-            cor_fonte(self.label_69)
-            cor_fonte(self.label_71)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
-            cor_fonte(self.label_Titulo)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Adicionar)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_Limpar)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela(self, nome_tabela):
+    def pergunta_confirmacao(self, mensagem):
         try:
-            layout_cabec_tab(nome_tabela)
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
 
-            nome_tabela.setColumnWidth(0, 210)
-            nome_tabela.setColumnWidth(1, 210)
-            nome_tabela.setColumnWidth(2, 100)
-            nome_tabela.setColumnWidth(3, 30)
-            nome_tabela.setColumnWidth(4, 80)
-            nome_tabela.setColumnWidth(5, 55)
-            nome_tabela.setColumnWidth(6, 150)
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def limpa_tabela(self):
+        try:
+            nome_tabela = self.table_Produto
+
+            nome_tabela.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_tab(self):
+        try:
+            nome_tabela = self.table_Produto
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Lista de Produtos" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_pelo_line(self):
         if not self.processando:
@@ -112,7 +140,8 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -125,39 +154,40 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             um = self.combo_UM.currentText()
 
             if not obs:
-                mensagem_alerta('O campo "Obs" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Obs" não pode estar vazio!')
                 self.line_Obs.clear()
             elif not descr:
-                mensagem_alerta('O campo "Descrição" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Descrição" não pode estar vazio!')
                 self.line_Descricao.clear()
             elif not ncm:
-                mensagem_alerta('O campo "NCM" não pode estar vazio!')
+                self.mensagem_alerta('O campo "NCM" não pode estar vazio!')
                 self.line_NCM.clear()
             elif not um:
-                mensagem_alerta('O campo "UM" não pode estar vazio!')
+                self.mensagem_alerta('O campo "UM" não pode estar vazio!')
                 self.combo_UM.setCurrentText("")
             else:
                 self.manual_verifica_descricao_preposicoes()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_descricao_preposicoes(self):
         try:
             descr = self.line_Descricao.text().upper()
 
             if "BANDEIJA" in descr:
-                mensagem_alerta('A PALAVRA BANDEJA NÃO TEM "I"!')
+                self.mensagem_alerta('A PALAVRA BANDEJA NÃO TEM "I"!')
 
             elif "TRAZEIRA" in descr:
-                mensagem_alerta('A PALAVRA TRASEIRA É COM "S"!')
+                self.mensagem_alerta('A PALAVRA TRASEIRA É COM "S"!')
 
             elif "ESTERIA" in descr:
-                mensagem_alerta('VERIFIQUE A PALAVRA "ESTERIA"!')
+                self.mensagem_alerta('VERIFIQUE A PALAVRA "ESTERIA"!')
 
             elif "TRAZEIRO" in descr:
-                mensagem_alerta('A PALAVRA TRASEIRO É COM "S"!')
+                self.mensagem_alerta('A PALAVRA TRASEIRO É COM "S"!')
 
             elif " DE " in descr \
                     or " DO " in descr \
@@ -167,14 +197,15 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
                     or " COM " in descr:
                 msg = 'Não podemos utilizar preposições (da, do, em, com, etc..) em nossos cadastros.\n' \
                       'Tem certeza que deseja continuar?'
-                if pergunta_confirmacao(msg):
+                if self.pergunta_confirmacao(msg):
                     self.manual_verifica_descricao_no_banco()
             else:
                 self.manual_verifica_descricao_no_banco()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_descricao_no_banco(self):
         try:
@@ -190,18 +221,19 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             if produto_descr:
                 codis = produto_descr[0][0]
-                mensagem_alerta(f'Já existe produtos cadastrados com esta descrição"\n\n'
-                                f' - Código do Produto: {codis}')
+                self.mensagem_alerta(f'Já existe produtos cadastrados com esta descrição"\n\n'
+                                     f' - Código do Produto: {codis}')
             elif produto_pre_descr:
                 codis_pre = produto_pre_descr[0][0]
-                mensagem_alerta(f'Já existe produtos no pré cadastrado com esta descrição"\n\n'
-                                f' - Código do Registro: {codis_pre}')
+                self.mensagem_alerta(f'Já existe produtos no pré cadastrado com esta descrição"\n\n'
+                                     f' - Código do Registro: {codis_pre}')
             else:
                 self.manual_verifica_referencia_no_banco()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_referencia_no_banco(self):
         try:
@@ -218,12 +250,12 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
                 if produto_ref:
                     codis = produto_ref[0][0]
-                    mensagem_alerta(f'Já existe produtos cadastrados com esta referência"\n\n'
-                                    f' - Código do Produto: {codis}')
+                    self.mensagem_alerta(f'Já existe produtos cadastrados com esta referência"\n\n'
+                                         f' - Código do Produto: {codis}')
                 elif produto_pre_ref:
                     codis_pre = produto_pre_ref[0][0]
-                    mensagem_alerta(f'Já existe produtos no pré cadastrado com esta referência"\n\n'
-                                    f' - Código do Registro: {codis_pre}')
+                    self.mensagem_alerta(f'Já existe produtos no pré cadastrado com esta referência"\n\n'
+                                         f' - Código do Registro: {codis_pre}')
                 else:
                     self.manual_verifica_2espacos_branco()
             else:
@@ -231,7 +263,8 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_2espacos_branco(self):
         try:
@@ -240,19 +273,20 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             compl = self.line_DescrCompl.text()
 
             if descr.count('  ') == 1:
-                mensagem_alerta("Dois espaços encontrados em 'Descrição'")
+                self.mensagem_alerta("Dois espaços encontrados em 'Descrição'")
 
             elif ref.count('  ') == 1:
-                mensagem_alerta("Dois espaços encontrados em 'Referência'")
+                self.mensagem_alerta("Dois espaços encontrados em 'Referência'")
 
             elif compl.count('  ') == 1:
-                mensagem_alerta("Dois espaços encontrados em 'D. Compl.'")
+                self.mensagem_alerta("Dois espaços encontrados em 'D. Compl.'")
             else:
                 self.manual_verifica_unidade_kg()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_verifica_unidade_kg(self):
         try:
@@ -261,7 +295,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             if um == "KG":
                 kg_mt = self.line_kg_mt.text()
                 if not kg_mt:
-                    mensagem_alerta('O campo "KG/MT" não pode estar vazio quando a unidade de medida for "KG"!')
+                    self.mensagem_alerta('O campo "KG/MT" não pode estar vazio quando a unidade de medida for "KG"!')
                 else:
                     self.manual_manipula_produto()
             else:
@@ -269,12 +303,13 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manual_manipula_produto(self):
         try:
             descr = self.line_Descricao.text().upper()
-            descr_certo = remover_acentos(descr)
+            descr_certo = unidecode(descr)
 
             ncm = self.line_NCM.text()
             um = self.combo_UM.currentText()
@@ -283,7 +318,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             descr_compl = self.line_DescrCompl.text()
             if descr_compl:
-                descr_c_certo = remover_acentos(descr_compl.upper())
+                descr_c_certo = unidecode(descr_compl.upper())
             else:
                 descr_c_certo = ""
 
@@ -308,7 +343,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
                     lanca_tabela(self.table_Produto, extrai_estrutura, largura_auto=False)
 
             else:
-                mensagem_alerta("Este produto já foi adicionado a tabela!")
+                self.mensagem_alerta("Este produto já foi adicionado a tabela!")
 
             self.line_Descricao.setFocus()
 
@@ -316,7 +351,8 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_manual(self):
         try:
@@ -332,12 +368,13 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         self.limpa_dados_manual()
         self.line_Obs.clear()
-        limpa_tabela(self.table_Produto)
+        self.limpa_tabela()
         definir_data_atual(self.date_Emissao)
         self.line_Obs.setFocus()
 
@@ -347,15 +384,16 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             obs = self.line_Obs.text()
 
             if not extrai_pedido:
-                mensagem_alerta(f'A tabela "Lista de Produtos" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Produtos" está vazia!')
             elif not obs:
-                mensagem_alerta('O campo "Obs" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Obs" não pode estar vazio!')
             else:
                 self.salvar_produtos()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_produtos(self):
         try:
@@ -384,12 +422,13 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             conecta.commit()
 
-            mensagem_alerta(f'O Registro de Produtos Nº {registro} foi criada com Sucesso!')
+            self.mensagem_alerta(f'O Registro de Produtos Nº {registro} foi criada com Sucesso!')
             self.limpa_tudo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

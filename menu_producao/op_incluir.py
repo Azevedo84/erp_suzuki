@@ -1,14 +1,13 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_lines import definir_data_atual
-from comandos.comando_cores import cor_branco, cor_vermelho
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_banco import definir_proximo_registro
 from forms.tela_op_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut
+from banco_dados.controle_erros import grava_erro_banco
+from banco_dados.bc_consultas import definir_proximo_registro
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.lines import definir_data_atual
+from comandos.cores import cor_branco, cor_vermelho
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut, QMessageBox
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import Qt
@@ -16,6 +15,7 @@ from datetime import date, datetime, timedelta
 from unidecode import unidecode
 import inspect
 import os
+import traceback
 
 
 class TelaOpIncluir(QMainWindow, Ui_MainWindow):
@@ -23,14 +23,12 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela(self.table_Estrutura)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Estrutura)
 
         self.tab_shortcut = QShortcut(QKeySequence(Qt.Key_Tab), self)
         self.tab_shortcut.activated.connect(self.manipula_tab)
@@ -49,57 +47,42 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
         definir_proximo_registro(self.line_Num_OP, "numero", "ordemservico")
         self.lanca_data_previsao()
         self.line_Codigo.setFocus()
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_17)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_27)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.label_Titulo)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Consulta_Estrut)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 45)
-            nome_tabela.setColumnWidth(1, 220)
-            nome_tabela.setColumnWidth(2, 130)
-            nome_tabela.setColumnWidth(3, 140)
-            nome_tabela.setColumnWidth(4, 40)
-            nome_tabela.setColumnWidth(5, 55)
-            nome_tabela.setColumnWidth(6, 55)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_tab(self):
         try:
@@ -111,11 +94,12 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
                 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def configura_label(self):
         try:
-            validator = QtGui.QIntValidator(0, 123456, self.line_Codigo)
+            validator = QtGui.QIntValidator(0, 1234567, self.line_Codigo)
             locale = QtCore.QLocale("pt_BR")
             validator.setLocale(locale)
             self.line_Codigo.setValidator(validator)
@@ -127,7 +111,8 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_data_previsao(self):
         try:
@@ -138,23 +123,25 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo(self):
         try:
             codigo_produto = self.line_Codigo.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo.clear()
             else:
                 self.verifica_sql_codigo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_codigo(self):
         try:
@@ -170,17 +157,18 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             produto_acabado = cursor.fetchall()
 
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo.clear()
             elif not produto_acabado:
-                mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
+                self.mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
                 self.line_Codigo.clear()
             else:
                 self.lanca_dados_codigo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_codigo(self):
         try:
@@ -198,7 +186,7 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             numero = str(quantidade_id).replace('.', ',')
 
             if quantidade_id_float < 0:
-                mensagem_alerta(f'Este produto está com saldo negativo!\n'
+                self.mensagem_alerta(f'Este produto está com saldo negativo!\n'
                                                             f'Saldo Total = {quantidade_id_float}')
                 self.line_Codigo.clear()
             else:
@@ -211,13 +199,14 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde(self):
         try:
             qtdezinha = self.line_Qtde.text()
             if not qtdezinha:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde.clear()
                 self.line_Qtde.setFocus()
             else:
@@ -228,7 +217,7 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
                     qtdezinha_float = float(qtdezinha)
 
                 if qtdezinha_float == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                 else:
@@ -237,7 +226,8 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_estrutura(self):
         try:
@@ -259,7 +249,7 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"SELECT mat.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, "
                            f"conj.conjunto, prod.unidade, "
-                           f"(mat.quantidade * {qtdezinha_float}) as qtde, "
+                           f"(mat.quantidade * {qtdezinha_float}) as qtde, prod.localizacao, "
                            f"prod.quantidade "
                            f"from materiaprima as mat "
                            f"INNER JOIN produto prod ON mat.codigo = prod.codigo "
@@ -268,7 +258,7 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             tabela_estrutura = cursor.fetchall()
 
             if not tabela_estrutura:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
                                                             f'Antes de criar a Ordem de Produção, defina a estrutura.')
                 self.reiniciando_tela()
 
@@ -278,36 +268,30 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela(self):
         try:
             extrai_tabela = extrair_tabela(self.table_Estrutura)
 
-            testinho = 0
-
-            for itens in extrai_tabela:
-                cod, descr, ref, conj, um, qtde, saldo = itens
+            for index, itens in enumerate(extrai_tabela):
+                cod, descr, ref, conj, um, qtde, loca, saldo = itens
                 qtde_float = float(qtde)
                 saldo_float = float(saldo)
 
                 if saldo_float < qtde_float:
-                    testinho = testinho + 1
-                    testinho2 = testinho - 1
-
                     font = QFont()
                     font.setBold(True)
 
-                    self.table_Estrutura.item(testinho2, 5).setBackground(QColor(cor_vermelho))
-                    self.table_Estrutura.item(testinho2, 5).setFont(font)
-                    self.table_Estrutura.item(testinho2, 5).setForeground(QColor(cor_branco))
-
-                else:
-                    testinho = testinho + 1
+                    self.table_Estrutura.item(index, 7).setBackground(QColor(cor_vermelho))
+                    self.table_Estrutura.item(index, 7).setFont(font)
+                    self.table_Estrutura.item(index, 7).setForeground(QColor(cor_branco))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciando_tela(self):
         try:
@@ -331,7 +315,8 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -346,23 +331,23 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             select_op = cursor.fetchall()
 
             if not num_op:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio!')
                 self.line_Num_OP.setFocus()
             elif num_op == "0":
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"!')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"!')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
             elif prev <= data_hoje:
-                mensagem_alerta('O Data de Previsão deve ser maior que a data atual!')
+                self.mensagem_alerta('O Data de Previsão deve ser maior que a data atual!')
                 self.date_Previsao.setFocus()
             elif select_op:
-                mensagem_alerta('Este número de "OP" já existe!')
+                self.mensagem_alerta('Este número de "OP" já existe!')
                 self.reiniciando_tela()
             else:
                 cod_prod = self.line_Codigo.text()
 
                 if not cod_prod:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.line_Codigo.setFocus()
                 else:
                     cur = conecta.cursor()
@@ -371,21 +356,21 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
                     detalhes_produto = cur.fetchall()
 
                     if cod_prod == "0":
-                        mensagem_alerta('O campo "Código" não pode ser "0"!')
+                        self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                         self.line_Codigo.clear()
                         self.line_Codigo.setFocus()
                     elif not detalhes_produto:
-                        mensagem_alerta('Este código de produto não existe!')
+                        self.mensagem_alerta('Este código de produto não existe!')
                         self.line_Codigo.clear()
                     else:
                         qtde = self.line_Qtde.text()
 
                         if len(qtde) == 0:
-                            mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                            self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                             self.line_Qtde.clear()
                             self.line_Qtde.setFocus()
                         elif qtde == "0":
-                            mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                            self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                             self.line_Qtde.clear()
                             self.line_Qtde.setFocus()
                         else:
@@ -393,7 +378,8 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_dados(self):
         try:
@@ -412,17 +398,17 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
             dia_atual = data_hoje.strftime("%d")
 
             if ano_text != ano_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no ano de {ano_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if mes_text != mes_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no mês {mes_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
             if dia_text != dia_atual:
-                mensagem_alerta(f'Você está lançando o consumo deste '
+                self.mensagem_alerta(f'Você está lançando o consumo deste '
                                                             f'item no dia {dia_text}!\n\n'
                                                             f'Data Atual: {data_hoje_str}')
 
@@ -467,13 +453,14 @@ class TelaOpIncluir(QMainWindow, Ui_MainWindow):
                            f"'{cod_prod}', '{previsao}');")
             conecta.commit()
 
-            mensagem_alerta(f'A Ordem de Produção Nº {num_op} foi criado com sucesso!')
+            self.mensagem_alerta(f'A Ordem de Produção Nº {num_op} foi criado com sucesso!')
 
             self.reiniciando_tela()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

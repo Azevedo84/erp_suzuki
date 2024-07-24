@@ -1,9 +1,9 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import tratar_notificar_erros
-from comandos.comando_telas import icone, cor_fundo_tela_menu, cor_fonte
 from forms.tela_menu import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.telas import icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QMessageBox
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPixmap
 import os
@@ -13,6 +13,7 @@ from threading import Thread
 import getpass
 import subprocess
 from datetime import datetime
+import traceback
 
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
@@ -20,10 +21,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela_menu(self)
+        self.versao = f"Versão 2.01.006"
+        self.data_versao = f"24/07/2024"
 
-        self.versao = f"Versão 2.01.005"
-        self.data_versao = f"25/06/2024"
+        self.label_versao.setText(self.versao)
+        self.label_DataVersao.setText(self.data_versao)
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
@@ -74,16 +76,46 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.nome_computador = socket.gethostname()
         self.username = getpass.getuser()
 
-        self.label_versao.setText(self.versao)
-        self.label_DataVersao.setText(self.data_versao)
-
-        cor_fonte(self.label_versao)
-        cor_fonte(self.label_DataVersao)
-
         Thread(target=self.funcao_macro_tred).start()
 
         self.ultima_versao()
         self.salva_versao()
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
+        try:
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
+
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
+
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tamanho_aplicacao(self):
         try:
@@ -109,7 +141,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_comando_telas(self):
         try:
@@ -151,7 +184,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_tela_action(self):
         try:
@@ -299,7 +333,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def funcao_macro_tred(self):
         try:
@@ -307,7 +342,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mensagem_email(self):
         try:
@@ -343,7 +379,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def envia_email(self):
         try:
@@ -388,7 +425,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def ultima_versao(self):
         try:
@@ -418,7 +456,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def comparar_versoes(self, versao_a, versao_b):
         try:
@@ -441,7 +480,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salva_versao(self):
         try:
@@ -459,14 +499,15 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                     if self.nome_computador == desc_pc and versao_app != versao:
                         cursor = conecta.cursor()
                         cursor.execute(f"UPDATE ENVIA_PC "
-                                       f"SET VERSAO = '{versao_app}' "
+                                       f"SET VERSAO = '{versao_app}', ATUALIZACAO = '{timestamp}' "
                                        f"WHERE DESCRICAO = '{self.nome_computador}';")
 
                         conecta.commit()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def chama_tela_atualizar(self):
         try:
@@ -478,7 +519,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

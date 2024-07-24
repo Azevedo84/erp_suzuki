@@ -38,7 +38,7 @@ class Ui_ConsultaOP(object):
         font = QtGui.QFont()
         font.setPointSize(9)
         self.widget_cabecalho.setFont(font)
-        self.widget_cabecalho.setStyleSheet("")
+        self.widget_cabecalho.setStyleSheet("background-color: rgb(0, 170, 255);")
         self.widget_cabecalho.setObjectName("widget_cabecalho")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget_cabecalho)
         self.horizontalLayout.setContentsMargins(15, 6, 15, 6)

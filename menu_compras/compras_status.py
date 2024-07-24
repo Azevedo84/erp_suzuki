@@ -1,10 +1,11 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import grava_erro_banco
-from comandos.comando_tabelas import lanca_tabela, layout_cabec_tab, limpa_tabela
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
-from comandos.comando_cores import cor_cinza_claro
 from forms.tela_compras_status import *
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.cores import cor_cinza_claro
+from comandos.conversores import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -201,7 +202,7 @@ class OrdemCompraTotalBaixada(QThread):
                 else:
                     entrega = ""
 
-                dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status)
+                dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status, prod)
                 tabela.append(dados)
 
         self.new_value.emit(tabela)
@@ -234,7 +235,7 @@ class OrdemCompraTotal(QThread):
 
         if dados_oc:
             for i in dados_oc:
-                id_req, data, oc, forncec, cod, descr, ref, um, qtde, prod, entr_dt, id_sol, status = i
+                id_req, data, oc, forncec, cod, descr, ref, um, qtde, produ, entr_dt, id_sol, status = i
 
                 emissao = data.strftime("%d/%m/%Y")
 
@@ -244,15 +245,21 @@ class OrdemCompraTotal(QThread):
                     entrega = ""
 
                 if status == "A":
-                    falta_ent = float(qtde) - float(prod)
-                    if falta_ent == int(falta_ent):
-                        casas_decimais = falta_ent
-                    else:
-                        casas_decimais = "%.3f" % falta_ent
-                else:
-                    casas_decimais = qtde
+                    qtde_oc_float = valores_para_float(qtde)
+                    qtde_produ_float = valores_para_float(produ)
 
-                dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                    falta_ent = qtde_oc_float - qtde_produ_float
+
+                    if falta_ent > 0:
+                        status_f = "A"
+
+                    else:
+                        status_f = "B"
+
+                else:
+                    status_f = "B"
+
+                dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status_f, produ)
                 tabela.append(dados)
 
         self.new_value.emit(tabela)
@@ -280,7 +287,6 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
         layout_cabec_tab(self.table_Solicitacao)
         layout_cabec_tab(self.table_Requisicao)
         layout_cabec_tab(self.table_OC)
-        cor_widget_cab(self.widget_cabecalho)
 
         self.btn_Status_Sol.clicked.connect(self.manipula_sol_por_status)
         self.btn_Num_Sol.clicked.connect(self.manipula_sol_por_numero)
@@ -305,18 +311,27 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         self.widget_Progress.setHidden(True)
 
-    def trata_excecao(self, nome_funcao, mensagem, arquivo):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
+
             traceback.print_exc()
-            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
             self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
                                  f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
                                  f'{nome_funcao}: {mensagem}')
 
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
         except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
     def mensagem_alerta(self, mensagem):
         try:
@@ -329,14 +344,14 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_sol_por_status(self):
         try:
             self.widget_Progress.setHidden(False)
 
-            limpa_tabela(self.table_Solicitacao)
+            self.table_Solicitacao.setRowCount(0)
 
             abertas = self.check_Aberto_Sol.isChecked()
             fechadas = self.check_Baixado_Sol.isChecked()
@@ -352,8 +367,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def sol_total_aberto(self):
         try:
@@ -374,7 +389,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
             extrair_req = cursor.fetchall()
 
             if extrair_req:
-                lanca_tabela(self.table_Solicitacao, extrair_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Solicitacao, extrair_req)
 
                 self.pintar_tabela_solicitacao(self.table_Solicitacao, extrair_req)
 
@@ -382,20 +397,22 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_sol_total_baixada(self):
         try:
             self.solicita_total_b.new_value.connect(self.sol_total_baixada)
             self.solicita_total_b.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def sol_total_baixada(self, extrair_req):
         try:
             if extrair_req:
-                lanca_tabela(self.table_Solicitacao, extrair_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Solicitacao, extrair_req)
 
                 self.pintar_tabela_solicitacao(self.table_Solicitacao, extrair_req)
 
@@ -403,34 +420,36 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_sol_total(self):
         try:
             self.solicita_total.new_value.connect(self.sol_total)
             self.solicita_total.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def sol_total(self, extrair_req):
         try:
             if extrair_req:
-                lanca_tabela(self.table_Solicitacao, extrair_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Solicitacao, extrair_req)
                 self.pintar_tabela_solicitacao(self.table_Solicitacao, extrair_req)
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_sol_por_numero(self):
         try:
             self.widget_Progress.setHidden(False)
 
-            limpa_tabela(self.table_Solicitacao)
+            self.table_Solicitacao.setRowCount(0)
 
             num_sol = self.line_Num_Sol.text()
 
@@ -441,8 +460,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def sol_total_por_numero(self):
         try:
@@ -466,7 +485,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
             extrair_req = cursor.fetchall()
 
             if extrair_req:
-                lanca_tabela(self.table_Solicitacao, extrair_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Solicitacao, extrair_req)
 
                 self.pintar_tabela_solicitacao(self.table_Solicitacao, extrair_req)
 
@@ -474,8 +493,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_sol_por_produto(self):
         if not self.processando:
@@ -484,7 +503,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
                 self.widget_Progress.setHidden(False)
 
-                limpa_tabela(self.table_Solicitacao)
+                self.table_Solicitacao.setRowCount(0)
 
                 codigo_produto = self.line_Codigo_Sol.text()
 
@@ -542,7 +561,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
             extrair_req = cursor.fetchall()
 
             if extrair_req:
-                lanca_tabela(self.table_Solicitacao, extrair_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Solicitacao, extrair_req)
 
                 self.pintar_tabela_solicitacao(self.table_Solicitacao, extrair_req)
 
@@ -550,14 +569,14 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_req_por_status(self):
         try:
             self.widget_Progress.setHidden(False)
 
-            limpa_tabela(self.table_Requisicao)
+            self.table_Requisicao.setRowCount(0)
 
             abertas = self.check_Aberto_Req.isChecked()
             fechadas = self.check_Baixado_Req.isChecked()
@@ -573,8 +592,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def req_total_aberto(self):
         try:
@@ -618,7 +637,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                 dados_man_req.append(dados)
 
             if dados_man_req:
-                lanca_tabela(self.table_Requisicao, dados_man_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Requisicao, dados_man_req)
 
                 self.pintar_tabela_requisicao(self.table_Requisicao, dados_man_req)
 
@@ -626,20 +645,22 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_req_total_baixada(self):
         try:
             self.requisita_total_b.new_value.connect(self.req_total_baixada)
             self.requisita_total_b.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def req_total_baixada(self, dados_man_req):
         try:
             if dados_man_req:
-                lanca_tabela(self.table_Requisicao, dados_man_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Requisicao, dados_man_req)
 
                 self.pintar_tabela_requisicao(self.table_Requisicao, dados_man_req)
 
@@ -647,20 +668,22 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_req_total(self):
         try:
             self.requisita_total.new_value.connect(self.req_total)
             self.requisita_total.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def req_total(self, dados_man_req):
         try:
             if dados_man_req:
-                lanca_tabela(self.table_Requisicao, dados_man_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Requisicao, dados_man_req)
 
                 self.pintar_tabela_requisicao(self.table_Requisicao, dados_man_req)
 
@@ -668,14 +691,14 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_req_por_numero(self):
         try:
             self.widget_Progress.setHidden(False)
 
-            limpa_tabela(self.table_Requisicao)
+            self.table_Requisicao.setRowCount(0)
 
             num_req = self.line_Num_Req.text()
 
@@ -686,8 +709,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_req_por_produto(self):
         if not self.processando:
@@ -696,7 +719,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
                 self.widget_Progress.setHidden(False)
 
-                limpa_tabela(self.table_Requisicao)
+                self.table_Requisicao.setRowCount(0)
 
                 codigo_produto = self.line_Codigo_Req.text()
 
@@ -781,7 +804,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                 dados_man_req.append(dados)
 
             if dados_man_req:
-                lanca_tabela(self.table_Requisicao, dados_man_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Requisicao, dados_man_req)
 
                 self.pintar_tabela_requisicao(self.table_Requisicao, dados_man_req)
 
@@ -789,8 +812,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def req_total_por_produto(self):
         try:
@@ -843,7 +866,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                 dados_man_req.append(dados)
 
             if dados_man_req:
-                lanca_tabela(self.table_Requisicao, dados_man_req, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_Requisicao, dados_man_req)
 
                 self.pintar_tabela_requisicao(self.table_Requisicao, dados_man_req)
 
@@ -851,14 +874,14 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_oc_por_status(self):
         try:
             self.widget_Progress.setHidden(False)
 
-            limpa_tabela(self.table_OC)
+            self.table_OC.setRowCount(0)
 
             abertas = self.check_Aberto_OC.isChecked()
             fechadas = self.check_Baixado_OC.isChecked()
@@ -894,8 +917,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total_aberto(self):
         try:
@@ -924,69 +947,73 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                     emissao = data.strftime("%d/%m/%Y")
                     entrega = entr_dt.strftime("%d/%m/%Y")
 
-                    falta_ent = float(qtde) - float(prod)
-                    if falta_ent == int(falta_ent):
-                        casas_decimais = falta_ent
-                    else:
-                        casas_decimais = "%.3f" % falta_ent
-
-                    dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status, prod)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_oc_total_baixada(self):
         try:
             self.ordem_total_b.new_value.connect(self.oc_total_baixada)
             self.ordem_total_b.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total_baixada(self, tabela):
         try:
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def run_oc_total(self):
         try:
             self.ordem_total.new_value.connect(self.oc_total)
             self.ordem_total.start()
         except Exception as e:
-            print(e)
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total(self, tabela):
         try:
             if tabela:
-                print("entrei oc_total")
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
                 self.pintar_tabela_oc(self.table_OC, tabela)
-                print("saiu oc_total")
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total_aberto_fornc(self):
         try:
@@ -1020,26 +1047,22 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                     emissao = data.strftime("%d/%m/%Y")
                     entrega = entr_dt.strftime("%d/%m/%Y")
 
-                    falta_ent = float(qtde) - float(prod)
-                    if falta_ent == int(falta_ent):
-                        casas_decimais = falta_ent
-                    else:
-                        casas_decimais = "%.3f" % falta_ent
-
-                    dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status, prod)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total_baixada_fornc(self):
         try:
@@ -1075,20 +1098,22 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                     else:
                         entrega = ""
 
-                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status)
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status, prod)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def oc_total_forn(self):
         try:
@@ -1115,7 +1140,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
             if dados_oc:
                 for i in dados_oc:
-                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, prod, entr_dt, id_sol, status = i
+                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, produ, entr_dt, id_sol, status = i
 
                     emissao = data.strftime("%d/%m/%Y")
 
@@ -1125,46 +1150,60 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                         entrega = ""
 
                     if status == "A":
-                        falta_ent = float(qtde) - float(prod)
-                        if falta_ent == int(falta_ent):
-                            casas_decimais = falta_ent
-                        else:
-                            casas_decimais = "%.3f" % falta_ent
-                    else:
-                        casas_decimais = qtde
+                        qtde_oc_float = valores_para_float(qtde)
+                        qtde_produ_float = valores_para_float(produ)
 
-                    dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                        falta_ent = qtde_oc_float - qtde_produ_float
+
+                        if falta_ent > 0:
+                            status_f = "A"
+
+                        else:
+                            status_f = "B"
+
+                    else:
+                        status_f = "B"
+
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status_f, produ)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_oc_por_numero(self):
-        try:
-            self.widget_Progress.setHidden(False)
+        if not self.processando:
+            try:
+                self.processando = True
 
-            limpa_tabela(self.table_OC)
+                self.widget_Progress.setHidden(False)
 
-            num_oc = self.line_Num_OC.text()
+                self.table_OC.setRowCount(0)
 
-            if num_oc:
-                self.oc_total_por_numero()
-            else:
-                self.widget_Progress.setHidden(True)
+                num_oc = self.line_Num_OC.text()
 
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+                if num_oc:
+                    self.oc_total_por_numero()
+                else:
+                    self.widget_Progress.setHidden(True)
+
+            except Exception as e:
+                nome_funcao = inspect.currentframe().f_code.co_name
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+            finally:
+                self.processando = False
 
     def oc_total_por_numero(self):
         try:
@@ -1191,7 +1230,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
             if dados_oc:
                 for i in dados_oc:
-                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, prod, entr_dt, id_sol, status = i
+                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, produ, entr_dt, id_sol, status = i
 
                     emissao = data.strftime("%d/%m/%Y")
 
@@ -1201,28 +1240,37 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                         entrega = ""
 
                     if status == "A":
-                        falta_ent = float(qtde) - float(prod)
-                        if falta_ent == int(falta_ent):
-                            casas_decimais = falta_ent
-                        else:
-                            casas_decimais = "%.3f" % falta_ent
-                    else:
-                        casas_decimais = qtde
+                        qtde_oc_float = valores_para_float(qtde)
+                        qtde_produ_float = valores_para_float(produ)
 
-                    dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                        falta_ent = qtde_oc_float - qtde_produ_float
+
+                        if falta_ent > 0:
+                            status_f = "A"
+
+                        else:
+                            status_f = "B"
+
+                    else:
+                        status_f = "B"
+
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status_f, produ)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+
+                self.table_OC.setFocus()
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_oc_por_produto(self):
         if not self.processando:
@@ -1231,7 +1279,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
                 self.widget_Progress.setHidden(False)
 
-                limpa_tabela(self.table_OC)
+                self.table_OC.setRowCount(0)
 
                 codigo_produto = self.line_Codigo_OC.text()
 
@@ -1295,7 +1343,7 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
             if dados_oc:
                 for i in dados_oc:
-                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, prod, entr_dt, id_sol, status = i
+                    id_req, data, oc, forncec, cod, descr, ref, um, qtde, produ, entr_dt, id_sol, status = i
 
                     emissao = data.strftime("%d/%m/%Y")
 
@@ -1305,28 +1353,37 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
                         entrega = ""
 
                     if status == "A":
-                        falta_ent = float(qtde) - float(prod)
-                        if falta_ent == int(falta_ent):
-                            casas_decimais = falta_ent
-                        else:
-                            casas_decimais = "%.3f" % falta_ent
-                    else:
-                        casas_decimais = qtde
+                        qtde_oc_float = valores_para_float(qtde)
+                        qtde_produ_float = valores_para_float(produ)
 
-                    dados = (emissao, oc, cod, descr, ref, um, casas_decimais, entrega, forncec, id_req, id_sol, status)
+                        falta_ent = qtde_oc_float - qtde_produ_float
+
+                        if falta_ent > 0:
+                            status_f = "A"
+
+                        else:
+                            status_f = "B"
+
+                    else:
+                        status_f = "B"
+
+                    dados = (emissao, oc, cod, descr, ref, um, qtde, entrega, forncec, id_req, id_sol, status_f, produ)
                     tabela.append(dados)
 
             if tabela:
-                lanca_tabela(self.table_OC, tabela, zebra=False, largura_auto=True)
+                lanca_tabela(self.table_OC, tabela)
 
                 self.pintar_tabela_oc(self.table_OC, tabela)
+                self.table_OC.setFocus()
+
+                self.limpa_dados_oc()
 
             self.widget_Progress.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_solicitacao(self, nome_tabela, extrai_tabela):
         try:
@@ -1346,8 +1403,8 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_requisicao(self, nome_tabela, extrai_tabela):
         try:
@@ -1368,32 +1425,37 @@ class TelaComprasStatus(QMainWindow, Ui_Consulta_Sol):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_oc(self, nome_tabela, extrai_tabela):
         try:
-            for index, itens in enumerate(extrai_tabela):
-                status = itens[11]
+            for linha, itens_l in enumerate(extrai_tabela):
+                status = itens_l[11]
 
                 if status == "B":
-                    nome_tabela.item(index, 0).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 1).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 2).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 3).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 4).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 5).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 6).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 7).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 8).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 9).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 10).setBackground(QColor(cor_cinza_claro))
-                    nome_tabela.item(index, 11).setBackground(QColor(cor_cinza_claro))
+                    for coluna, itens_c in enumerate(itens_l):
+                        nome_tabela.item(linha, coluna).setBackground(QColor(cor_cinza_claro))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def limpa_dados_oc(self):
+        try:
+            self.line_Num_OC.clear()
+            self.line_Num_Fornec.clear()
+
+            self.line_Codigo_OC.clear()
+            self.line_UM_OC.clear()
+            self.line_Descricao_OC.clear()
+            self.line_Referencia_OC.clear()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

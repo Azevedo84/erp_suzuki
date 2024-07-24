@@ -1,20 +1,20 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import lanca_tabela, layout_cabec_tab, limpa_tabela, extrair_tabela
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_virgula, valores_para_float
-from comandos.comando_excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao
-from comandos.comando_excel import edita_fonte, edita_preenchimento, letra_coluna
 from forms.tela_prod_consultar import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_virgula, valores_para_float
+from comandos.excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao
+from comandos.excel import edita_fonte, edita_preenchimento, letra_coluna
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from PyQt5.QtCore import pyqtSignal
 import inspect
 import os
 from pathlib import Path
 from openpyxl.utils import get_column_letter as letra_coluna
 from openpyxl import Workbook
+import traceback
 
 
 class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
@@ -27,14 +27,12 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
         self.produto = produto
         self.outra_tela = outra_tela
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
         layout_cabec_tab(self.table_Resultado)
-        cor_widget_cab(self.widget_cabecalho)
 
         self.table_Resultado.viewport().installEventFilter(self)
 
@@ -42,6 +40,53 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
         self.btn_Excel.clicked.connect(self.gerar_excel)
 
         self.processando = False
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
+        try:
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
+
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
+
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            
+    def limpa_tabela(self):
+        try:
+            nome_tabela = self.table_Resultado
+
+            nome_tabela.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -63,7 +108,8 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_produtos(self):
         try:
@@ -145,15 +191,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
                     elif descricao3:
                         self.pal3(descricao3)
                     else:
-                        mensagem_alerta("Defina algum parâmetro para seguir com a consulta!")
+                        self.mensagem_alerta("Defina algum parâmetro para seguir com a consulta!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def localizacao_com_estoque(self, localizacao):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -182,15 +229,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque(self):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -216,15 +264,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao(self):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -251,15 +300,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao(self):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -287,15 +337,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal1_pal2_pal3(self, descricao1, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -333,15 +384,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal1_pal2(self, descricao1, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -376,15 +428,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal1_pal3(self, descricao1, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -419,15 +472,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal2_pal3(self, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -462,15 +516,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal1(self, descricao1):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -502,15 +557,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal2(self, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -542,15 +598,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_movimentacao_pal3(self, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -582,15 +639,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal1_pal2_pal3(self, descricao1, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -627,15 +685,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal1_pal2(self, descricao1, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -669,15 +728,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal1_pal3(self, descricao1, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -711,15 +771,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal2_pal3(self, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -753,15 +814,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal1(self, descricao1):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -792,15 +854,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal2(self, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -831,15 +894,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def estoque_pal3(self, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -870,15 +934,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal1_pal2_pal3(self, descricao1, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -915,15 +980,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal1_pal2(self, descricao1, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -957,15 +1023,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal1_pal3(self, descricao1, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -999,15 +1066,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal2_pal3(self, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1041,15 +1109,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal1(self, descricao1):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1080,15 +1149,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal2(self, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1119,15 +1189,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def movimentacao_pal3(self, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1158,15 +1229,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal1_pal2_pal3(self, descricao1, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1201,15 +1273,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal1_pal2(self, descricao1, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1241,15 +1314,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal1_pal3(self, descricao1, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1281,15 +1355,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal2_pal3(self, descricao2, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1321,15 +1396,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal1(self, descricao1):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1358,15 +1434,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal2(self, descricao2):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1395,15 +1472,16 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pal3(self, descricao3):
         try:
-            limpa_tabela(self.table_Resultado)
+            self.limpa_tabela()
 
             tabela = []
 
@@ -1432,11 +1510,12 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             if tabela:
                 lanca_tabela(self.table_Resultado, tabela)
             else:
-                mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_excel(self):
         try:
@@ -1519,7 +1598,8 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

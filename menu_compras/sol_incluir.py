@@ -1,18 +1,15 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, pergunta_confirmacao, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, limpa_tabela, layout_cabec_tab, excluir_item_tab
-from comandos.comando_lines import definir_data_atual
-from comandos.comando_cores import cor_amarelo, cor_branco, cor_vermelho
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_banco import definir_proximo_generator
-from comandos.comando_conversoes import valores_para_float
-from arquivos.chamar_arquivos import definir_caminho_arquivo
-from banco_dados.bc_consultas import Produto, ProdutoOrdemSolicitacao, ProdutoOrdemRequisicao, ProdutoOrdemCompra
-from banco_dados.bc_consultas import Projeto, MateriaPrima
 from forms.tela_sol_incluir import *
-from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from arquivos.chamar_arquivos import definir_caminho_arquivo
+from banco_dados.bc_consultas import definir_proximo_generator
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.lines import definir_data_atual
+from comandos.cores import cor_amarelo, cor_branco, cor_vermelho
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float
+from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QMainWindow, QMessageBox
 from PyQt5.QtGui import QKeySequence, QFont, QColor, QIcon
 from PyQt5.QtCore import Qt
 from datetime import date, datetime
@@ -22,8 +19,7 @@ import shutil
 import socket
 import math
 import inspect
-from functools import partial
-
+import traceback
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Side, Alignment, Border, Font
@@ -36,34 +32,24 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
+        nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
+        self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
+
         caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
         caminho_arquivo = definir_caminho_arquivo(caminho)
 
         icon = QIcon(caminho_arquivo)
 
-        # Definir o ícone para o botão
         self.btn_Lupa_Prod.setIcon(icon)
 
         self.escolher_produto = []
         self.btn_Lupa_Prod.clicked.connect(self.abrir_tela_escolher_produto)
 
-        cor_fundo_tela(self)
-        nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
-        self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
-
         icone(self, "menu_compra_sol.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_recomendacao(self.table_Recomendacao)
-        self.layout_tabela_solicitacao(self.table_Solicitacao)
-        self.layout_tabela_anexos(self.table_Anexos)
-        self.layout_proprio()
-
-        self.tab_prod = Produto()
-        self.tab_prod_sol = ProdutoOrdemSolicitacao()
-        self.tab_prod_req = ProdutoOrdemRequisicao()
-        self.tab_prod_oc = ProdutoOrdemCompra()
-        self.tab_projeto = Projeto()
-        self.tab_materiaprima = MateriaPrima()
+        layout_cabec_tab(self.table_Recomendacao)
+        layout_cabec_tab(self.table_Solicitacao)
+        layout_cabec_tab(self.table_Anexos)
 
         self.tab_shortcut = QShortcut(QKeySequence(Qt.Key_Tab), self)
         self.tab_shortcut.activated.connect(self.manipula_tab)
@@ -74,105 +60,202 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
         self.reiniciando_sol()
 
         self.processando = False
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
-            cor_widget(self.widget_Cor8)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_10)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_29)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_32)
-            cor_fonte(self.label_33)
-            cor_fonte(self.label_35)
-            cor_fonte(self.label_36)
-            cor_fonte(self.label_Referencia)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_41)
-            cor_fonte(self.label_42)
-            cor_fonte(self.label_45)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.check_Nivel)
-            cor_fonte(self.check_Excel)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_ExcluirTudo_Sol)
-            cor_btn(self.btn_ExcluirItem_Sol)
-            cor_btn(self.btn_ExcluirItem_Rec)
-            cor_btn(self.btn_Adicionar_Chapas)
-            cor_btn(self.btn_Adicionar_Todos)
-            cor_btn(self.btn_Adicionar_SemSaldo)
-            cor_btn(self.btn_ExcluirTudo_Rec)
-            cor_btn(self.btn_Consultar_Estrut)
-            cor_btn(self.btn_Consome_Manu)
-            cor_btn(self.btn_Consultar_Consumo)
-            cor_btn(self.btn_SelecionarAnexo)
-            cor_btn(self.btn_ExcluirAnexo)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def pergunta_confirmacao(self, mensagem):
+        try:
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
+
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def limpa_tabela(self):
+        try:
+            sender = self.sender()
+
+            if sender == self.btn_ExcluirTudo_Sol:
+                self.table_Solicitacao.setRowCount(0)
+
+            elif sender == self.btn_ExcluirTudo_Rec:
+                self.table_Recomendacao.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            
+    def excluir_item_tab_sol(self):
+        try:
+            nome_tabela = self.table_Solicitacao
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_tab_rec(self):
+        try:
+            nome_tabela = self.table_Recomendacao
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_tab_anexo(self):
+        try:
+            nome_tabela = self.table_Anexos
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Lista Anexos" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def definir_botoes_e_comandos(self):
+        try:
+            self.line_Codigo_Manu.editingFinished.connect(self.verifica_line_codigo_manu)
+
+            self.line_Codigo_Estrut.returnPressed.connect(lambda: self.verifica_line_codigo())
+
+            self.btn_Consultar_Estrut.clicked.connect(self.verifica_line_qtde)
+            self.line_Qtde_Estrut.returnPressed.connect(lambda: self.verifica_line_qtde())
+
+            self.btn_Consome_Manu.clicked.connect(self.verifica_line_qtde_manu)
+            self.line_Destino_Manu.returnPressed.connect(lambda: self.verifica_line_qtde_manu())
+
+            self.line_Qtde_Manu.returnPressed.connect(lambda: self.line_Destino_Manu.setFocus())
+
+            self.btn_Consultar_Consumo.clicked.connect(self.procura_origem)
+
+            self.btn_SelecionarAnexo.clicked.connect(self.procura_anexo)
+
+            self.btn_ExcluirItem_Sol.clicked.connect(self.excluir_item_tab_sol)
+            self.btn_ExcluirItem_Rec.clicked.connect(self.excluir_item_tab_rec)
+            self.btn_ExcluirAnexo.clicked.connect(self.excluir_item_tab_anexo)
+
+            self.btn_ExcluirTudo_Sol.clicked.connect(self.limpa_tabela)
+            self.btn_ExcluirTudo_Rec.clicked.connect(self.limpa_tabela)
+
+            self.btn_Adicionar_Todos.clicked.connect(self.tudo_verifica_deondevem)
+
+            self.btn_Adicionar_SemSaldo.clicked.connect(self.tudo_verifica_deondevem)
+
+            self.btn_Adicionar_Chapas.clicked.connect(self.lanca_so_chapas)
+
+            self.btn_Salvar.clicked.connect(self.verifica_salvamento)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calcula_embalagem_sim(self, codigo_produto, qtde):
         try:
             qtde_final = None
             texto = None
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            um = dados_prod[0][4]
-            embalagem = dados_prod[0][7]
-            kg_mt = dados_prod[0][8]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT unidade, embalagem, kilosmetro FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
 
-            if embalagem == "SIM":
-                if um == "KG":
-                    metros = float(qtde) / float(kg_mt)
-                    barra_quebra = metros / 6
+            if dados_prod:
+                um, embalagem, kg_mt = dados_prod[0]
 
-                    barra_arred = math.ceil(barra_quebra)
-                    mts_totais = barra_arred * 6
+                if embalagem == "SIM":
+                    if um == "KG":
+                        metros = float(qtde) / float(kg_mt)
+                        barra_quebra = metros / 6
 
-                    texto = f"{barra_arred} BARRAS DE 6 MTS"
+                        barra_arred = math.ceil(barra_quebra)
+                        mts_totais = barra_arred * 6
 
-                    total_kg = mts_totais * float(kg_mt)
-                    qtde_final = "%.2f" % total_kg
+                        texto = f"{barra_arred} BARRAS DE 6 MTS"
+
+                        total_kg = mts_totais * float(kg_mt)
+                        qtde_final = "%.2f" % total_kg
 
             return qtde_final, texto
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_e_classifica(self, dados):
         try:
@@ -200,127 +283,104 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def consulta_compras_pendentes(self, codigo_produto):
         try:
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            id_prod = dados_prod[0][0]
-            descr = dados_prod[0][1]
-            um = dados_prod[0][4]
-
             dados = []
 
-            select_solicitacao = self.tab_prod_sol.consulta_por_produto_aberto(id_prod)
-            if select_solicitacao:
-                for sol in select_solicitacao:
-                    mestre_sol = sol[0]
-                    qtde_sol = sol[1]
-                    data_sol = sol[2]
+            status = True
 
-                    data_sol_e = '{}/{}/{}'.format(data_sol.day, data_sol.month, data_sol.year)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, descricao, unidade FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
+            if dados_prod:
+                id_prod, descr, um = dados_prod[0]
 
-                    info_sol = f"Solicitação Nº {mestre_sol} - {qtde_sol} {um} - Emissão: {data_sol_e}"
-                    dados.append(info_sol)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT mestre, quantidade, data "
+                               f"from produtoordemsolicitacao "
+                               f"where produto = {id_prod} and status = 'A';")
+                select_solicitacao = cursor.fetchall()
 
-            select_requisicao = self.tab_prod_req.consulta_por_produto_aberto(id_prod)
-            if select_requisicao:
-                for req in select_requisicao:
-                    num_req = req[0]
-                    qtde_req = req[1]
-                    data_req = req[2]
+                if select_solicitacao:
+                    for sol in select_solicitacao:
+                        mestre_sol, qtde_sol, data_sol = sol
 
-                    data_req_e = '{}/{}/{}'.format(data_req.day, data_req.month, data_req.year)
+                        data_sol_e = '{}/{}/{}'.format(data_sol.day, data_sol.month, data_sol.year)
 
-                    info_req = f"Requisição Nº {num_req} - {qtde_req} {um} - Emissão: {data_req_e}"
-                    dados.append(info_req)
+                        info_sol = f"Solicitação Nº {mestre_sol} - {qtde_sol} {um} - Emissão: {data_sol_e}"
+                        dados.append(info_sol)
 
-            select_oc = self.tab_prod_oc.consulta_por_produto_aberto(id_prod)
-            if select_oc:
-                for oc in select_oc:
-                    num_oc = oc[0]
-                    qtde_oc = oc[1]
-                    data_oc = oc[2]
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT numero, quantidade, data "
+                               f"from produtoordemrequisicao "
+                               f"where produto = {id_prod} and status = 'A';")
+                select_requisicao = cursor.fetchall()
+                if select_requisicao:
+                    for req in select_requisicao:
+                        num_req = req[0]
+                        qtde_req = req[1]
+                        data_req = req[2]
 
-                    data_oc_e = '{}/{}/{}'.format(data_oc.day, data_oc.month, data_oc.year)
+                        data_req_e = '{}/{}/{}'.format(data_req.day, data_req.month, data_req.year)
 
-                    info_oc = f"Ordem de Compra Nº {num_oc} - {qtde_oc} {um} - Emissão: {data_oc_e}"
-                    dados.append(info_oc)
-            if dados:
-                if len(dados) == 1:
-                    msg = f'Existem solicitações de compra em aberto do item\n\n' \
-                          f'Cód. {codigo_produto} - {descr}:\n\n' \
-                          f'  - {dados[0]}\n\n' \
-                          f'Deseja continuar?'
-                    if pergunta_confirmacao(msg):
-                        status = True
+                        info_req = f"Requisição Nº {num_req} - {qtde_req} {um} - Emissão: {data_req_e}"
+                        dados.append(info_req)
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prodoc.numero, prodoc.quantidade, oc.data "
+                               f"from produtoordemcompra as prodoc "
+                               f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                               f"where prodoc.produto = {id_prod} "
+                               f"and (prodoc.quantidade - prodoc.produzido) > '0' "
+                               f"and oc.status = 'A' "
+                               f"and oc.entradasaida = 'E' "
+                               f"and oc.data > '01-01-2021';")
+                select_oc = cursor.fetchall()
+                if select_oc:
+                    for oc in select_oc:
+                        num_oc = oc[0]
+                        qtde_oc = oc[1]
+                        data_oc = oc[2]
+
+                        data_oc_e = '{}/{}/{}'.format(data_oc.day, data_oc.month, data_oc.year)
+
+                        info_oc = f"Ordem de Compra Nº {num_oc} - {qtde_oc} {um} - Emissão: {data_oc_e}"
+                        dados.append(info_oc)
+
+                if dados:
+                    if len(dados) == 1:
+                        msg = f'Existem solicitações de compra em aberto do item\n\n' \
+                              f'Cód. {codigo_produto} - {descr}:\n\n' \
+                              f'  - {dados[0]}\n\n' \
+                              f'Deseja continuar?'
+                        if self.pergunta_confirmacao(msg):
+                            status = True
+                        else:
+                            status = False
+
                     else:
-                        status = False
+                        tem = ''
+                        for valor in dados:
+                            tem = tem + "- " + valor + "\n"
 
-                else:
-                    tem = ''
-                    for valor in dados:
-                        tem = tem + "- " + valor + "\n"
-
-                    msg1 = f'Existem solicitações de compra em aberto do item\n\n' \
-                           f'Cód. {codigo_produto} - {descr}:\n\n' \
-                           f'{tem}\n\n' \
-                           f'Deseja continuar?'
-                    if pergunta_confirmacao(msg1):
-                        status = True
-                    else:
-                        status = False
-
-            else:
-                status = True
+                        msg1 = f'Existem solicitações de compra em aberto do item\n\n' \
+                               f'Cód. {codigo_produto} - {descr}:\n\n' \
+                               f'{tem}\n\n' \
+                               f'Deseja continuar?'
+                        if self.pergunta_confirmacao(msg1):
+                            status = True
+                        else:
+                            status = False
 
             return status
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_recomendacao(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 35)
-            nome_tabela.setColumnWidth(1, 200)
-            nome_tabela.setColumnWidth(2, 85)
-            nome_tabela.setColumnWidth(3, 35)
-            nome_tabela.setColumnWidth(4, 45)
-            nome_tabela.setColumnWidth(5, 95)
-            nome_tabela.setColumnWidth(6, 50)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_solicitacao(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 35)
-            nome_tabela.setColumnWidth(1, 160)
-            nome_tabela.setColumnWidth(2, 80)
-            nome_tabela.setColumnWidth(3, 35)
-            nome_tabela.setColumnWidth(4, 45)
-            nome_tabela.setColumnWidth(5, 130)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_anexos(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 150)
-            nome_tabela.setColumnWidth(1, 300)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_tab(self):
         try:
@@ -353,7 +413,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -387,8 +448,11 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 if texto:
                     ref = texto
 
-                dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                ncm = dados_prod[0][9]
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT codigo, ncm FROM produto where codigo = '{cod}';")
+                dados_prod = cursor.fetchall()
+
+                ncm = dados_prod[0][1]
                 if ncm:
                     existe_compra = self.consulta_compras_pendentes(cod)
                     if existe_compra:
@@ -406,22 +470,22 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                             self.procedimento_lanca_tabela(extrai_solicitacao)
                         else:
-                            mensagem_alerta(f'O item selecionado já está presente na tabela'
-                                            f'"Lista Solicitação".')
+                            self.mensagem_alerta(f'O item selecionado já está presente na tabela '
+                                                 f'"Lista Solicitação".')
                             didis = [cod, desc, ref, um, float(qtde), destino]
                             extrai_solicitacao.append(didis)
 
                             self.procedimento_lanca_tabela(extrai_solicitacao)
                 else:
-                    mensagem_alerta(f'Este produto está sem "NCM" no cadastro.\n\n'
-                                    f'Aproveite para verificar se o produto está apto '
-                                    f'para compra no Siger.')
+                    self.mensagem_alerta(f'Este produto está sem "NCM" no cadastro.\n\n'
+                                         f'Aproveite para verificar se o produto está apto para compra no Siger.')
 
             return super(QMainWindow, self).eventFilter(source, event)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_lineedit_bloqueados(self):
         try:
@@ -438,7 +502,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def desaparece_referencia_editada(self):
         try:
@@ -449,7 +514,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def aparece_referencia_editada(self):
         try:
@@ -462,7 +528,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_combo_consumo(self):
         try:
@@ -470,7 +537,9 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             nova_lista = [""]
 
-            projetos = self.tab_projeto.consulta_todos_itens()
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, projeto FROM projeto order by projeto;")
+            projetos = cursor.fetchall()
             for ides, descr in projetos:
                 dd = f"{ides} - {descr}"
                 nova_lista.append(dd)
@@ -479,7 +548,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_line_ano_consumo(self):
         try:
@@ -490,47 +560,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def definir_botoes_e_comandos(self):
-        try:
-            self.line_Codigo_Manu.editingFinished.connect(self.verifica_line_codigo_manu)
-
-            self.line_Codigo_Estrut.returnPressed.connect(lambda: self.verifica_line_codigo())
-
-            self.btn_Consultar_Estrut.clicked.connect(self.verifica_line_qtde)
-            self.line_Qtde_Estrut.returnPressed.connect(lambda: self.verifica_line_qtde())
-
-            self.btn_Consome_Manu.clicked.connect(self.verifica_line_qtde_manu)
-            self.line_Destino_Manu.returnPressed.connect(lambda: self.verifica_line_qtde_manu())
-
-            self.line_Qtde_Manu.returnPressed.connect(lambda: self.line_Destino_Manu.setFocus())
-
-            self.btn_Consultar_Consumo.clicked.connect(self.procura_origem)
-
-            self.btn_SelecionarAnexo.clicked.connect(self.procura_anexo)
-
-            self.btn_ExcluirAnexo.clicked.connect(partial(excluir_item_tab, self.table_Anexos, "Lista Anexos"))
-
-            self.btn_ExcluirTudo_Sol.clicked.connect(partial(limpa_tabela, self.table_Solicitacao))
-            self.btn_ExcluirItem_Sol.clicked.connect(partial(excluir_item_tab, self.table_Solicitacao,
-                                                             "Lista Solicitação"))
-
-            self.btn_ExcluirTudo_Rec.clicked.connect(partial(limpa_tabela, self.table_Recomendacao))
-            self.btn_ExcluirItem_Rec.clicked.connect(partial(excluir_item_tab, self.table_Recomendacao,
-                                                             "Lista de Recomendações"))
-
-            self.btn_Adicionar_Todos.clicked.connect(self.tudo_verifica_deondevem)
-
-            self.btn_Adicionar_SemSaldo.clicked.connect(self.tudo_verifica_deondevem)
-
-            self.btn_Adicionar_Chapas.clicked.connect(self.lanca_so_chapas)
-
-            self.btn_Salvar.clicked.connect(self.verifica_salvamento)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_anexo(self):
         try:
@@ -555,14 +586,15 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         dados = [nome_arquivo, file_path]
                         extrai_anexos.append(dados)
                     else:
-                        mensagem_alerta(f'O arquivo {nome_arquivo} já foi adicionado!!')
+                        self.mensagem_alerta(f'O arquivo {nome_arquivo} já foi adicionado!!')
 
             if extrai_anexos:
                 lanca_tabela(self.table_Anexos, extrai_anexos)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_validador_lineedit(self):
         try:
@@ -598,7 +630,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_origem(self):
         try:
@@ -611,86 +644,104 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 id_origem = origem[:origemtete]
                 ano = self.line_Ano_Consumo.text()
 
-                compras = self.tab_projeto.consulta_por_codigo_data(id_origem, ano)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT pr.codigo, max(pr.descricao), COALESCE(max(pr.obs), ' '), max(pr.unidade), "
+                               f"max(m.quantidade), COALESCE(max(pr.localizacao), ' '), max(pr.quantidade) "
+                               f"FROM produto as pr "
+                               f"INNER JOIN movimentacao as m ON m.codigo = pr.codigo "
+                               f"WHERE pr.projeto = {id_origem} and m.tipo = 130 "
+                               f"AND m.DATA BETWEEN ('{ano}-01-01') AND 'now' "
+                               f"group BY pr.codigo, m.codigo "
+                               f"ORDER BY max(pr.descricao);")
+                compras = cursor.fetchall()
                 if not compras:
-                    mensagem_alerta('Não encontramos histórico de compras neste período')
+                    self.mensagem_alerta('Não encontramos histórico de compras neste período')
                     self.table_Recomendacao.clearContents()
                 else:
                     lanca_tabela(self.table_Recomendacao, compras)
                     self.pintar_tabela_recomendacao()
             else:
-                mensagem_alerta(f'Defina um "Setor"!')
+                self.mensagem_alerta(f'Defina um "Setor"!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo(self):
         try:
             codigo_produto = self.line_Codigo_Estrut.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo_Estrut.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo_Estrut.clear()
             else:
                 self.verifica_sql_codigo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_codigo(self):
         try:
             codigo_produto = self.line_Codigo_Estrut.text()
 
-            detalhes_produto = self.tab_prod.consulta_por_codigo(codigo_produto)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT codigo, ncm FROM produto where codigo = '{codigo_produto}';")
+            detalhes_produto = cursor.fetchall()
 
-            produto_acabado = self.tab_prod.verifica_acabado(codigo_produto)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, descricao, descricaocomplementar, obs, unidade, localizacao, quantidade, "
+                           f"embalagem, kilosmetro, ncm "
+                           f"FROM produto "
+                           f"where codigo = {codigo_produto} "
+                           f"AND conjunto = 10;")
+            produto_acabado = cursor.fetchall()
 
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Estrut.clear()
             elif not produto_acabado:
-                mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
+                self.mensagem_alerta('Este código não está classificado como "Produto Acabado"!')
                 self.line_Codigo_Estrut.clear()
             else:
                 self.lanca_dados_codigo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_codigo(self):
         try:
             codigo_produto = self.line_Codigo_Estrut.text()
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            descr = dados_prod[0][1]
-            ref = dados_prod[0][3]
-            if ref:
-                referencia = ref
-            else:
-                referencia = ""
-            um = dados_prod[0][4]
-            saldo = dados_prod[0][6]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT descricao, COALESCE(obs, ''), unidade, quantidade "
+                           f"FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
+
+            descr, ref, um, saldo = dados_prod[0]
 
             saldo_float = valores_para_float(saldo)
 
             if saldo_float < 0:
-                mensagem_alerta(f'Este produto está com saldo negativo!\n'
-                                f'Saldo Total = {saldo_float}')
+                self.mensagem_alerta(f'Este produto está com saldo negativo!\n'
+                                     f'Saldo Total = {saldo_float}')
                 self.line_Codigo_Estrut.clear()
             else:
                 self.line_Descricao_Estrut.setText(descr)
-                self.line_Referencia_Estrut.setText(referencia)
+                self.line_Referencia_Estrut.setText(ref)
                 self.line_UM_Estrut.setText(um)
                 self.line_Qtde_Estrut.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde(self):
         try:
@@ -698,14 +749,14 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             qtde = self.line_Qtde_Estrut.text()
             if not qtde:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde_Estrut.clear()
                 self.line_Qtde_Estrut.setFocus()
             else:
                 qtde_float = valores_para_float(qtde)
 
                 if qtde_float == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Estrut.clear()
                     self.line_Qtde_Estrut.setFocus()
                 else:
@@ -716,7 +767,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_estrutura(self):
         try:
@@ -725,16 +777,26 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             qtde_float = valores_para_float(qtde)
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, quantidade "
+                           f"FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
             id_prod = dados_prod[0][0]
 
-            dados_estrutura = self.tab_materiaprima.consulta_estrutura_pro_produto(id_prod, qtde_float)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT mat.codigo, prod.descricao, COALESCE(prod.obs, ''), prod.unidade,"
+                           f"(mat.quantidade * {qtde_float}) as qtde, prod.localizacao, prod.quantidade "
+                           f"from materiaprima as mat "
+                           f"INNER JOIN produto prod ON mat.codigo = prod.codigo "
+                           f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
+                           f"where mat.mestre = {id_prod} order by conj.conjunto DESC, prod.descricao ASC;")
+            dados_estrutura = cursor.fetchall()
 
             nova_tabela = []
 
             if not dados_estrutura:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
-                                f'Antes de criar a Ordem de Produção, defina a estrutura.')
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                                     f'Antes de criar a Ordem de Produção, defina a estrutura.')
                 self.reiniciando_produto_estrutura()
 
             else:
@@ -742,36 +804,35 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     cod = dados[0]
                     descr = dados[1]
                     ref = dados[2]
-                    if ref:
-                        referencia = ref
-                    else:
-                        referencia = ""
                     um = dados[3]
                     qtde = dados[4]
                     local = dados[5]
                     saldo = dados[6]
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    conjunto = dados_prod[0][10]
-                    terceirizado = dados_prod[0][11]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT conjunto, terceirizado FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    conjunto, terceirizado = dados_prod[0]
 
                     if conjunto == 10:
                         if terceirizado:
-                            didos = (cod, descr, referencia, um, qtde, local, saldo)
+                            didos = (cod, descr, ref, um, qtde, local, saldo)
                             nova_tabela.append(didos)
                     else:
-                        didos = (cod, descr, referencia, um, qtde, local, saldo)
+                        didos = (cod, descr, ref, um, qtde, local, saldo)
                         nova_tabela.append(didos)
 
             if nova_tabela:
                 lanca_tabela(self.table_Recomendacao, nova_tabela)
                 self.pintar_tabela_recomendacao()
             else:
-                mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
+                self.mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_todos_niveis(self):
         try:
@@ -789,17 +850,19 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             nova_tabela = []
             if not tabela_estrutura:
-                mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
-                                f'Antes de criar a Ordem de Produção, defina a estrutura.')
+                self.mensagem_alerta(f'Este produto não possui estrutura cadastrada!\n'
+                                     f'Antes de criar a Ordem de Produção, defina a estrutura.')
                 self.reiniciando_produto_estrutura()
 
             else:
                 for dados in tabela_estrutura:
                     cod, descr, ref, um, qtde, local, saldo = dados
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    conjunto = dados_prod[0][10]
-                    terceirizado = dados_prod[0][11]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT conjunto, terceirizado FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    conjunto, terceirizado = dados_prod[0]
 
                     if conjunto == 10:
                         if terceirizado:
@@ -813,26 +876,33 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 lanca_tabela(self.table_Recomendacao, nova_tabela)
                 self.pintar_tabela_recomendacao()
             else:
-                mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
+                self.mensagem_alerta(f'Este produto não possui material comprado na estrutura!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_estrutura(self, codigos, qtde):
         try:
-            dados_prod = self.tab_prod.consulta_por_codigo(codigos)
-            id_prod = dados_prod[0][0]
-            descr = dados_prod[0][1]
-            ref = dados_prod[0][3]
-            um = dados_prod[0][4]
-            local = dados_prod[0][5]
-            saldo = dados_prod[0][6]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, descricao, COALESCE(obs, ''), unidade, localizacao, quantidade "
+                           f"FROM produto where codigo = '{codigos}';")
+            dados_prod = cursor.fetchall()
+
+            id_prod, descr, ref, um, local, saldo = dados_prod[0]
 
             dadoss = (codigos, descr, ref, um, qtde, local, saldo)
             filhos = [dadoss]
 
-            estrutura_filho = self.tab_materiaprima.consulta_estrutura_pro_produto(id_prod, qtde)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT mat.codigo, prod.descricao, prod.obs, prod.unidade,"
+                           f"(mat.quantidade * {qtde}) as qtde, prod.localizacao, prod.quantidade "
+                           f"from materiaprima as mat "
+                           f"INNER JOIN produto prod ON mat.codigo = prod.codigo "
+                           f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
+                           f"where mat.mestre = {id_prod} order by conj.conjunto DESC, prod.descricao ASC;")
+            estrutura_filho = cursor.fetchall()
 
             for dados_f in estrutura_filho:
                 cod_f = dados_f[0]
@@ -844,7 +914,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciando_produto_estrutura(self):
         try:
@@ -857,7 +928,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela_recomendacao(self):
         try:
@@ -879,7 +951,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_bloquear_tabela_solicitacao(self):
         try:
@@ -890,19 +963,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             for index, dados in enumerate(dados_tabela):
                 cod, descr, ref, um, qtde, destino = dados
 
-                dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                embalagem = dados_prod[0][7]
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, embalagem FROM produto where codigo = '{cod}';")
+                dados_prod = cursor.fetchall()
 
-                if cod == "1":
-                    self.table_Solicitacao.item(index, 1).setBackground(QColor(cor_amarelo))
-                    self.table_Solicitacao.item(index, 2).setBackground(QColor(cor_amarelo))
-                    self.table_Solicitacao.item(index, 3).setBackground(QColor(cor_amarelo))
+                embalagem = dados_prod[0][1]
 
-                    item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][0]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
-                    self.table_Solicitacao.setItem(index, 0, item)
-
-                elif embalagem == "SIM" or embalagem == "SER":
+                if embalagem == "SIM" or embalagem == "SER":
                     self.table_Solicitacao.item(index, 2).setBackground(QColor(cor_amarelo))
 
                     item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][0]))
@@ -916,36 +983,11 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][3]))
                     item.setFlags(QtCore.Qt.ItemIsEnabled)
                     self.table_Solicitacao.setItem(index, 3, item)
-
-                else:
-                    item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][0]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
-                    self.table_Solicitacao.setItem(index, 0, item)
-
-                    item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][1]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
-                    self.table_Solicitacao.setItem(index, 1, item)
-
-                    item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][2]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
-                    self.table_Solicitacao.setItem(index, 2, item)
-
-                    item = QtWidgets.QTableWidgetItem(str(dados_tabela[index][3]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
-                    self.table_Solicitacao.setItem(index, 3, item)
-
-                self.table_Solicitacao.item(index, 1).setFont(fonte)
-                self.table_Solicitacao.item(index, 2).setFont(fonte)
-
-            for row in range(self.table_Solicitacao.rowCount()):
-                if row % 2 == 0:
-                    for col in range(self.table_Solicitacao.columnCount()):
-                        item = self.table_Solicitacao.item(row, col)
-                        item.setBackground(QColor(220, 220, 220))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_manu(self):
         if not self.processando:
@@ -956,14 +998,15 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                 if codigo_produto:
                     if int(codigo_produto) == 0:
-                        mensagem_alerta('O campo "Código" não pode ser "0"')
+                        self.mensagem_alerta('O campo "Código" não pode ser "0"')
                         self.limpa_produto_manual()
                     else:
                         self.verifica_sql_produtomanual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -972,26 +1015,25 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
         try:
             codigo_produto = self.line_Codigo_Manu.text()
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT conjunto, terceirizado, tipomaterial "
+                           f"FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
 
             if not dados_prod:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_produto_manual()
             else:
-                self.verifica_materia_prima()
+                self.verifica_materia_prima(dados_prod)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def verifica_materia_prima(self):
+    def verifica_materia_prima(self, dados_prod):
         try:
-            codigo_produto = self.line_Codigo_Manu.text()
-
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            conjunto = dados_prod[0][10]
-            terceirizado = dados_prod[0][11]
-            tipo = dados_prod[0][12]
+            conjunto, terceirizado, tipo = dados_prod[0]
 
             if conjunto == 10:
                 if terceirizado and tipo == 119:
@@ -1000,7 +1042,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     msg_produto = 'Materiais definidos como "Produtos Acabados" precisam ter:\n\n' \
                                   '- O custo do serviço vinculado a Estrutura.\n\n' \
                                   '- O "Tipo de Material" cadastrado como "INDUSTRIALIZACAO."'
-                    mensagem_alerta(f'{msg_produto}')
+                    self.mensagem_alerta(f'{msg_produto}')
                     self.limpa_produto_manual()
 
             else:
@@ -1008,21 +1050,20 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produtomanual(self):
         try:
             codigo_produto = self.line_Codigo_Manu.text()
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            descr = dados_prod[0][1]
-            ref = dados_prod[0][3]
-            um = dados_prod[0][4]
-            local = dados_prod[0][5]
-            saldo = dados_prod[0][6]
-            embalagem = dados_prod[0][7]
-            kg_mt = dados_prod[0][8]
-            ncm = dados_prod[0][9]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT descricao, COALESCE(obs, ''), unidade, localizacao, quantidade, embalagem, "
+                           f"COALESCE(kilosmetro, ''), COALESCE(ncm, '') "
+                           f"FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
+
+            descr, ref, um, local, saldo, embalagem, kg_mt, ncm = dados_prod[0]
 
             self.line_Descricao_Manu.setText(descr)
             self.line_UM_Manu.setText(um)
@@ -1040,7 +1081,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             if embalagem == "SIM":
                 if um == "KG" and not kg_mt:
-                    mensagem_alerta(f'Defina, no cadastro do produto, quantos kg tem 1 metro de material!')
+                    self.mensagem_alerta(f'Defina, no cadastro do produto, quantos kg tem 1 metro de material!')
                 else:
                     self.aparece_referencia_editada()
                     self.line_Unidade.setFocus()
@@ -1064,7 +1105,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_manu(self):
         try:
@@ -1077,33 +1119,36 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             line_medida = self.line_Medida.text()
             combo_medida = self.combo_Medida.currentText()
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            embalagem = dados_prod[0][7]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT descricao, embalagem FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
+
+            embalagem = dados_prod[0][1]
 
             if embalagem == "SIM":
                 if not line_unidade or not combo_unidade:
-                    mensagem_alerta('Informe a unidade de medida no campo "Referência"')
+                    self.mensagem_alerta('Informe a unidade de medida no campo "Referência"')
                     self.line_Unidade.setFocus()
                 elif not line_medida or not combo_medida:
-                    mensagem_alerta('Informe a medida no campo "Referência"')
+                    self.mensagem_alerta('Informe a medida no campo "Referência"')
                     self.line_Medida.setFocus()
                 else:
                     self.item_produtomanual()
             elif embalagem == "SER":
                 referencia = self.line_Referencia_Manu.text()
                 if not referencia:
-                    mensagem_alerta('O campo "Referência:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Referência:" não pode estar vazio')
                 else:
                     self.item_produtomanual()
             else:
                 qtdezinha = self.line_Qtde_Manu.text()
 
                 if len(qtdezinha) == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 elif qtdezinha == "0":
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 else:
@@ -1111,7 +1156,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def item_produtomanual(self):
         try:
@@ -1120,10 +1166,12 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             codigo_produto = int(codiguzinho)
             descricaozinho = self.line_Descricao_Manu.text()
 
-            dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-            embalagem = dados_prod[0][7]
-            um = dados_prod[0][4]
-            kg_mt = dados_prod[0][8]
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT unidade, embalagem, COALESCE(kilosmetro, '') "
+                           f"FROM produto where codigo = '{codigo_produto}';")
+            dados_prod = cursor.fetchall()
+
+            um, embalagem, kg_mt = dados_prod[0]
 
             if embalagem == "SIM":
                 line_unidade = self.line_Unidade.text()
@@ -1171,7 +1219,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                     qtdezinha_float = "%.2f" % mm_total
                 else:
-                    mensagem_alerta('A unidade de medida do produto não está prevista!')
+                    self.mensagem_alerta('A unidade de medida do produto não está prevista!')
 
                 referencia_certa = texto_completo
 
@@ -1188,15 +1236,20 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             destino = self.line_Destino_Manu.text()
             if len(destino) == 0:
-                mensagem_alerta('O campo "Destino:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Destino:" não pode estar vazio')
             else:
                 destino_maiuscula = destino.upper()
                 destino_certo = unidecode(destino_maiuscula)
                 dados = [codiguzinho, descricaozinho, referencia_certa, unidadezinha, qtdezinha_float,
                          destino_certo]
 
-                dados_prod = self.tab_prod.consulta_por_codigo(codigo_produto)
-                ncm = dados_prod[0][9]
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT unidade, COALESCE(ncm, '') "
+                               f"FROM produto where codigo = '{codigo_produto}';")
+                dados_prod = cursor.fetchall()
+
+                ncm = dados_prod[0][1]
+
                 if ncm:
                     existe_compra = self.consulta_compras_pendentes(codigo_produto)
                     if existe_compra:
@@ -1213,8 +1266,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                             self.procedimento_lanca_tabela(extrai_solicitacao)
                         else:
-                            mensagem_alerta(f'O item selecionado já está presente na tabela'
-                                            f'"Lista Solicitação".')
+                            self.mensagem_alerta(f'O item selecionado já está presente na tabela "Lista Solicitação".')
                             extrai_solicitacao.append(dados)
 
                             self.procedimento_lanca_tabela(extrai_solicitacao)
@@ -1232,13 +1284,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         self.btn_Consome_Manu.setEnabled(False)
                         self.desaparece_referencia_editada()
                 else:
-                    mensagem_alerta(f'Este produto está sem "NCM" no cadastro.\n\n'
-                                    f'Aproveite para verificar se o produto está apto '
-                                    f'para compra no Siger.')
+                    self.mensagem_alerta(f'Este produto está sem "NCM" no cadastro.\n\n'
+                                         f'Aproveite para verificar se o produto está apto para compra no Siger.')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         try:
@@ -1247,7 +1299,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_produto_manual(self):
         try:
@@ -1261,7 +1314,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procedimento_lanca_tabela(self, extrai_solicitacao):
         try:
@@ -1270,37 +1324,40 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_sol(self):
         try:
             extrai_sol = extrair_tabela(self.table_Solicitacao)
             if not extrai_sol:
-                mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
             else:
                 self.table_Solicitacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_rec(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Recomendacao)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
             else:
                 self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_sol(self):
         try:
             extrai_sol = extrair_tabela(self.table_Solicitacao)
             if not extrai_sol:
-                mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
             else:
                 linha_selecao = self.table_Solicitacao.currentRow()
                 if linha_selecao >= 0:
@@ -1308,13 +1365,14 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_rec(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Recomendacao)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
             else:
                 linha_selecao = self.table_Recomendacao.currentRow()
                 if linha_selecao >= 0:
@@ -1322,13 +1380,14 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_anexo(self):
         try:
             extrai_tabela_anexo = extrair_tabela(self.table_Anexos)
             if not extrai_tabela_anexo:
-                mensagem_alerta(f'A tabela "Lista Anexos" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Anexos" está vazia!')
             else:
                 linha_selecao = self.table_Anexos.currentRow()
                 if linha_selecao >= 0:
@@ -1336,7 +1395,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def tudo_verifica_deondevem(self):
         try:
@@ -1345,7 +1405,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             if sender == self.btn_Adicionar_Todos:
                 extrai_recomendados = extrair_tabela(self.table_Recomendacao)
                 if not extrai_recomendados:
-                    mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                    self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
 
                 else:
                     combo_consumo = self.combo_Consumo.currentText()
@@ -1358,16 +1418,15 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     elif combo_consumo and anos:
                         self.lancar_tudo_consumo_interno()
                     elif not desc_pai or not qtde_estrut:
-                        mensagem_alerta(f'Os campos "Código" e "Qtde" da estrutura precisam'
-                                        f'estar preenchidos!')
+                        self.mensagem_alerta(f'Os campos "Código" e "Qtde" da estrutura precisam estar preenchidos!')
                     elif not combo_consumo or not anos:
-                        mensagem_alerta(f'Os campos "Setor" e "Compra desde" do Consumo Interno '
-                                        f'precisam estar preenchidos!')
+                        self.mensagem_alerta(f'Os campos "Setor" e "Compra desde" do Consumo Interno '
+                                             f'precisam estar preenchidos!')
 
             elif sender == self.btn_Adicionar_SemSaldo:
                 extrai_recomendados = extrair_tabela(self.table_Recomendacao)
                 if not extrai_recomendados:
-                    mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                    self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
 
                 else:
                     combo_consumo = self.combo_Consumo.currentText()
@@ -1380,15 +1439,15 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     elif combo_consumo and anos:
                         self.lancar_semsaldo_consumo_interno()
                     elif not desc_pai or not qtde_estrut:
-                        mensagem_alerta(f'Os campos "Código" e "Qtde" da estrutura precisam'
-                                        f'estar preenchidos!')
+                        self.mensagem_alerta(f'Os campos "Código" e "Qtde" da estrutura precisam estar preenchidos!')
                     elif not combo_consumo or not anos:
-                        mensagem_alerta(f'Os campos "Setor" e "Compra desde" do Consumo Interno '
-                                        f'precisam estar preenchidos!')
+                        self.mensagem_alerta(f'Os campos "Setor" e "Compra desde" do Consumo Interno '
+                                             f'precisam estar preenchidos!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_so_chapas(self):
         try:
@@ -1400,19 +1459,23 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 for dados in extrai_recomendados:
                     cod, desc, ref, um, qtde, local, saldo = dados
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    if dados_prod:
-                        tipo = dados_prod[0][12]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT descricao, COALESCE(tipomaterial, '') "
+                                   f"FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
 
-                        if tipo == 116:
-                            didis = (cod, desc, ref, um, qtde, local, saldo)
-                            nova_tabela.append(didis)
-                        elif tipo == 84:
-                            didis = (cod, desc, ref, um, qtde, local, saldo)
-                            nova_tabela.append(didis)
-                        elif tipo == 85:
-                            didis = (cod, desc, ref, um, qtde, local, saldo)
-                            nova_tabela.append(didis)
+                    if dados_prod:
+                        descr, tipo = dados_prod[0]
+                        if tipo:
+                            if tipo == 116:
+                                didis = (cod, desc, ref, um, qtde, local, saldo)
+                                nova_tabela.append(didis)
+                            elif tipo == 84:
+                                didis = (cod, desc, ref, um, qtde, local, saldo)
+                                nova_tabela.append(didis)
+                            elif tipo == 85:
+                                didis = (cod, desc, ref, um, qtde, local, saldo)
+                                nova_tabela.append(didis)
 
             ja_foi = 0
             itens_foi = []
@@ -1422,8 +1485,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 for dados in nova_tabela:
                     cod, desc, ref, um, qtde, local, saldo = dados
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    ncm = dados_prod[0][9]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                                   f"FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    ncm = dados_prod[0][1]
+
                     if ncm:
                         existe_compra = self.consulta_compras_pendentes(cod)
                         if existe_compra:
@@ -1450,9 +1518,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         else:
                             break
                     else:
-                        mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
-                                        f'Aproveite para verificar se o produto está apto '
-                                        f'para compra no Siger.')
+                        self.mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
+                                             f'Aproveite para verificar se o produto está apto para compra no Siger.')
                         break
 
             if ja_foi > 0:
@@ -1463,23 +1530,22 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                         mensagem = mensagem + cod
 
-                    mensagem_alerta(f'O item {mensagem} já está presente na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'O item {mensagem} já está presente na tabela "Lista Solicitação".')
                 else:
                     for didi in itens_foi:
                         cod, desc, ref, um, qtde, destino = didi
 
                         mensagem = mensagem + cod + ", "
 
-                    mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
             self.combo_Consumo.setCurrentText("")
             self.reiniciando_produto_estrutura()
             self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_tudo_estrutura(self):
         try:
@@ -1494,8 +1560,12 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 for dados in extrai_recomendados:
                     cod, desc, ref, um, qtde, local, saldo = dados
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    ncm = dados_prod[0][9]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                                   f"FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    ncm = dados_prod[0][1]
                     if ncm:
                         existe_compra = self.consulta_compras_pendentes(cod)
                         if existe_compra:
@@ -1523,9 +1593,9 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         else:
                             break
                     else:
-                        mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
-                                        f'Aproveite para verificar se o produto está apto '
-                                        f'para compra no Siger.')
+                        self.mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
+                                             f'Aproveite para verificar se o produto está apto '
+                                             f'para compra no Siger.')
                         break
 
             if ja_foi > 0:
@@ -1536,23 +1606,22 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                         mensagem = mensagem + cod
 
-                    mensagem_alerta(f'O item {mensagem} já está presente na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'O item {mensagem} já está presente na tabela "Lista Solicitação".')
                 else:
                     for didi in itens_foi:
                         cod, desc, ref, um, qtde, destino = didi
 
                         mensagem = mensagem + cod + ", "
 
-                    mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
             self.combo_Consumo.setCurrentText("")
             self.reiniciando_produto_estrutura()
             self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_tudo_consumo_interno(self):
         try:
@@ -1572,8 +1641,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 for dados in extrai_recomendados:
                     cod, desc, ref, um, qtde, local, saldo = dados
 
-                    dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                    ncm = dados_prod[0][9]
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                                   f"FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    ncm = dados_prod[0][1]
+
                     if ncm:
                         existe_compra = self.consulta_compras_pendentes(cod)
                         if existe_compra:
@@ -1600,9 +1674,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                         else:
                             break
                     else:
-                        mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
-                                        f'Aproveite para verificar se o produto está apto '
-                                        f'para compra no Siger.')
+                        self.mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
+                                             f'Aproveite para verificar se o produto está apto para compra no Siger.')
                         break
 
             if ja_foi > 0:
@@ -1613,23 +1686,22 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                         mensagem = mensagem + cod
 
-                    mensagem_alerta(f'O item {mensagem} já está presente na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'O item {mensagem} já está presente na tabela "Lista Solicitação".')
                 else:
                     for didi in itens_foi:
                         cod, desc, ref, um, qtde, destino = didi
 
                         mensagem = mensagem + cod + ", "
 
-                    mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela'
-                                    f'"Lista Solicitação".')
+                    self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
             self.combo_Consumo.setCurrentText("")
             self.reiniciando_produto_estrutura()
             self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_semsaldo_estrutura(self):
         try:
@@ -1649,8 +1721,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     cod, desc, ref, um, qtde, local, saldo = dados
 
                     if float(saldo) < float(qtde):
-                        dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                        ncm = dados_prod[0][9]
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                                       f"FROM produto where codigo = '{cod}';")
+                        dados_prod = cursor.fetchall()
+
+                        ncm = dados_prod[0][1]
+
                         if ncm:
                             existe_compra = self.consulta_compras_pendentes(cod)
                             if existe_compra:
@@ -1673,16 +1750,16 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                                 break
                         else:
                             sem_ncm = sem_ncm + 1
-                            mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
-                                            f'Aproveite para verificar se o produto está apto '
-                                            f'para compra no Siger.')
+                            self.mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
+                                                 f'Aproveite para verificar se o produto está apto '
+                                                 f'para compra no Siger.')
                             break
 
             if sem_ncm == 0:
                 qtde_extrai_novo = len(extrai_solicitacao)
 
                 if qtde_extrai_velho == qtde_extrai_novo:
-                    mensagem_alerta(f'Não existem itens sem saldo".')
+                    self.mensagem_alerta(f'Não existem itens sem saldo".')
                 else:
                     self.procedimento_lanca_tabela(extrai_solicitacao)
 
@@ -1694,23 +1771,23 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                             mensagem = mensagem + cod
 
-                        mensagem_alerta(f'O item {mensagem} já está presente na tabela'
-                                        f'"Lista Solicitação".')
+                        self.mensagem_alerta(f'O item {mensagem} já está presente na tabela "Lista Solicitação".')
                     else:
                         for didi in itens_foi:
                             cod, desc, ref, um, qtde, destino = didi
 
                             mensagem = mensagem + cod + ", "
 
-                        mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela'
-                                        f'"Lista Solicitação".')
+                        self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
+
                 self.combo_Consumo.setCurrentText("")
                 self.reiniciando_produto_estrutura()
                 self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lancar_semsaldo_consumo_interno(self):
         try:
@@ -1734,8 +1811,13 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                     cod, desc, ref, um, qtde, local, saldo = dados
 
                     if float(saldo) < float(qtde):
-                        dados_prod = self.tab_prod.consulta_por_codigo(cod)
-                        ncm = dados_prod[0][9]
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                                       f"FROM produto where codigo = '{cod}';")
+                        dados_prod = cursor.fetchall()
+
+                        ncm = dados_prod[0][1]
+
                         if ncm:
                             existe_compra = self.consulta_compras_pendentes(cod)
                             if existe_compra:
@@ -1758,16 +1840,16 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                                 break
                         else:
                             sem_ncm = sem_ncm + 1
-                            mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
-                                            f'Aproveite para verificar se o produto está apto '
-                                            f'para compra no Siger.')
+                            self.mensagem_alerta(f'O produto {cod} está sem "NCM" no cadastro.\n\n'
+                                                 f'Aproveite para verificar se o produto está apto '
+                                                 f'para compra no Siger.')
                             break
 
             if sem_ncm == 0:
                 qtde_extrai_novo = len(extrai_solicitacao)
 
                 if qtde_extrai_velho == qtde_extrai_novo:
-                    mensagem_alerta(f'Não existem itens sem saldo".')
+                    self.mensagem_alerta(f'Não existem itens sem saldo".')
                 else:
                     self.procedimento_lanca_tabela(extrai_solicitacao)
 
@@ -1779,29 +1861,28 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                             mensagem = mensagem + cod
 
-                        mensagem_alerta(f'O item {mensagem} já está presente na tabela'
-                                        f'"Lista Solicitação".')
+                        self.mensagem_alerta(f'O item {mensagem} já está presente na tabela "Lista Solicitação".')
                     else:
                         for didi in itens_foi:
                             cod, desc, ref, um, qtde, destino = didi
 
                             mensagem = mensagem + cod + ", "
 
-                        mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela'
-                                        f'"Lista Solicitação".')
+                        self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
                 self.combo_Consumo.setCurrentText("")
                 self.reiniciando_produto_estrutura()
                 self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
             extrai_sol = extrair_tabela(self.table_Solicitacao)
             if not extrai_sol:
-                mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
             else:
                 num_sol = self.line_Num_Sol.text()
 
@@ -1809,35 +1890,37 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
                 if not num_sol:
                     testar_erros = testar_erros + 1
-                    mensagem_alerta(f'O campo "Nº SOL:" não pode estar vazio!')
+                    self.mensagem_alerta(f'O campo "Nº SOL:" não pode estar vazio!')
                 elif num_sol == "0":
                     testar_erros = testar_erros + 1
-                    mensagem_alerta(f'O "Nº SOL:" não pode ser "0"!')
+                    self.mensagem_alerta(f'O "Nº SOL:" não pode ser "0"!')
 
-                for itens in extrai_sol:
+                for indice, itens in enumerate(extrai_sol, start=1):
                     codigo, descricao, referencia, um, qtde, destino = itens
 
                     if not qtde:
-                        mensagem_alerta('Na Tabela "Lista Solicitação" possui '
-                                        'produtos sem quantidade!')
+                        self.mensagem_alerta('Na Tabela "Lista Solicitação" possui produtos sem quantidade!')
                         testar_erros = testar_erros + 1
                         break
                     else:
-                        dados_prod = self.tab_prod.consulta_por_codigo(codigo)
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT descricao, embalagem "
+                                       f"FROM produto where codigo = '{codigo}';")
+                        dados_prod = cursor.fetchall()
 
                         if dados_prod:
-                            embalagem = dados_prod[0][7]
+                            embalagem = dados_prod[0][1]
 
                             if embalagem == "SIM":
                                 if not referencia:
-                                    mensagem_alerta('O campo "Referência" pintado de amarelo, '
-                                                    'não pode estar vazio!')
+                                    self.mensagem_alerta('O campo "Referência" pintado de amarelo, '
+                                                         'não pode estar vazio!')
                                     testar_erros = testar_erros + 1
                                     break
                             elif embalagem == "SER":
                                 if not referencia:
-                                    mensagem_alerta('O campo "Referência" pintado de amarelo, '
-                                                    'não pode estar vazio!')
+                                    self.mensagem_alerta('O campo "Referência" pintado de amarelo, '
+                                                         'não pode estar vazio!')
                                     testar_erros = testar_erros + 1
                                     break
 
@@ -1846,7 +1929,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_lista(self):
         try:
@@ -1873,7 +1957,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
             dados_alterados = extrair_tabela(self.table_Solicitacao)
 
-            for itens in dados_alterados:
+            for indice, itens in enumerate(dados_alterados, start=1):
                 codigo, descricao, referencia, um, qtde, destino = itens
 
                 descricao_maiuscula = descricao.upper()
@@ -1894,41 +1978,48 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
                 else:
                     qtdezinha_float = float(qtde)
 
-                dados_prod = self.tab_prod.consulta_por_codigo(codigo)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, embalagem "
+                               f"FROM produto where codigo = '{codigo}';")
+                dados_prod = cursor.fetchall()
+
                 id_prod = dados_prod[0][0]
-                embalagem = dados_prod[0][7]
+                embalagem = dados_prod[0][1]
 
                 if codigo == "1":
                     cursor = conecta.cursor()
-                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, PRODUTO, DESCRICAO, REFERENCIA, "
-                                   f"UM, QUANTIDADE, DATA, STATUS, DESTINO) "
-                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, "
+                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, ITEM, PRODUTO, DESCRICAO, "
+                                   f"REFERENCIA, UM, QUANTIDADE, DATA, STATUS, DESTINO) "
+                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, {indice}, "
                                    f"{id_prod}, '{descricao_certa}', '{referencia_certa}', '{um_certa}', "
                                    f"{qtdezinha_float}, {data_mov_certa2}, 'A', '{destino_certa}');")
 
                 elif embalagem == "SIM":
                     cursor = conecta.cursor()
-                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, PRODUTO, REFERENCIA, "
+                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, ITEM, PRODUTO, REFERENCIA, "
                                    f"QUANTIDADE, DATA, STATUS, DESTINO) "
-                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, "
+                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, {indice}, "
                                    f"{id_prod}, '{referencia_certa}', {qtdezinha_float}, "
                                    f"{data_mov_certa2}, 'A', '{destino_certa}');")
                 else:
                     cursor = conecta.cursor()
-                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                    cursor.execute(f"Insert into produtoordemsolicitacao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                    f"DATA, STATUS, DESTINO) "
-                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, "
+                                   f"values (GEN_ID(GEN_PRODUTOORDEMSOLICITACAO_ID,1), {ultimo_req}, {indice}, "
                                    f"{id_prod}, {qtdezinha_float}, {data_mov_certa2}, "
                                    f"'A', '{destino_certa}');")
 
             self.grava_anexo(ultimo_req)
             conecta.commit()
 
+            self.mensagem_alerta(f"Solicitação Nº {ultimo_req} salva com sucesso!")
+
             self.reiniciando_sol()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciando_sol(self):
         try:
@@ -1966,7 +2057,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def grava_anexo(self, num_sol):
         try:
@@ -1988,7 +2080,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gera_excel(self):
         try:
@@ -2135,7 +2228,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def abrir_tela_escolher_produto(self):
         cod_prod = self.line_Codigo_Manu.text()

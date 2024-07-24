@@ -1,15 +1,15 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_op_alterar import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from unidecode import unidecode
 from datetime import date
 import inspect
 import os
+import traceback
 
 
 class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
@@ -17,14 +17,12 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_op(self.table_OP)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_OP)
 
         self.btn_Consulta_num.clicked.connect(self.verifica_line_id)
         self.line_Num_OP.returnPressed.connect(lambda: self.verifica_line_id())
@@ -40,63 +38,42 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         data_hoje = date.today()
         self.date_Emissao.setDate(data_hoje)
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_26)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_29)
-            cor_fonte(self.label_21)
-            cor_fonte(self.label_27)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.label_titulo)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Consulta)
-            cor_btn(self.btn_Consulta_num)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_op(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 70)
-            nome_tabela.setColumnWidth(1, 40)
-            nome_tabela.setColumnWidth(2, 40)
-            nome_tabela.setColumnWidth(3, 230)
-            nome_tabela.setColumnWidth(4, 120)
-            nome_tabela.setColumnWidth(5, 30)
-            nome_tabela.setColumnWidth(6, 40)
-            nome_tabela.setColumnWidth(7, 60)
-            nome_tabela.setColumnWidth(8, 200)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def define_tabela(self):
         try:
@@ -141,19 +118,20 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
             lanca_tabela(self.table_OP, op_ab_editado)
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_id(self):
         try:
             num_op = self.line_Num_OP.text()
 
             if len(num_op) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
 
             elif int(num_op) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
             else:
@@ -161,18 +139,19 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_consumo_op(self):
         try:
             num_op = self.line_Num_OP.text()
             if len(num_op) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
 
             elif int(num_op) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
             else:
@@ -180,7 +159,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_id(self):
         try:
@@ -195,7 +175,7 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
             select_pela_op = cursor.fetchall()
 
             if not select_pela_op:
-                mensagem_alerta('Este Nº de Ordem de Produção não existe!')
+                self.mensagem_alerta('Este Nº de Ordem de Produção não existe!')
                 self.line_Num_OP.clear()
                 self.line_Num_OP.setFocus()
             else:
@@ -214,12 +194,12 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
                 itens_consumo = itens_consumo_limpa[0]
 
                 if not select_op_aberta:
-                    mensagem_alerta('Este Nº de Ordem de Produção está encerrado!')
+                    self.mensagem_alerta('Este Nº de Ordem de Produção está encerrado!')
                     self.line_Num_OP.clear()
                     self.line_Num_OP.setFocus()
 
                 elif itens_consumo != 0:
-                    mensagem_alerta(f'A Ordem de Produção Nº {num_op} já tem '
+                    self.mensagem_alerta(f'A Ordem de Produção Nº {num_op} já tem '
                                                                 f'consumo de materiais!\n'
                                                                 f'Exclua os itens consumidos '
                                                                 f'para conseguir alterar a "OP"')
@@ -253,19 +233,20 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_produto(self):
         try:
             codigo_produto = self.line_Codigo.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo.clear()
                 self.line_Descricao.clear()
                 self.line_Referencia.clear()
                 self.line_Um.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo.clear()
                 self.line_Descricao.clear()
                 self.line_Referencia.clear()
@@ -275,7 +256,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_produto(self):
         try:
@@ -285,7 +267,7 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo.clear()
                 self.line_Descricao.clear()
                 self.line_Referencia.clear()
@@ -295,7 +277,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_materia_prima(self):
         try:
@@ -305,14 +288,15 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
                            f"FROM produto where codigo = {codigo_produto} AND conjunto = 10;")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este produto não está definido como "Produto Acabado"!')
+                self.mensagem_alerta('Este produto não está definido como "Produto Acabado"!')
                 self.line_Codigo.clear()
             else:
                 self.lanca_dados_produto()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produto(self):
         try:
@@ -331,7 +315,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciando_tela(self):
         try:
@@ -353,7 +338,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -373,25 +359,25 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
             itens_consumo = itens_consumo_limpa[0]
 
             if not tabela_maq:
-                mensagem_alerta('Este número de Ordem de Produção não existe!')
+                self.mensagem_alerta('Este número de Ordem de Produção não existe!')
                 self.reiniciando_tela()
             elif not num_op:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio!')
                 self.line_Codigo.setFocus()
             elif num_op == "0":
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"!')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"!')
                 self.line_Codigo.clear()
                 self.line_Codigo.setFocus()
             elif len(qtde) == 0:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                 self.line_Qtde.clear()
                 self.line_Qtde.setFocus()
             elif qtde == "0":
-                mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                 self.line_Qtde.clear()
                 self.line_Qtde.setFocus()
             elif itens_consumo != 0:
-                mensagem_alerta(f'A Ordem de Produção Nº {num_op} já tem '
+                self.mensagem_alerta(f'A Ordem de Produção Nº {num_op} já tem '
                                                             f'consumo de materiais!\n'
                                                             f'Exclua os itens consumidos '
                                                             f'para conseguir alterar a "OP"')
@@ -401,7 +387,8 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_dados(self):
         try:
@@ -453,13 +440,14 @@ class TelaOpAlterar(QMainWindow, Ui_AlteraOP):
 
             conecta.commit()
 
-            mensagem_alerta(f'A Ordem de Produção {num_op} foi alterada com sucesso!')
+            self.mensagem_alerta(f'A Ordem de Produção {num_op} foi alterada com sucesso!')
 
             self.reiniciando_tela()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

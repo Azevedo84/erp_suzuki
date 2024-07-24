@@ -1,13 +1,13 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import tratar_notificar_erros
-from comandos.comando_tabelas import lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_pre_status import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
+import traceback
 
 
 class TelaPreStatus(QMainWindow, Ui_MainWindow):
@@ -15,37 +15,50 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
-        self.layout_tabela(self.table_Produto)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Produto)
 
         self.inicio_manipula_pendentes()
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_Titulo)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def inicio_manipula_pendentes(self):
         try:
@@ -53,7 +66,7 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
                            f"kg_mt, fornecedor, data_criacao, codigo "
-                           f"FROM PRODUTOPRELIMINAR "
+                           f"FROM PRODUTOPRELIMINAR where codigo IS NULL "
                            f"order by data_criacao;")
             dados_banco = cursor.fetchall()
 
@@ -71,7 +84,8 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

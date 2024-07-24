@@ -1,17 +1,17 @@
 import sys
-from forms.tela_est_estoque import *
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao
-from comandos.comando_excel import criar_workbook, edita_fonte, edita_preenchimento, letra_coluna
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from forms.tela_est_estoque import *
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao
+from comandos.excel import criar_workbook, edita_fonte, edita_preenchimento, letra_coluna
+from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 from datetime import date, timedelta
 from pathlib import Path
 import inspect
 import os
+import traceback
 
 
 class TelaEstEstoque(QMainWindow, Ui_MainWindow):
@@ -19,14 +19,12 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_estoque.png")
         tamanho_aplicacao(self)
         layout_cabec_tab(self.table_Estoque)
-        self.layout_proprio()
 
         self.btn_Gerar_Acinplas.clicked.connect(self.manipula_dados_acinplas)
 
@@ -36,36 +34,42 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         self.definir_data()
         self.btn_Gerar_Classifica.setFocus()
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_13)
-            cor_fonte(self.label)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_25)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.check_Almox)
-            cor_fonte(self.check_Obsoleto)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Gerar_Classifica)
-            cor_btn(self.btn_Gerar_Acinplas)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_data(self):
         try:
@@ -77,41 +81,43 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def atualizartabela(self):
         try:
             self.table_Estoque.setRowCount(0)
-
+    
             almox = self.check_Almox.isChecked()
             obsoleto = self.check_Obsoleto.isChecked()
-
+    
             nomes_colunas = ['CÓD.', 'DESCRIÇÃO', 'REFERÊNCIA', 'UM']
-
+    
             if not almox and not obsoleto:
-                mensagem_alerta(f'Deve ter no mínimo um local de estoque selecionado!')
+                self.mensagem_alerta(f'Deve ter no mínimo um local de estoque selecionado!')
             else:
                 if almox and obsoleto:
                     nomes_colunas.append('ALMOX')
                     nomes_colunas.append('OBSOLETO')
                     self.manipula_dados_acinplas()
-
+    
                 elif almox and not obsoleto:
                     nomes_colunas.append('ALMOX')
                     self.manipula_dados_so_almox()
-
+    
                 elif not almox and obsoleto:
                     nomes_colunas.append('OBSOLETO')
                     self.manipula_dados_so_obsoleto()
-
+    
                 nomes_colunas.extend(['TOTAL'])
-
+    
                 self.table_Estoque.setColumnCount(len(nomes_colunas))
                 self.table_Estoque.setHorizontalHeaderLabels(nomes_colunas)
-
+            
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_acinplas(self):
         try:
@@ -150,7 +156,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                            f"- Saldo Almox: {l1_neg}\n" \
                            f"- Saldo Obsoleto: {l2_neg}\n\n\n"
 
-                mensagem_alerta(msg)
+                self.mensagem_alerta(msg)
             else:
                 cursor.execute("SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
                                f"COALESCE(CASE WHEN m.tipo < 200 THEN m.quantidade END, 0) AS Qtde_Entrada, "
@@ -196,7 +202,8 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_so_almox(self):
         try:
@@ -227,7 +234,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                         msg += f"- Código: {cod_neg} - {des_neg} \n" \
                                f"- Saldo Almox: {l1_neg}\n\n\n"
 
-                    mensagem_alerta(msg)
+                    self.mensagem_alerta(msg)
                 else:
                     cursor.execute("SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
                                    f"COALESCE(CASE WHEN m.tipo < 200 THEN m.quantidade END, 0) AS Qtde_Entrada, "
@@ -267,7 +274,8 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_so_obsoleto(self):
         try:
@@ -298,7 +306,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
                         msg += f"- Código: {cod_neg} - {des_neg} \n" \
                                f"- Saldo Almox: {l2_neg}\n\n\n"
 
-                    mensagem_alerta(msg)
+                    self.mensagem_alerta(msg)
                 else:
                     cursor.execute("SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
                                    f"COALESCE(CASE WHEN m.tipo < 200 THEN m.quantidade END, 0) AS Qtde_Entrada, "
@@ -338,13 +346,14 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_excel(self):
         try:
             extrai_dados_tabela = extrair_tabela(self.table_Estoque)
             if not extrai_dados_tabela:
-                mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
+                self.mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
             else:
                 num_colunas = self.table_Estoque.columnCount()
 
@@ -364,7 +373,8 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_excel_total(self):
         try:
@@ -373,7 +383,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
             extrai_dados_tabela = extrair_tabela(self.table_Estoque)
             if not extrai_dados_tabela:
-                mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
+                self.mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
             else:
                 workbook = criar_workbook()
                 sheet = workbook.active
@@ -437,14 +447,15 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
                 workbook.save(caminho)
 
-                mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
-                                f'criado com sucesso!!')
+                self.mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
+                                                            f'criado com sucesso!!')
 
                 self.table_Estoque.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_excel_almox(self):
         try:
@@ -510,14 +521,15 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
             workbook.save(caminho)
 
-            mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
-                            f'criado com sucesso!!')
+            self.mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} '
+                                                        f'criado com sucesso!!')
 
             self.table_Estoque.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_excel_obsoleto(self):
         try:
@@ -527,7 +539,7 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
             extrai_dados_tabela = extrair_tabela(self.table_Estoque)
             if not extrai_dados_tabela:
-                mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
+                self.mensagem_alerta(f'A Tabela "Lista de Estoque" está vazia!')
             else:
                 workbook = criar_workbook()
                 sheet = workbook.active
@@ -586,13 +598,14 @@ class TelaEstEstoque(QMainWindow, Ui_MainWindow):
 
                 workbook.save(caminho)
 
-                mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} criado com sucesso!!')
+                self.mensagem_alerta(f'Relatório do Estoque Final do dia {date_string} criado com sucesso!!')
 
                 self.table_Estoque.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

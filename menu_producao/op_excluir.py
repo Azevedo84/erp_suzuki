@@ -1,9 +1,9 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import grava_erro_banco
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget_cab
 from forms.tela_op_excluir import *
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import datetime, date
 import inspect
@@ -21,8 +21,7 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela(self.table_Lista)
-        cor_widget_cab(self.widget_cabecalho)
+        layout_cabec_tab(self.table_Lista)
 
         self.table_Lista.viewport().installEventFilter(self)
 
@@ -35,18 +34,27 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
         self.define_tabela()
         self.line_Num.setFocus()
 
-    def trata_excecao(self, nome_funcao, mensagem, arquivo):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
+
             traceback.print_exc()
-            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem}')
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
             self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
                                  f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
                                  f'{nome_funcao}: {mensagem}')
 
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
+
         except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
     def mensagem_alerta(self, mensagem):
         try:
@@ -59,27 +67,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
-
-    def layout_tabela(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 70)
-            nome_tabela.setColumnWidth(1, 70)
-            nome_tabela.setColumnWidth(2, 40)
-            nome_tabela.setColumnWidth(3, 40)
-            nome_tabela.setColumnWidth(4, 220)
-            nome_tabela.setColumnWidth(5, 120)
-            nome_tabela.setColumnWidth(6, 40)
-            nome_tabela.setColumnWidth(7, 60)
-            nome_tabela.setColumnWidth(8, 60)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_op(self):
         try:
@@ -99,8 +88,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_op(self):
         try:
@@ -120,8 +109,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_status_op(self):
         try:
@@ -152,8 +141,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_op(self):
         try:
@@ -177,8 +166,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -213,8 +202,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def define_tabela(self):
         try:
@@ -267,8 +256,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpar_produto(self):
         try:
@@ -284,8 +273,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -330,8 +319,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_lista(self):
         try:
@@ -346,8 +335,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reinicia_tela(self):
         try:
@@ -364,8 +353,8 @@ class TelaOpExcluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo)
-            grava_erro_banco(nome_funcao, e, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

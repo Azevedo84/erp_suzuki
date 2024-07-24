@@ -1,15 +1,15 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float
 from forms.tela_ci_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
 from datetime import date, datetime
+import traceback
 
 
 class TelaCiIncluir(QMainWindow, Ui_MainWindow):
@@ -17,16 +17,14 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_consumiveis.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_recomendacao(self.table_Recomendacao)
-        self.layout_tabela_consumo(self.table_Consumo)
-        self.layout_tabela_estoque(self.table_Estoque)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Recomendacao)
+        layout_cabec_tab(self.table_Consumo)
+        layout_cabec_tab(self.table_Estoque)
 
         self.table_Recomendacao.viewport().installEventFilter(self)
 
@@ -60,116 +58,42 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         self.definir_combo_consulta_funcionario()
         self.definir_combo_localestoque()
         self.combo_Funcionario.setFocus()
-        
-    def layout_proprio(self):
+
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
-            cor_widget(self.widget_Cor8)
-            cor_widget(self.widget_Cor9)
-            cor_widget(self.widget_Cor10)
-            cor_widget(self.widget_Cor11)
-            cor_widget(self.widget_Cor12)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_29)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_30)
-            cor_fonte(self.label_31)
-            cor_fonte(self.label_32)
-            cor_fonte(self.label_33)
-            cor_fonte(self.label_34)
-            cor_fonte(self.label_36)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_41)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_65)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_9)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.label_Titulo)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_fonte(self.check_Mov_Busca)
-            cor_fonte(self.check_Estoque_Busca)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Buscar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_Adicionar)
-            cor_btn(self.btn_Consulta_OC)
-            cor_btn(self.btn_Consulta_Func)
-            cor_btn(self.btn_ExcluirTudo_Con)
-            cor_btn(self.btn_ExcluirItem_Con)
-            cor_btn(self.btn_ExcluirTudo_Rec)
-            cor_btn(self.btn_ExcluirItem_Rec)
-            cor_btn(self.btn_Adicionar_Todos_Rec)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_recomendacao(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 80)
-            nome_tabela.setColumnWidth(1, 45)
-            nome_tabela.setColumnWidth(2, 220)
-            nome_tabela.setColumnWidth(3, 40)
-            nome_tabela.setColumnWidth(4, 50)
-            nome_tabela.setColumnWidth(5, 50)
-            nome_tabela.setColumnWidth(6, 80)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_consumo(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 45)
-            nome_tabela.setColumnWidth(1, 220)
-            nome_tabela.setColumnWidth(2, 40)
-            nome_tabela.setColumnWidth(3, 50)
-            nome_tabela.setColumnWidth(4, 95)
-            nome_tabela.setColumnWidth(5, 95)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_estoque(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 80)
-            nome_tabela.setColumnWidth(1, 50)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_line_ano_consumo(self):
         try:
@@ -181,7 +105,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_combo_funcionario(self):
         try:
@@ -202,7 +127,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_combo_consulta_funcionario(self):
         try:
@@ -223,7 +149,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_combo_localestoque(self):
         try:
@@ -240,14 +167,15 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_num_oc(self):
         if not self.processando:
             try:
                 self.processando = True
 
-                limpa_tabela(self.table_Recomendacao)
+                self.excluir_tudo_rec()
 
                 numero_oc = self.line_Num_OC.text()
 
@@ -256,14 +184,15 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
 
     def consultar_oc(self):
         try:
-            limpa_tabela(self.table_Recomendacao)
+            self.excluir_tudo_rec()
 
             tabela = []
             numero_oc = self.line_Num_OC.text()
@@ -288,19 +217,20 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                         selecao = (data1, codigo, descr, um, qtde, saldo, local)
                         tabela.append(selecao)
                 else:
-                    mensagem_alerta("Não foi encontrado itens dessa Ordem de Compra!")
-                    limpa_tabela(self.table_Recomendacao)
+                    self.mensagem_alerta("Não foi encontrado itens dessa Ordem de Compra!")
+                    self.excluir_tudo_rec()
 
             if tabela:
                 lanca_tabela(self.table_Recomendacao, tabela)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def consultar_funcionario(self):
         try:
-            limpa_tabela(self.table_Recomendacao)
+            self.excluir_tudo_rec()
 
             tabela = []
 
@@ -340,7 +270,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_produtos(self):
         try:
@@ -572,7 +503,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 notifica += 1
 
             elif estoque and movimentacao:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             elif descricao1:
                 cursor = conecta.cursor()
@@ -609,23 +540,24 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 notifica += 1
 
             elif estoque:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             elif movimentacao:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             else:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             if notifica:
                 if tabela:
                     lanca_tabela(self.table_Recomendacao, tabela)
                 else:
-                    mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                    self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -658,31 +590,53 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                     if extrai_consumo:
                         lanca_tabela(self.table_Consumo, extrai_consumo)
                 else:
-                    mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
+                    self.mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
 
             return super(QMainWindow, self).eventFilter(source, event)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_rec(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Recomendacao)
-            if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
-            else:
+            if extrai_recomendados:
                 self.table_Recomendacao.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_tudo_con(self):
+        try:
+            extrai_recomendados = extrair_tabela(self.table_Consumo)
+            if extrai_recomendados:
+                self.table_Consumo.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_tudo_est(self):
+        try:
+            extrai_recomendados = extrair_tabela(self.table_Estoque)
+            if extrai_recomendados:
+                self.table_Estoque.setRowCount(0)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_rec(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Recomendacao)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
             else:
                 linha_selecao = self.table_Recomendacao.currentRow()
                 if linha_selecao >= 0:
@@ -690,25 +644,14 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def excluir_tudo_con(self):
-        try:
-            extrai_recomendados = extrair_tabela(self.table_Consumo)
-            if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Consumo" está vazia!')
-            else:
-                self.table_Consumo.setRowCount(0)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_con(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Consumo)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Consumo" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Consumo" está vazia!')
             else:
                 linha_selecao = self.table_Consumo.currentRow()
                 if linha_selecao >= 0:
@@ -716,7 +659,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_manual(self):
         self.line_Codigo.clear()
@@ -726,7 +670,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         self.line_UM.clear()
         self.line_Qtde.clear()
         self.line_Saldo_Total.clear()
-        limpa_tabela(self.table_Estoque)
+        self.excluir_tudo_est()
 
     def limpa_consulta_oc_func(self):
         try:
@@ -736,7 +680,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_consulta_prod(self):
         try:
@@ -747,7 +692,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         try:
@@ -757,15 +703,16 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
             self.limpa_consulta_oc_func()
             self.limpa_consulta_prod()
 
-            limpa_tabela(self.table_Consumo)
-            limpa_tabela(self.table_Recomendacao)
+            self.excluir_tudo_con()
+            self.excluir_tudo_rec()
             self.line_Obs.clear()
 
             self.combo_Funcionario.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_tudo_rec(self):
         try:
@@ -777,7 +724,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 extrai_recomendados = extrair_tabela(self.table_Recomendacao)
 
                 if not extrai_recomendados:
-                    mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
+                    self.mensagem_alerta(f'A tabela "Lista de Recomendações" está vazia!')
                 else:
                     for i in extrai_recomendados:
                         data_rec, cod_rec, desc_rec, um_rec, qtde_rec, saldo, local = i
@@ -794,11 +741,12 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                     if extrai_consumo:
                         lanca_tabela(self.table_Consumo, extrai_consumo)
             else:
-                mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
+                self.mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_manual(self):
         if not self.processando:
@@ -811,17 +759,18 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
                 if codigo_produto:
                     if int(codigo_produto) == 0:
-                        mensagem_alerta('O campo "Código" não pode ser "0"')
+                        self.mensagem_alerta('O campo "Código" não pode ser "0"')
                         self.limpa_manual()
                     else:
                         if funcionario and local_est:
                             self.verifica_sql_produto_manual()
                         else:
-                            mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
+                            self.mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -835,7 +784,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_manual()
             else:
                 ides, descr, ref, um, local, saldo = detalhes_produto[0]
@@ -843,12 +792,13 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 if saldo_float > 0:
                     self.lanca_dados_produto_manual()
                 else:
-                    mensagem_alerta('Este produto não possui saldo em estoque!')
+                    self.mensagem_alerta('Este produto não possui saldo em estoque!')
                     self.limpa_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -869,7 +819,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_saldos_local_manual(self, id_prod):
         try:
@@ -885,7 +836,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_saldos_manual(self):
         try:
@@ -904,7 +856,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_manual(self):
         if not self.processando:
@@ -915,7 +868,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
                 if qtdezinha:
                     if qtdezinha == "0":
-                        mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                        self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                         self.line_Qtde.clear()
                         self.line_Qtde.setFocus()
                     else:
@@ -923,7 +876,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -960,20 +914,22 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
             extrai_consumo = extrair_tabela(self.table_Consumo)
 
             if not extrai_consumo:
-                mensagem_alerta(f'A tabela "Lista de Consumo" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Consumo" está vazia!')
             else:
                 self.verifica_saldos()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_saldos(self):
         try:
@@ -1026,7 +982,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def define_lista_para_salvar(self, lista_acumulada):
         try:
@@ -1080,7 +1037,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_consumo_interno(self, lista_com_saldo, lista_sem_saldo):
         try:
@@ -1093,7 +1051,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                     codigo, descricao, qtde, saldo_total = nao_tem
                     msg += f" - Cód: {codigo} - {descricao}: Saldo Estoque: {saldo_total}\n\n"
 
-                mensagem_alerta(msg)
+                self.mensagem_alerta(msg)
 
             else:
                 if lista_com_saldo:
@@ -1109,12 +1067,13 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                     conecta.commit()
                     print("salvado")
 
-                    mensagem_alerta(f'Consumo Interno foi lançada com sucesso!')
+                    self.mensagem_alerta(f'Consumo Interno foi lançada com sucesso!')
                     self.limpa_tudo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

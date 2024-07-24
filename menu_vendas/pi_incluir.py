@@ -1,12 +1,11 @@
 import sys
 from banco_dados.conexao import conecta
-from arquivos.chamar_arquivos import definir_caminho_arquivo
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_pi_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from arquivos.chamar_arquivos import definir_caminho_arquivo
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
 from datetime import date, datetime, timedelta
@@ -15,6 +14,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Side, Alignment, Border, Font
 from pathlib import Path
+import traceback
 
 
 class TelaPiIncluir(QMainWindow, Ui_MainWindow):
@@ -22,15 +22,13 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_vendas.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_pedido(self.table_Pedido)
-        self.layout_tabela_busca(self.table_Busca)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Pedido)
+        layout_cabec_tab(self.table_Busca)
 
         self.definir_line_bloqueados()
         self.definir_validador()
@@ -52,92 +50,41 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         self.processando = False
         
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_38)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_41)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_56)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_60)
-            cor_fonte(self.label_62)
-            cor_fonte(self.label_61)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_Titulo_2)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.check_Excel)
-            cor_fonte(self.check_Mov_Busca)
-            cor_fonte(self.check_Estoque_Busca)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_Buscar)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_pedido(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 35)
-            nome_tabela.setColumnWidth(1, 210)
-            nome_tabela.setColumnWidth(2, 95)
-            nome_tabela.setColumnWidth(3, 25)
-            nome_tabela.setColumnWidth(4, 45)
-            nome_tabela.setColumnWidth(5, 80)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-            
-    def layout_tabela_busca(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 35)
-            nome_tabela.setColumnWidth(1, 205)
-            nome_tabela.setColumnWidth(2, 95)
-            nome_tabela.setColumnWidth(3, 25)
-            nome_tabela.setColumnWidth(4, 50)
-            nome_tabela.setColumnWidth(5, 85)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_line_bloqueados(self):
         try:
@@ -150,7 +97,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_validador(self):
         try:
@@ -166,7 +114,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_num_ped(self):
         try:
@@ -181,7 +130,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao(self):
         try:
@@ -192,7 +142,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tabela_pedido(self):
         try:
@@ -200,7 +151,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tabela_busca(self):
         try:
@@ -208,7 +160,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_manual(self):
         try:
@@ -224,7 +177,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_busca(self):
         try:
@@ -235,7 +189,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_pedido(self):
         try:
@@ -246,7 +201,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         self.limpa_tabela_pedido()
@@ -263,17 +219,18 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                 codigo_produto = self.line_Codigo_Manu.text()
 
                 if not codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.line_Codigo_Manu.clear()
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                     self.line_Codigo_Manu.clear()
                 else:
                     self.verifica_sql_produto_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -286,14 +243,15 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo_Manu.clear()
             else:
                 self.lanca_dados_produto_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_produto_manual(self):
         try:
@@ -315,7 +273,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde_manual(self):
         if not self.processando:
@@ -325,11 +284,11 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                 qtdezinha = self.line_Qtde_Manu.text()
 
                 if len(qtdezinha) == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 elif qtdezinha == "0":
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde_Manu.clear()
                     self.line_Qtde_Manu.setFocus()
                 else:
@@ -337,7 +296,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -381,32 +341,34 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                     lanca_tabela(self.table_Pedido, extrai_estrutura)
 
             else:
-                mensagem_alerta("Este produto já foi adicionado a estrutura!")
+                self.mensagem_alerta("Este produto já foi adicionado a estrutura!")
 
             self.limpa_dados_manual()
             self.line_Codigo_Manu.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_tudo_pedido(self):
         try:
             extrai_estrutura = extrair_tabela(self.table_Pedido)
             if not extrai_estrutura:
-                mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
             else:
                 self.table_Pedido.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_estrutura(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_Pedido)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
             else:
                 linha_selecao = self.table_Pedido.currentRow()
                 if linha_selecao >= 0:
@@ -414,7 +376,8 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_produtos(self):
         try:
@@ -640,7 +603,7 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                 notifica += 1
 
             elif estoque and movimentacao:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             elif descricao1:
                 cursor = conecta.cursor()
@@ -677,23 +640,24 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                 notifica += 1
 
             elif estoque:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             elif movimentacao:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             else:
-                mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
+                self.mensagem_alerta("Preencha no mínimo uma Descrição, descr. Complementar ou Referência do produto!")
 
             if notifica:
                 if tabela:
                     lanca_tabela(self.table_Busca, tabela)
                 else:
-                    mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
+                    self.mensagem_alerta("Não foi encontrado nenhum registro com essas condições!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -704,24 +668,25 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
             obs = self.line_Obs.text()
 
             if not extrai_pedido:
-                mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista Pedido" está vazia!')
             elif not num_ped:
-                mensagem_alerta(f'O campo "Nº PED" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Nº PED" não pode estar vazio!')
             elif num_ped == "0":
-                mensagem_alerta(f'O "Nº PED" não pode ser "0"!')
+                self.mensagem_alerta(f'O "Nº PED" não pode ser "0"!')
             elif not cliente:
-                mensagem_alerta(f'O campo "Cliente" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Cliente" não pode estar vazio!')
             elif not solicitante:
-                mensagem_alerta(f'O campo "Solicitante" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Solicitante" não pode estar vazio!')
             elif not obs:
-                mensagem_alerta(f'O campo "Observação" não pode estar vazio!\n\n'
-                                f'Defina o destino (Onde vai ser usado) da "Lista Pedidos".')
+                self.mensagem_alerta(f'O campo "Observação" não pode estar vazio!\n\n'
+                                     f'Defina o destino (Onde vai ser usado) da "Lista Pedidos".')
             else:
                 self.salvar_pedido()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_pedido(self):
         try:
@@ -808,15 +773,15 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
                     self.gerar_excel()
 
             except Exception as e:
-                mensagem_alerta(f'A Solicitação foi criada com Sucesso, porém,\n'
-                                f'houve problemas para salvar o arquivo excel na área de trabalho!\n'
-                                f'{e}')
+                self.mensagem_alerta(f'A Solicitação foi criada com Sucesso, porém,\n'
+                                     f'houve problemas para salvar o arquivo excel na área de trabalho!\n{e}')
             self.limpa_tudo()
             self.definir_num_ped()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gerar_excel(self):
         try:
@@ -1033,11 +998,12 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
 
             writer.save()
 
-            mensagem_alerta(f'O Pedido Nº {num_pedido} foi criada com Sucesso!')
+            self.mensagem_alerta(f'O Pedido Nº {num_pedido} foi criada com Sucesso!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

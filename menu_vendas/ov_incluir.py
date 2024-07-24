@@ -1,15 +1,16 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float
 from forms.tela_ov_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from datetime import date, datetime
+from banco_dados.controle_erros import grava_erro_banco
+from arquivos.chamar_arquivos import definir_caminho_arquivo
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+from datetime import date, datetime, timedelta
 import inspect
 import os
+import traceback
 
 
 class TelaOvIncluir(QMainWindow, Ui_MainWindow):
@@ -17,15 +18,13 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_vendas.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_ov(self.table_OV)
-        self.layout_tabela_pi(self.table_PI_Aberto)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_OV)
+        layout_cabec_tab(self.table_PI_Aberto)
 
         self.line_Frete.editingFinished.connect(self.mascara_frete)
         self.line_Desconto.editingFinished.connect(self.mascara_desconto)
@@ -37,66 +36,48 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
+        self.btn_Excel.clicked.connect(self.gera_excel)
+
         self.definir_emissao()
         self.manipula_dados_pi()
 
         self.table_PI_Aberto.viewport().installEventFilter(self)
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_36)
-            cor_fonte(self.label_38)
-            cor_fonte(self.label_34)
-            cor_fonte(self.label_35)
-            cor_fonte(self.label_39)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_41)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_8)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_ExcluirItem)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_ov(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_pi(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 45)
-            nome_tabela.setColumnWidth(1, 200)
-            nome_tabela.setColumnWidth(2, 75)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao(self):
         try:
@@ -105,7 +86,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_pi(self):
         try:
@@ -157,13 +139,15 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
             if (event.type() == QtCore.QEvent.MouseButtonDblClick and
                     event.buttons() == QtCore.Qt.LeftButton and
                     source is self.table_PI_Aberto.viewport()):
+                self.label_Texto_Excel.setText(f'')
 
                 item = self.table_PI_Aberto.currentItem()
 
@@ -177,7 +161,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_cliente(self, id_cliente):
         try:
@@ -242,7 +227,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
                                 tabela_nova.append(dados)
                             else:
-                                mensagem_alerta(f"O produto {cod} não tem custo unitário definido!")
+                                self.mensagem_alerta(f"O produto {cod} não tem custo unitário definido!")
 
                         if not problemas_produto:
                             if conj == 'Produtos Acabados':
@@ -261,7 +246,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
                                 tabela_nova.append(dados)
                         else:
-                            mensagem_alerta(f"Verifique a estrutura do produto {cod}!")
+                            self.mensagem_alerta(f"Verifique a estrutura do produto {cod}!")
 
             if tabela_nova:
                 lanca_tabela(self.table_OV, tabela_nova)
@@ -277,7 +262,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_estrutura_problema(self, nivel, codigo, qtde):
         try:
@@ -313,7 +299,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_frete(self):
         try:
@@ -321,7 +308,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_desconto(self):
         try:
@@ -329,7 +317,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_ipi(self):
         try:
@@ -359,7 +348,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_totais(self):
         try:
@@ -416,7 +406,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tabelas(self):
         try:
@@ -425,10 +416,12 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         self.limpa_tabelas()
+        self.line_Cliente.clear()
         self.line_Frete.clear()
         self.line_Desconto.clear()
         self.line_Total_Ipi.clear()
@@ -441,20 +434,21 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
         try:
             extrai_tabela_ov = extrair_tabela(self.table_OV)
             if not extrai_tabela_ov:
-                mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
             else:
                 self.table_OV.setRowCount(0)
                 self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def excluir_item_ov(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_OV)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Venda" está vazia!')
             else:
                 linha_selecao = self.table_OV.currentRow()
                 self.table_OV.removeRow(linha_selecao)
@@ -462,7 +456,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -471,11 +466,11 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             tabela_produtos = extrair_tabela(self.table_OV)
 
             if not num_ov:
-                mensagem_alerta('O campo "Nº OV" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Nº OV" não pode estar vazio!')
             elif not cliente:
-                mensagem_alerta('O campo "Cliente" não pode estar vazio!')
+                self.mensagem_alerta('O campo "Cliente" não pode estar vazio!')
             elif not tabela_produtos:
-                mensagem_alerta('A tabela "Produtos Ordem de Venda" não pode estar vazia"')
+                self.mensagem_alerta('A tabela "Produtos Ordem de Venda" não pode estar vazia"')
             else:
                 num_ov = self.line_Num_OV.text()
 
@@ -494,13 +489,14 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 dados_interno = cursor.fetchall()
 
                 if dados_interno:
-                    mensagem_alerta("Esta Ordem de Venda (OV) já foi adicionada!")
+                    self.mensagem_alerta("Esta Ordem de Venda (OV) já foi adicionada!")
                 else:
                     self.salvar_ov_novo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_ov_novo(self):
         try:
@@ -574,7 +570,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
             conecta.commit()
 
-            mensagem_alerta(f'Ordem de Compra foi lançada com sucesso!')
+            self.mensagem_alerta(f'Ordem de Compra foi lançada com sucesso!')
 
             if lista_pi:
                 lista_sem_duplicatas = list(set(lista_pi))
@@ -606,7 +602,315 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def gera_excel(self):
+        try:
+            import pandas as pd
+            from openpyxl import load_workbook
+            from openpyxl.styles import Side, Alignment, Border, Font, PatternFill
+            from unidecode import unidecode
+            from sympy import frac
+            from pathlib import Path
+
+            cor_cinza = "A6A6A6"
+
+            client = self.line_Cliente.text()
+            posicao_cli = client.find("-") + 2
+            cliente = client[posicao_cli:]
+
+            dados_tabela = extrair_tabela(self.table_OV)
+
+            if dados_tabela and cliente:
+                data_hoje = date.today()
+                data_certa = data_hoje.strftime("%d/%m/%Y")
+                print(data_certa)
+
+                valor_t = self.line_Total_Geral.text()
+                print(valor_t)
+                total_float = valores_para_float(valor_t)
+                print(total_float)
+
+                cliente_maiuscula = cliente.upper()
+                cliente_certo = unidecode(cliente_maiuscula)
+
+                d_um = []
+
+                solicitante = ""
+                observacao = ""
+
+                for tabi in dados_tabela:
+                    num_pi, req_cli, cod, desc, ref, um, qtde, unit, ipi, total, entr, qtde_ent, obs, solic = tabi
+
+                    data_pr = date.today() + timedelta(days=7)
+                    data_prev = '{}/{}/{}'.format(data_pr.day, data_pr.month, data_pr.year)
+
+                    solicitante = solic
+                    observacao = obs
+
+                    if unit == 0.00:
+                        unit_1_final = 0.00
+                        total_1_final = 0.00
+                        ipi_final = 0.00
+                    else:
+                        if "," in unit:
+                            unit_1_com_ponto = unit.replace(',', '.')
+                            unit_1_float = float(unit_1_com_ponto)
+                        else:
+                            unit_1_float = float(unit)
+
+                        if "," in total:
+                            total_1_com_ponto = total.replace(',', '.')
+                            total_1_float = float(total_1_com_ponto)
+                        else:
+                            total_1_float = float(total)
+
+                        unit_1_final = float(unit_1_float)
+                        total_1_final = float(total_1_float)
+
+                        if ipi == 0.00:
+                            ipi_final = 0.00
+                        else:
+                            if "," in ipi:
+                                ipi_com_ponto = ipi.replace(',', '.')
+                                ipi_final = float(ipi_com_ponto)
+                            else:
+                                ipi_final = float(ipi)
+
+                    if "," in qtde:
+                        qtdezinha_com_ponto = qtde.replace(',', '.')
+                        qtdezinha_float = float(qtdezinha_com_ponto)
+                    else:
+                        qtdezinha_float = float(qtde)
+
+                    dados = (cod, desc, ref, um, qtdezinha_float, unit_1_final, ipi_final, total_1_final,
+                             data_prev, obs)
+                    d_um.append(dados)
+
+                df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'UM', 'Qtde', 'unit', 'Ipi %',
+                                                 'total', 'Data', 'Destino'])
+
+                codigo_int = {'Código': int}
+                df = df.astype(codigo_int)
+                qtde_float = {'Qtde': float}
+                df = df.astype(qtde_float)
+
+                camino = os.path.join('..', 'arquivos', 'modelo excel', 'ov_incluir.xlsx')
+                caminho_arquivo = definir_caminho_arquivo(camino)
+
+                book = load_workbook(caminho_arquivo)
+
+                desktop = Path.home() / "Desktop"
+                desk_str = str(desktop)
+                nome_req = f'\Requisição {cliente_certo}.xlsx'
+                caminho = (desk_str + nome_req)
+
+                writer = pd.ExcelWriter(caminho, engine='openpyxl')
+
+                writer.book = book
+                writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+
+                linhas_frame = df.shape[0]
+                colunas_frame = df.shape[1]
+
+                linhas_certas = linhas_frame + 2 + 9
+                colunas_certas = colunas_frame + 1
+
+                ws = book.active
+
+                inicia = 11
+                rows = range(inicia, inicia + linhas_frame)
+                columns = range(1, colunas_certas)
+
+                ws.row_dimensions[linhas_certas + 2].height = 30
+                ws.row_dimensions[linhas_certas + 4].height = 30
+
+                for row in rows:
+                    for col in columns:
+                        ws.cell(row, col).alignment = Alignment(horizontal='center', vertical='center',
+                                                                wrap_text=True)
+                        ws.cell(row, col).border = Border(left=Side(border_style='thin', color='00000000'),
+                                                          right=Side(border_style='thin', color='00000000'),
+                                                          top=Side(border_style='thin', color='00000000'),
+                                                          bottom=Side(border_style='thin', color='00000000'),
+                                                          diagonal=Side(border_style='thick', color='00000000'),
+                                                          diagonal_direction=0,
+                                                          outline=Side(border_style='thin', color='00000000'),
+                                                          vertical=Side(border_style='thin', color='00000000'),
+                                                          horizontal=Side(border_style='thin', color='00000000'))
+
+                ws.merge_cells(f'A8:E8')
+                top_left_cell = ws[f'A8']
+                c = ws[f'A8']
+                c.alignment = Alignment(horizontal='center',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=14, bold=True)
+                top_left_cell.value = 'Requisição ' + cliente_certo
+
+                ws.merge_cells(f'F8:J8')
+                top_left_cell = ws[f'F8']
+                c = ws[f'F8']
+                c.alignment = Alignment(horizontal='center',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=14, bold=True)
+                top_left_cell.value = 'Emissão:  ' + data_certa
+
+                ws.merge_cells(f'A{linhas_certas}:G{linhas_certas}')
+                top_left_cell = ws[f'A{linhas_certas}']
+                c = ws[f'A{linhas_certas}']
+                c.alignment = Alignment(horizontal='center',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=True)
+                top_left_cell.value = 'TOTAL:'
+
+                estilo_total = PatternFill(start_color=cor_cinza, end_color=cor_cinza, fill_type="solid")
+                ws[f'A{linhas_certas}'].fill = estilo_total
+                ws[f'B{linhas_certas}'].fill = estilo_total
+                ws[f'C{linhas_certas}'].fill = estilo_total
+                ws[f'D{linhas_certas}'].fill = estilo_total
+                ws[f'E{linhas_certas}'].fill = estilo_total
+                ws[f'F{linhas_certas}'].fill = estilo_total
+                ws[f'G{linhas_certas}'].fill = estilo_total
+                ws[f'H{linhas_certas}'].fill = estilo_total
+                ws[f'I{linhas_certas}'].fill = estilo_total
+                ws[f'J{linhas_certas}'].fill = estilo_total
+
+                decimais = frac(total_float)
+                if decimais == 0:
+                    if total_float == 0.00:
+                        ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
+                        top_left_cell = ws[f'H{linhas_certas}']
+                        c = ws[f'H{linhas_certas}']
+                        c.alignment = Alignment(horizontal='center',
+                                                vertical='center',
+                                                text_rotation=0,
+                                                wrap_text=False,
+                                                shrink_to_fit=False,
+                                                indent=0)
+                        c.font = Font(size=12, bold=True)
+                        c.number_format = 'R$ 0.00;[Red]-R$ 0.00'
+                        top_left_cell.value = total_float
+                    else:
+                        ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
+                        top_left_cell = ws[f'H{linhas_certas}']
+                        c = ws[f'H{linhas_certas}']
+                        c.alignment = Alignment(horizontal='center',
+                                                vertical='center',
+                                                text_rotation=0,
+                                                wrap_text=False,
+                                                shrink_to_fit=False,
+                                                indent=0)
+                        c.font = Font(size=12, bold=True)
+                        c.number_format = 'R$ #.##00;[Red]-R$ #.##00'
+                        top_left_cell.value = total_float
+                else:
+                    ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
+                    top_left_cell = ws[f'H{linhas_certas}']
+                    c = ws[f'H{linhas_certas}']
+                    c.alignment = Alignment(horizontal='center',
+                                            vertical='center',
+                                            text_rotation=0,
+                                            wrap_text=False,
+                                            shrink_to_fit=False,
+                                            indent=0)
+                    c.font = Font(size=12, bold=True)
+                    c.number_format = 'R$ #.##;[Red]-R$ #.##'
+                    top_left_cell.value = total_float
+
+                ws.merge_cells(f'B{linhas_certas + 2}:B{linhas_certas + 2}')
+                top_left_cell = ws[f'B{linhas_certas + 2}']
+                c = ws[f'B{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='right',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=True)
+                top_left_cell.value = "Máquina:  "
+
+                ws.merge_cells(f'C{linhas_certas + 2}:H{linhas_certas + 2}')
+                top_left_cell = ws[f'C{linhas_certas + 2}']
+                c = ws[f'C{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='left',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=False)
+                top_left_cell.value = observacao
+
+                ws.merge_cells(f'I{linhas_certas + 2}:I{linhas_certas + 2}')
+                top_left_cell = ws[f'I{linhas_certas + 2}']
+                c = ws[f'I{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='right',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=True)
+                top_left_cell.value = "Cliente:  "
+
+                ws.merge_cells(f'J{linhas_certas + 2}:J{linhas_certas + 2}')
+                top_left_cell = ws[f'J{linhas_certas + 2}']
+                c = ws[f'J{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='left',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=False)
+                top_left_cell.value = cliente_maiuscula
+
+                ws.merge_cells(f'B{linhas_certas + 4}:B{linhas_certas + 4}')
+                top_left_cell = ws[f'B{linhas_certas + 4}']
+                c = ws[f'B{linhas_certas + 4}']
+                c.alignment = Alignment(horizontal='right',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=True)
+                top_left_cell.value = "Responsável:  "
+
+                ws.merge_cells(f'C{linhas_certas + 4}:J{linhas_certas + 4}')
+                top_left_cell = ws[f'C{linhas_certas + 4}']
+                c = ws[f'C{linhas_certas + 4}']
+                c.alignment = Alignment(horizontal='left',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=False)
+                top_left_cell.value = solicitante
+
+                df.to_excel(writer, 'Sheet1', startrow=10, startcol=0, header=False, index=False)
+
+                writer.save()
+                self.label_Texto_Excel.setText(f'Excel gerado com sucesso!')
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

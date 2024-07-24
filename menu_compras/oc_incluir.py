@@ -1,19 +1,18 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, excluir_item_tab, limpa_tabela
-from comandos.comando_lines import definir_data_atual
-from comandos.comando_cores import cor_amarelo, cor_branco
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float, valores_para_virgula
 from forms.tela_oc_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.lines import definir_data_atual
+from comandos.cores import cor_amarelo, cor_branco
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float, valores_para_virgula
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
 from datetime import datetime, date, timedelta
 import inspect
 import os
-from functools import partial
+import traceback
 
 
 class TelaOcIncluir(QMainWindow, Ui_MainWindow):
@@ -21,129 +20,100 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_compra_sol.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_requisicao(self.table_ReqAbertas)
-        self.layout_tabela_oc(self.table_Produtos)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Req_Abertas)
+        layout_cabec_tab(self.table_Produtos_OC)
+
+        self.lista_requisicoes = []
 
         self.line_NumOC.editingFinished.connect(self.verifica_line_oc)
+
         self.date_Emissao.editingFinished.connect(self.verifica_emissao)
         self.line_CodForn.editingFinished.connect(self.verifica_line_fornecedor)
+
         self.line_Codigo.editingFinished.connect(self.verifica_line_codigo)
-        self.line_IDReq.editingFinished.connect(self.verifica_line_idreq)
         self.line_Qtde.editingFinished.connect(self.verifica_line_qtde)
         self.line_Ipi.editingFinished.connect(self.atualiza_mascara_ipi)
         self.line_Unit.editingFinished.connect(self.verifica_line_unit)
+
+        self.line_ValorTotal.editingFinished.connect(self.verifica_entrega)
+        self.btn_AdicionarProd.clicked.connect(self.verifica_entrega)
+
         self.line_Frete.editingFinished.connect(self.atualiza_mascara_frete)
         self.line_Desconto.editingFinished.connect(self.atualiza_mascara_desconto)
         self.date_Entrega.editingFinished.connect(self.verifica_entrega)
 
         self.processando = False
 
-        self.btn_ExcluirTudo.clicked.connect(partial(limpa_tabela, self.table_Produtos))
-        self.btn_ExcluirItem.clicked.connect(partial(excluir_item_tab, self.table_Produtos,
-                                                         "Produtos Ordem de Compra"))
+        self.btn_ExcluirItem.clicked.connect(self.excluir_item_tab_produtos)
+        self.btn_ExcluirTudo.clicked.connect(self.excluir_tudo_tab_produtos)
 
-        self.btn_AdicionarProd.clicked.connect(self.verifica_dados_completos)
+        self.btn_Limpar.clicked.connect(self.limpar_tudo)
+
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
         self.definir_validador()
+        self.definir_bloqueios()
         self.definir_entrega()
         definir_data_atual(self.date_Emissao)
         self.manipula_dados_req()
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label_27)
-            cor_fonte(self.label_29)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_31)
-            cor_fonte(self.label_37)
-            cor_fonte(self.label_39)
-            cor_fonte(self.label_4)
-            cor_fonte(self.label_43)
-            cor_fonte(self.label_44)
-            cor_fonte(self.label_46)
-            cor_fonte(self.label_47)
-            cor_fonte(self.label_48)
-            cor_fonte(self.label_45)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_50)
-            cor_fonte(self.label_51)
-            cor_fonte(self.label_55)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_54)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_9)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_AdicionarProd)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def layout_tabela_requisicao(self, nome_tabela):
+    def definir_bloqueios(self):
         try:
-            layout_cabec_tab(nome_tabela)
+            self.line_NomeForn.setReadOnly(True)
 
-            nome_tabela.setColumnWidth(0, 50)
-            nome_tabela.setColumnWidth(1, 50)
-            nome_tabela.setColumnWidth(2, 40)
-            nome_tabela.setColumnWidth(3, 220)
-            nome_tabela.setColumnWidth(4, 130)
-            nome_tabela.setColumnWidth(5, 40)
-            nome_tabela.setColumnWidth(6, 65)
+            self.line_Descricao.setReadOnly(True)
+            self.line_UM.setReadOnly(True)
+            self.line_ValorTotal.setReadOnly(True)
+
+            self.line_Total_Merc.setReadOnly(True)
+            self.line_Total_Ipi.setReadOnly(True)
+            self.line_Total_Geral.setReadOnly(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_oc(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 55)
-            nome_tabela.setColumnWidth(1, 40)
-            nome_tabela.setColumnWidth(2, 240)
-            nome_tabela.setColumnWidth(3, 140)
-            nome_tabela.setColumnWidth(4, 40)
-            nome_tabela.setColumnWidth(5, 90)
-            nome_tabela.setColumnWidth(6, 95)
-            nome_tabela.setColumnWidth(7, 70)
-            nome_tabela.setColumnWidth(8, 95)
-            nome_tabela.setColumnWidth(9, 90)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_entrega(self):
         try:
@@ -153,28 +123,39 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_validador(self):
         try:
-            validator = QtGui.QIntValidator(0, 1234567, self.line_NumOC)
-            locale = QtCore.QLocale("pt_BR")
-            validator.setLocale(locale)
+            validator = QtGui.QRegExpValidator(QtCore.QRegExp(r'\d+'), self.line_NumOC)
             self.line_NumOC.setValidator(validator)
 
-            validator = QtGui.QIntValidator(0, 1234567, self.line_CodForn)
-            locale = QtCore.QLocale("pt_BR")
-            validator.setLocale(locale)
+            validator = QtGui.QRegExpValidator(QtCore.QRegExp(r'\d+'), self.line_CodForn)
             self.line_CodForn.setValidator(validator)
 
-            validator = QtGui.QIntValidator(0, 1234567, self.line_Codigo)
+            validator = QtGui.QRegExpValidator(QtCore.QRegExp(r'\d+'), self.line_Codigo)
+            self.line_Codigo.setValidator(validator)
+
+            validator = QtGui.QDoubleValidator(0, 9999999.000, 3, self.line_Qtde)
             locale = QtCore.QLocale("pt_BR")
             validator.setLocale(locale)
-            self.line_Codigo.setValidator(validator)
+            self.line_Qtde.setValidator(validator)
+
+            validator = QtGui.QDoubleValidator(0, 999.00, 2, self.line_Ipi)
+            locale = QtCore.QLocale("pt_BR")
+            validator.setLocale(locale)
+            self.line_Ipi.setValidator(validator)
+
+            validator = QtGui.QDoubleValidator(0, 9999999.0000, 4, self.line_Unit)
+            locale = QtCore.QLocale("pt_BR")
+            validator.setLocale(locale)
+            self.line_Unit.setValidator(validator)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_oc(self):
         if not self.processando:
@@ -183,11 +164,11 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
                 num_oc = self.line_NumOC.text()
                 if len(num_oc) == 0:
-                    mensagem_alerta('O campo "Nº OC:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Nº OC:" não pode estar vazio')
                     self.line_NumOC.clear()
                     self.line_NumOC.setFocus()
                 elif int(num_oc) == 0:
-                    mensagem_alerta('O campo "Nº OC:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Nº OC:" não pode ser "0"')
                     self.line_NumOC.clear()
                     self.line_NumOC.setFocus()
                 else:
@@ -195,7 +176,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -211,7 +193,7 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             dados_oc = cursor.fetchall()
 
             if dados_oc:
-                mensagem_alerta('Este número de OC já existe!')
+                self.mensagem_alerta('Este número de OC já existe!')
                 self.line_NumOC.clear()
                 self.line_NumOC.setFocus()
             else:
@@ -219,7 +201,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_emissao(self):
         if not self.processando:
@@ -234,8 +217,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                     data_atual = date.today()
 
                     if data_emissao.year < data_atual.year:
-                        mensagem_alerta(f'O ano da emissão é inferior '
-                                                                    f'a {data_atual.year}!')
+                        self.mensagem_alerta(f'O ano da emissão é inferior '
+                                             f'a {data_atual.year}!')
                         self.line_CodForn.setFocus()
 
                     elif data_emissao.year == data_atual.year:
@@ -243,20 +226,21 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                             self.line_CodForn.setFocus()
 
                         else:
-                            mensagem_alerta(f'A data de emissão é maior que a atual!')
+                            self.mensagem_alerta(f'A data de emissão é maior que a atual!')
                             self.line_CodForn.setFocus()
 
                     else:
-                        mensagem_alerta(f'A data de emissão é maior que a atual!')
+                        self.mensagem_alerta(f'A data de emissão é maior que a atual!')
 
                 except ValueError:
                     msg = f'A data de emissão não está no formato correto (dd/mm/aaaa)!'
                     print(msg)
-                    mensagem_alerta(msg)
+                    self.mensagem_alerta(msg)
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -268,11 +252,11 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
                 cod_fornecedor = self.line_CodForn.text()
                 if len(cod_fornecedor) == 0:
-                    mensagem_alerta('O campo "Cód. For.:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Cód. For.:" não pode estar vazio')
                     self.line_CodForn.clear()
                     self.line_CodForn.setFocus()
                 elif int(cod_fornecedor) == 0:
-                    mensagem_alerta('O campo "Cód. For.:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Cód. For.:" não pode ser "0"')
                     self.line_CodForn.clear()
                     self.line_CodForn.setFocus()
                 else:
@@ -280,7 +264,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -294,7 +279,7 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             dados_fornecedor = cursor.fetchall()
 
             if not dados_fornecedor:
-                mensagem_alerta('Este Código de Fornecedor não existe!')
+                self.mensagem_alerta('Este Código de Fornecedor não existe!')
                 self.line_CodForn.clear()
                 self.line_CodForn.setFocus()
             else:
@@ -304,7 +289,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo(self):
         if not self.processando:
@@ -313,77 +299,86 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
                 cod_produto = self.line_Codigo.text()
 
-                if len(cod_produto) == 0:
-                    mensagem_alerta('O campo "Código:" não pode estar vazio')
-                    self.line_Codigo.clear()
-                    self.line_Codigo.setFocus()
-                elif int(cod_produto) == 0:
-                    mensagem_alerta('O campo "Código:" não pode ser "0"')
-                    self.line_Codigo.clear()
-                    self.line_Codigo.setFocus()
+                self.line_Num_Req.clear()
+                self.line_Item_Req.clear()
+                self.line_Descricao.clear()
+                self.line_Referencia.clear()
+                self.line_UM.clear()
+                self.line_Qtde.clear()
+                self.line_Unit.clear()
+                self.line_Ipi.clear()
+                self.line_ValorTotal.clear()
+
+                self.line_Referencia.setStyleSheet(f"background-color: {cor_branco};")
+
+                self.definir_entrega()
+
+                if cod_produto:
+                    if int(cod_produto) == 0:
+                        self.mensagem_alerta('O campo "Código:" não pode ser "0"')
+                        self.limpa_dados_produtos()
+                        self.line_Codigo.setFocus()
+                    else:
+                        self.verifica_sql_codigo(cod_produto)
+
                 else:
-                    self.verifica_sql_codigo()
+                    self.limpa_dados_produtos()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
 
-    def verifica_sql_codigo(self):
+    def verifica_sql_codigo(self, cod_produto):
         try:
-            cod_produto = self.line_Codigo.text()
-
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT descricao, COALESCE(obs, ' ') as obs, unidade, localizacao, quantidade "
-                           f"FROM produto where codigo = {cod_produto};")
-            detalhes_produto = cursor.fetchall()
-
-            if not detalhes_produto:
-                mensagem_alerta('Este Código de Produto não existe!')
-                self.line_CodForn.clear()
-            else:
-                self.lanca_dados_codigo()
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def lanca_dados_codigo(self):
-        try:
-            cod_produto = self.line_Codigo.text()
-
             cur = conecta.cursor()
-            cur.execute(f"SELECT prod.descricao, COALESCE(prod.obs, ' ') as obs, prod.unidade, "
+            cur.execute(f"SELECT prod.descricao, COALESCE(prod.obs, '') , prod.unidade, "
                         f"prod.localizacao, prod.quantidade, conj.conjunto, prod.embalagem "
                         f"FROM produto as prod "
                         f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
                         f"where codigo = {cod_produto};")
             detalhes_produto = cur.fetchall()
-            descricao, referencia, un, local, qtde, conj, embalagem = detalhes_produto[0]
+
+            if not detalhes_produto:
+                self.mensagem_alerta('Este Código de Produto não existe!')
+                self.limpa_dados_produtos()
+                self.line_Codigo.setFocus()
+            else:
+                self.lanca_dados_codigo(cod_produto, detalhes_produto)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_dados_codigo(self, cod_produto, detalhes_produto):
+        try:
+            descricao, referencia, un, local, saldo, conj, embalagem = detalhes_produto[0]
 
             self.line_Descricao.setText(descricao)
             self.line_UM.setText(un)
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT COALESCE(prodreq.id, 'X'), COALESCE(prodreq.numero, 'X'), "
-                           f"prod.codigo, prod.descricao as DESCRICAO, "
-                           f"CASE prod.embalagem when 'SIM' then prodreq.referencia "
-                           f"else prod.obs end as REFERENCIA, "
-                           f"prod.unidade, prodreq.quantidade "
-                           f"FROM produtoordemrequisicao as prodreq "
-                           f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
-                           f"WHERE prodreq.status = 'A' AND prod.codigo = {cod_produto};")
-            extrair_req = cursor.fetchall()
-            if not extrair_req:
-                mensagem_alerta('Indique o "ID" do Produto da Requisição!')
-                self.line_IDReq.setFocus()
+            itens_encontrados = []
 
-            elif len(extrair_req) > 1:
-                mensagem_alerta('Indique o "ID" do Produto da Requisição!')
-                id_req, num_req, codigo_item_req, descricao_req, referencia_req, um_req, qtde_req = extrair_req[0]
-                self.line_Referencia.setText(referencia_req)
+            dados_req_abertas = extrair_tabela(self.table_Req_Abertas)
+            for i in dados_req_abertas:
+                if cod_produto in i:
+                    num_req, item_req, cod, descr, ref, um, qtde = i
+                    tt = (num_req, item_req, cod, descr, ref, um, qtde)
+                    itens_encontrados.append(tt)
+
+            if not itens_encontrados:
+                self.mensagem_alerta('Indique o Número e o Item da sequência da Requisição!')
+                self.line_Num_Req.setFocus()
+
+            elif len(itens_encontrados) > 1:
+                num_reqs, item_reqs, cods, descrs, refs, ums, qtdes = itens_encontrados[0]
+
+                self.mensagem_alerta('Indique o Item da sequência da Requisição!')
+                self.line_Referencia.setText(referencia)
                 if embalagem == "SIM":
                     self.line_Referencia.setStyleSheet(f"background-color: {cor_amarelo};")
                 elif embalagem == "SER":
@@ -391,10 +386,14 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 else:
                     self.line_Referencia.setStyleSheet(f"background-color: {cor_branco};")
 
-                self.line_IDReq.setFocus()
+                self.line_Num_Req.setText(str(num_reqs))
+                self.line_Item_Req.setFocus()
+
             else:
-                id_req, num_req, codigo_item_req, descricao_req, referencia_req, um_req, qtde_req = extrair_req[0]
-                self.line_Referencia.setText(referencia_req)
+                num_reqs, item_reqs, cods, descrs, refs, ums, qtdes = itens_encontrados[0]
+
+                self.line_Referencia.setText(refs)
+
                 if embalagem == "SIM":
                     self.line_Referencia.setStyleSheet(f"background-color: {cor_amarelo};")
                 elif embalagem == "SER":
@@ -402,74 +401,15 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 else:
                     self.line_Referencia.setStyleSheet(f"background-color: {cor_branco};")
 
-                self.line_IDReq.setText(id_req)
-                self.line_Qtde.setText(str(qtde_req))
+                self.line_Num_Req.setText(str(num_reqs))
+                self.line_Item_Req.setText(str(item_reqs))
+                self.line_Qtde.setText(str(qtdes))
                 self.line_Qtde.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def verifica_line_idreq(self):
-        if not self.processando:
-            try:
-                self.processando = True
-
-                id_req_prod = self.line_IDReq.text()
-
-                if len(id_req_prod) == 0:
-                    vai_naovai = False
-
-                    mensagem_alerta('O campo "ID Requis.:" não pode estar vazio')
-                    self.line_IDReq.clear()
-                    self.line_IDReq.setFocus()
-                elif int(id_req_prod) == 0:
-                    vai_naovai = False
-
-                    mensagem_alerta('O campo "ID Requis.:" não pode ser "0"')
-                    self.line_IDReq.clear()
-                    self.line_IDReq.setFocus()
-                else:
-                    vai_naovai = self.verifica_sql_idreq()
-
-                return vai_naovai
-
-            except Exception as e:
-                nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-            finally:
-                self.processando = False
-
-    def verifica_sql_idreq(self):
-        try:
-            id_req_prod = self.line_IDReq.text()
-
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT COALESCE(prodreq.id, 'X'), COALESCE(prodreq.numero, 'X'), "
-                           f"prod.codigo, prod.descricao as DESCRICAO, "
-                           f"CASE prod.embalagem when 'SIM' then prodreq.referencia "
-                           f"else prod.obs end as REFERENCIA, "
-                           f"prod.unidade, prodreq.quantidade "
-                           f"FROM produtoordemrequisicao as prodreq "
-                           f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
-                           f"WHERE prodreq.status = 'A' AND prodreq.id = {id_req_prod};")
-            extrair_req = cursor.fetchall()
-            if not extrair_req:
-                vai_naovai = False
-
-                mensagem_alerta('Este "ID" do Produto da Requisição não existe!')
-                self.line_IDReq.clear()
-                self.line_IDReq.setFocus()
-            else:
-                vai_naovai = True
-                self.line_Qtde.setFocus()
-
-            return vai_naovai
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde(self):
         if not self.processando:
@@ -479,11 +419,11 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 qtde = self.line_Qtde.text()
 
                 if len(qtde) == 0:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                 elif qtde == "0":
-                    mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                 else:
@@ -494,7 +434,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -505,17 +446,21 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 self.processando = True
 
                 ipi = self.line_Ipi.text()
+
                 ipi_float = valores_para_float(ipi)
                 ipi_2casas = ("%.2f" % ipi_float)
                 valor_string = valores_para_virgula(ipi_2casas)
                 valor_final = valor_string + "%"
                 self.line_Ipi.setText(valor_final)
 
-                self.date_Entrega.setFocus()
+                self.calcular_valor_total_prod()
+
+                self.line_ValorTotal.setFocus()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -528,11 +473,11 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 unit = self.line_Unit.text()
 
                 if len(unit) == 0:
-                    mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
                     self.line_Unit.clear()
                     self.line_Unit.setFocus()
                 elif unit == "0":
-                    mensagem_alerta('O campo "R$/Unid:" não pode ser "0"')
+                    self.mensagem_alerta('O campo "R$/Unid:" não pode ser "0"')
                     self.line_Unit.clear()
                     self.line_Unit.setFocus()
                 else:
@@ -540,7 +485,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -556,23 +502,19 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             self.line_Unit.setText(valor_final)
 
             self.calcular_valor_total_prod()
+            self.line_Ipi.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calcular_valor_total_prod(self):
         try:
             qtde = self.line_Qtde.text()
             unit = self.line_Unit.text()
 
-            if not qtde:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
-                self.line_Qtde.setFocus()
-            elif not unit:
-                mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
-                self.line_Unit.setFocus()
-            else:
+            if qtde and unit:
                 qtde_float = valores_para_float(qtde)
 
                 unit_float = valores_para_float(unit)
@@ -585,11 +527,10 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 valor_final = "R$ " + valor_string
                 self.line_ValorTotal.setText(valor_final)
 
-                self.line_Ipi.setFocus()
-
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_entrega(self):
         if not self.processando:
@@ -603,18 +544,19 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                     data_atual = datetime.combine(date.today(), datetime.min.time())
 
                     if data_entrega < data_atual:
-                        mensagem_alerta(f'A data de entrega não pode ser menor que a '
-                                                                    f'atual!')
+                        self.mensagem_alerta(f'A data de entrega não pode ser menor que a '
+                                             f'atual!')
                     else:
                         self.verifica_dados_completos()
 
                 except ValueError:
-                    mensagem_alerta(f'A data de entrega não está no formato correto '
-                                                                f'(dd/mm/aaaa)!')
+                    self.mensagem_alerta(f'A data de entrega não está no formato correto '
+                                         f'(dd/mm/aaaa)!')
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -622,53 +564,47 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
     def verifica_dados_completos(self):
         try:
             num_oc = self.line_NumOC.text()
-            cod_fornecedor = self.line_CodForn.text()
             cod_produto = self.line_Codigo.text()
-            id_req = self.line_IDReq.text()
+            num_req = self.line_Num_Req.text()
+            item_req = self.line_Item_Req.text()
             qtde = self.line_Qtde.text()
             unit = self.line_Unit.text()
 
             if not num_oc:
-                mensagem_alerta('O campo "Nº OC:" não pode estar vazio')
-                self.line_NumOC.clear()
-                self.line_NumOC.setFocus()
-            elif not cod_fornecedor:
-                mensagem_alerta('O campo "Cód. For.:" não pode estar vazio')
-                self.line_CodForn.clear()
-                self.line_CodForn.setFocus()
+                self.verifica_line_oc()
             elif not cod_produto:
-                mensagem_alerta('O campo "Código:" não pode estar vazio')
-                self.line_Codigo.clear()
-                self.line_Codigo.setFocus()
-            elif not id_req:
-                mensagem_alerta('O campo "ID Requis.:" não pode estar vazio')
-                self.line_IDReq.clear()
-                self.line_IDReq.setFocus()
+                self.verifica_line_codigo()
+            elif not num_req:
+                self.mensagem_alerta('O campo "Nº Req" não pode estar vazio')
+                self.line_Num_Req.setFocus()
+            elif not item_req:
+                self.mensagem_alerta('O campo "Item Req" não pode estar vazio')
+                self.line_Item_Req.setFocus()
             elif not qtde:
-                mensagem_alerta('O campo "Qtde:" não pode estar vazio')
-                self.line_Qtde.clear()
+                self.mensagem_alerta('O campo "Qtde" não pode estar vazio')
                 self.line_Qtde.setFocus()
             elif not unit:
-                mensagem_alerta('O campo "R$/Unid:" não pode estar vazio')
-                self.line_Unit.clear()
+                self.mensagem_alerta('O campo "R$/Unid" não pode estar vazio')
                 self.line_Unit.setFocus()
             else:
                 self.manipula_dados_tabela()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_tabela(self):
         try:
             self.calcular_valor_total_prod()
 
-            id_req = self.line_IDReq.text()
-
             cod_produto = self.line_Codigo.text()
             descr = self.line_Descricao.text()
             ref = self.line_Referencia.text()
             um = self.line_UM.text()
+
+            num_req = self.line_Num_Req.text()
+            item_req = self.line_Item_Req.text()
 
             qtde = self.line_Qtde.text()
             unit = self.line_Unit.text()
@@ -676,73 +612,233 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             total = self.line_ValorTotal.text()
             entrega = self.date_Entrega.text()
 
-            dados = [id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega]
+            item_encontrado = self.verifica_item_requisicao(num_req, item_req)
 
-            extrai_produtos = extrair_tabela(self.table_Produtos)
+            if item_encontrado:
+                dados = [num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega]
 
-            ja_existe = False
-            for i in extrai_produtos:
-                id_req_e, cod_produto_e, descr_e, ref_e, um_e, qtde_e, unit_e, ipi_e, total_e, entrega_e = i
+                extrai_produtos = extrair_tabela(self.table_Produtos_OC)
 
-                if id_req_e == id_req:
-                    ja_existe = True
-                    break
+                ja_existe = False
+                for i in extrai_produtos:
+                    num_req_e, item_req_e, cod_produto_e, descr_e, ref_e, um_e, qtde_e, unit_e, ipi_e, total_e, \
+                    entrega_e = i
 
-            if not ja_existe:
-                extrai_produtos.append(dados)
-                if extrai_produtos:
-                    lanca_tabela(self.table_Produtos, extrai_produtos)
+                    if num_req_e == num_req and item_req_e == item_req:
+                        ja_existe = True
+                        break
+
+                if not ja_existe:
+                    extrai_produtos.append(dados)
+                    if extrai_produtos:
+                        lanca_tabela(self.table_Produtos_OC, extrai_produtos)
 
                     self.atualiza_valor_total()
                     self.pinta_tabela()
-                    self.limpa_produtos()
+                    self.limpa_dados_produtos()
                     self.line_Codigo.setFocus()
-            else:
-                mensagem_alerta(f'O item selecionado já está presente na tabela'
-                                                            f'"Produtos OC".')
+
+                    self.excluir_item_requisicao(item_encontrado)
+                else:
+                    self.mensagem_alerta(f'O item selecionado já está presente na tabela '
+                                         f'"Produtos OC".')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def verifica_item_requisicao(self, num_req_m, item_req_m):
+        try:
+            itens_encontrados = []
+
+            dados_req_abertas = extrair_tabela(self.table_Req_Abertas)
+            for indice, i in enumerate(dados_req_abertas):
+                num_req, item_req, cod, descr, ref, um, qtde = i
+
+                if num_req_m == num_req and item_req_m == item_req:
+                    tt = (indice, num_req, item_req, cod, descr, ref, um, qtde)
+                    itens_encontrados.append(tt)
+
+            if not itens_encontrados:
+                self.mensagem_alerta('Número ou o Item da sequência da Requisição não encontrados!')
+                self.line_Num_Req.setFocus()
+
+                itens_encontrados = []
+
+            elif len(itens_encontrados) > 1:
+                self.mensagem_alerta('Indique o Item da sequência da Requisição!')
+
+                itens_encontrados = []
+
+            return itens_encontrados
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_requisicao(self, item_encontrado):
+        try:
+            linha_selecao = item_encontrado[0][0]
+
+            nome_tabela = self.table_Req_Abertas
+
+            extrai_recomendados = extrair_tabela(nome_tabela)
+            if not extrai_recomendados:
+                self.mensagem_alerta(f'A tabela "Tabela Requisições Abertas" está vazia!')
+            else:
+                if linha_selecao >= 0:
+                    nome_tabela.removeRow(linha_selecao)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_item_tab_produtos(self):
+        try:
+            nome_tabela = self.table_Produtos_OC
+
+            dados_tab = extrair_tabela(nome_tabela)
+            if not dados_tab:
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Compra" está vazia!')
+            else:
+                linha = nome_tabela.currentRow()
+                if linha >= 0:
+                    num_req, item_req, cod_pr, desc, ref, um, qtde, unit, ipi, total, entr = dados_tab[linha]
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prodreq.numero, prodreq.item,  "
+                                   f"prod.codigo, prod.descricao as DESCRICAO, "
+                                   f"CASE prod.embalagem when 'SIM' then COALESCE(prodreq.referencia, '') "
+                                   f"else COALESCE(prod.obs, '') end as REFERENCIA, "
+                                   f"prod.unidade, prodreq.quantidade "
+                                   f"FROM produtoordemrequisicao as prodreq "
+                                   f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
+                                   f"WHERE prodreq.numero = {num_req} "
+                                   f"and prodreq.item = {item_req} "
+                                   f"ORDER BY prodreq.numero;")
+                    extrair_req = cursor.fetchall()
+
+                    if extrair_req:
+                        num_req_r, item_req_r, cod_r, descr_r, ref_r, um_r, qtde_r = extrair_req[0]
+
+                        dados = [num_req, item_req, cod_r, descr_r, ref_r, um_r, qtde_r]
+                        nome_tabela.removeRow(linha)
+
+                        extrai_produtos = extrair_tabela(self.table_Req_Abertas)
+
+                        ja_existe = False
+                        for i in extrai_produtos:
+                            num_req_e, item_req_e, cod_e, descr_e, ref_e, um_e, qtde_e = i
+
+                            if num_req_e == num_req and item_req_e == item_req:
+                                ja_existe = True
+                                break
+
+                        if not ja_existe:
+                            extrai_produtos.append(dados)
+                            if extrai_produtos:
+                                extrai_produtos_ord = sorted(extrai_produtos, key=self.chave_de_ordenacao)
+                                lanca_tabela(self.table_Req_Abertas, extrai_produtos_ord)
+
+                        self.atualiza_valor_total()
+                        self.pinta_tabela()
+                        self.limpa_dados_produtos()
+                        self.line_Codigo.setFocus()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def chave_de_ordenacao(self, item):
+        try:
+            chave1 = int(item[0])
+            chave2 = int(item[1])
+
+            chave_final = (chave1, chave2)
+
+            return chave_final
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def excluir_tudo_tab_produtos(self):
+        try:
+            nome_tabela = self.table_Produtos_OC
+
+            pode_excluir = True
+
+            dados_tab = extrair_tabela(nome_tabela)
+            if not dados_tab:
+                self.mensagem_alerta(f'A tabela "Produtos Ordem de Compra" está vazia!')
+            else:
+                for i in dados_tab:
+                    num_req, item_req, cod_pr, desc, ref, um, qtde, unit, ipi, total, entr, q_nf = i
+
+                    q_nf_float = valores_para_float(q_nf)
+
+                    if q_nf_float:
+                        pode_excluir = False
+                        break
+
+                if pode_excluir:
+                    nome_tabela.setRowCount(0)
+                else:
+                    self.mensagem_alerta(f'Os produtos não podem ser excluídos em razão de Notas Fiscais '
+                                         f'de compra vinculadas!')
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pinta_tabela(self):
         try:
-            dados_tabela = extrair_tabela(self.table_Produtos)
+            dados_tabela = extrair_tabela(self.table_Produtos_OC)
 
             for index, dados in enumerate(dados_tabela):
-                id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = dados
+                num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = dados
+
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT id, descricao, embalagem FROM produto where codigo = {cod_produto};")
                 dados_produto = cursor.fetchall()
                 ides, descr, embalagem = dados_produto[0]
                 if embalagem == "SIM":
-                    self.table_Produtos.item(index, 3).setBackground(QColor(cor_amarelo))
+                    self.table_Produtos_OC.item(index, 4).setBackground(QColor(cor_amarelo))
                 elif embalagem == "SER":
-                    self.table_Produtos.item(index, 3).setBackground(QColor(cor_amarelo))
+                    self.table_Produtos_OC.item(index, 4).setBackground(QColor(cor_amarelo))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_dados_req(self):
         try:
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT COALESCE(prodreq.id, ''), COALESCE(prodreq.numero, ''), "
+            cursor.execute(f"SELECT prodreq.numero, prodreq.item,  "
                            f"prod.codigo, prod.descricao as DESCRICAO, "
                            f"CASE prod.embalagem when 'SIM' then COALESCE(prodreq.referencia, '') "
                            f"else COALESCE(prod.obs, '') end as REFERENCIA, "
                            f"prod.unidade, prodreq.quantidade "
                            f"FROM produtoordemrequisicao as prodreq "
                            f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
-                           f"WHERE prodreq.status = 'A' ORDER BY DESCRICAO;")
+                           f"WHERE prodreq.status = 'A' ORDER BY prodreq.numero;")
             extrair_req = cursor.fetchall()
 
             if extrair_req:
-                lanca_tabela(self.table_ReqAbertas, extrair_req)
+                lanca_tabela(self.table_Req_Abertas, extrair_req)
+                self.lista_requisicoes = extrair_req
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def atualiza_mascara_frete(self):
         if not self.processando:
@@ -762,7 +858,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -785,29 +882,31 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
 
     def atualiza_valor_total(self):
         try:
-            extrai_produtos = extrair_tabela(self.table_Produtos)
+            extrai_produtos = extrair_tabela(self.table_Produtos_OC)
 
             total_mercadorias = 0.00
             total_ipi = 0.00
 
-            for i in extrai_produtos:
-                id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = i
+            if extrai_produtos:
+                for i in extrai_produtos:
+                    num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = i
 
-                qtde_float = valores_para_float(qtde)
+                    qtde_float = valores_para_float(qtde)
 
-                unit_float = valores_para_float(unit)
+                    unit_float = valores_para_float(unit)
 
-                ipi_float = valores_para_float(ipi)
+                    ipi_float = valores_para_float(ipi)
 
-                total_ipi += qtde_float * (unit_float * (ipi_float / 100))
-                total_mercadorias += qtde_float * unit_float
+                    total_ipi += qtde_float * (unit_float * (ipi_float / 100))
+                    total_mercadorias += qtde_float * unit_float
 
             frete = self.line_Frete.text()
             frete_float = valores_para_float(frete)
@@ -834,11 +933,13 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def limpa_produtos(self):
+    def limpa_dados_produtos(self):
         try:
-            self.line_IDReq.clear()
+            self.line_Num_Req.clear()
+            self.line_Item_Req.clear()
 
             self.line_Codigo.clear()
             self.line_Descricao.clear()
@@ -852,29 +953,25 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             self.line_Referencia.setStyleSheet(f"background-color: {cor_branco};")
 
+            self.definir_entrega()
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def limpar_tudo(self):
+    def limpa_dados_fornecedor(self):
         try:
-            self.line_NumOC.clear()
-
-            self.line_IDReq.clear()
-
-            self.line_Codigo.clear()
-            self.line_Descricao.clear()
-            self.line_Referencia.clear()
-            self.line_UM.clear()
-
-            self.line_Qtde.clear()
-            self.line_Unit.clear()
-            self.line_Ipi.clear()
-            self.line_ValorTotal.clear()
-
             self.line_CodForn.clear()
             self.line_NomeForn.clear()
 
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def limpa_dados_valores_obs(self):
+        try:
             self.line_Frete.clear()
             self.line_Desconto.clear()
             self.line_Total_Ipi.setText("R$ 0,00")
@@ -882,17 +979,31 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             self.line_Total_Geral.setText("R$ 0,00")
             self.line_Obs.clear()
 
-            self.table_Produtos.setRowCount(0)
-            self.table_ReqAbertas.setRowCount(0)
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-            self.definir_entrega()
+    def limpar_tudo(self):
+        try:
+            self.line_NumOC.clear()
+
+            self.limpa_dados_produtos()
+            self.limpa_dados_fornecedor()
+            self.limpa_dados_valores_obs()
+
+            self.table_Produtos_OC.setRowCount(0)
+            self.table_Req_Abertas.setRowCount(0)
+
             definir_data_atual(self.date_Emissao)
+
             self.manipula_dados_req()
             self.line_NumOC.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -904,18 +1015,18 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
             dados_fornecedor = cursor.fetchall()
 
             if not dados_fornecedor:
-                mensagem_alerta(f'O Fornecedor {nome_fornecedor} não está cadastrado!')
+                self.mensagem_alerta(f'O Fornecedor {nome_fornecedor} não está cadastrado!')
             else:
                 testar_erros = 0
-                dados_alterados = extrair_tabela(self.table_Produtos)
+                dados_alterados = extrair_tabela(self.table_Produtos_OC)
                 for itens in dados_alterados:
-                    id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = itens
+                    num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = itens
 
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT id, descricao FROM produto where codigo = {cod_produto};")
                     dados_produto = cursor.fetchall()
                     if not dados_produto:
-                        mensagem_alerta(f'O produto {descr} não está cadastrado')
+                        self.mensagem_alerta(f'O produto {descr} não está cadastrado')
                         testar_erros = testar_erros + 1
                         break
 
@@ -924,7 +1035,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_ordem(self):
         try:
@@ -963,10 +1075,10 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                            f"'E', {numero_oc_int}, '{data_emi}', 'A', {id_fornecedor}, '1', {frete_oc_float}, "
                            f"{desconto_oc_float}, '{obs_m}');")
 
-            dados_alterados = extrair_tabela(self.table_Produtos)
+            dados_alterados = extrair_tabela(self.table_Produtos_OC)
 
             for itens in dados_alterados:
-                id_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = itens
+                num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = itens
 
                 codigo_int = int(cod_produto)
 
@@ -984,14 +1096,27 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
                 id_produto, descricao = dados_produto[0]
 
-                id_req_int = int(id_req)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prodreq.id, prodreq.numero, prodreq.item,  "
+                               f"prod.codigo, prod.descricao as DESCRICAO, "
+                               f"CASE prod.embalagem when 'SIM' then COALESCE(prodreq.referencia, '') "
+                               f"else COALESCE(prod.obs, '') end as REFERENCIA, "
+                               f"prod.unidade, prodreq.quantidade "
+                               f"FROM produtoordemrequisicao as prodreq "
+                               f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
+                               f"WHERE prodreq.numero = {num_req} "
+                               f"and prodreq.item = {item_req} "
+                               f"ORDER BY prodreq.numero;")
+                extrair_req = cursor.fetchall()
+
+                id_req = extrair_req[0][0]
 
                 cursor = conecta.cursor()
                 cursor.execute(f"Insert into produtoordemcompra (ID, MESTRE, PRODUTO, QUANTIDADE, UNITARIO, "
                                f"IPI, DATAENTREGA, NUMERO, CODIGO, PRODUZIDO, ID_PROD_REQ) "
                                f"values (GEN_ID(GEN_PRODUTOORDEMCOMPRA_ID,1), {ultimo_oc}, "
                                f"{id_produto}, {qtde_item_float}, {valor_unit_float}, {ipi_item_float}, "
-                               f"'{entrega_prod}', {numero_oc_int}, '{codigo_int}', 0.0, {id_req_int});")
+                               f"'{entrega_prod}', {numero_oc_int}, '{codigo_int}', 0.0, {id_req});")
 
                 cursor = conecta.cursor()
                 cursor.execute(f"UPDATE produtoordemrequisicao SET STATUS = 'B', "
@@ -999,13 +1124,14 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             conecta.commit()
 
-            mensagem_alerta(f'Ordem de Compra foi lançada com sucesso!')
+            self.mensagem_alerta(f'Ordem de Compra foi lançada com sucesso!')
 
             self.limpar_tudo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

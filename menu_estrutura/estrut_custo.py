@@ -1,16 +1,16 @@
 import sys
 from banco_dados.conexao import conecta
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, limpa_tabela, layout_cabec_tab
-from comandos.comando_lines import validador_inteiro
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela, cor_widget_escuro
-from comandos.comando_conversoes import valores_para_float, valores_para_virgula
 from forms.tela_estrut_custo import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.lines import validador_inteiro
+from comandos.telas import tamanho_aplicacao, icone
+from comandos.conversores import valores_para_float, valores_para_virgula
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
 from threading import Thread
+import traceback
 
 
 class TelaCusto(QMainWindow, Ui_MainWindow):
@@ -18,15 +18,13 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_estrutura.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_estrutura(self.table_Estrutura)
-        self.layout_tabela_problema(self.table_Problema)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Estrutura)
+        layout_cabec_tab(self.table_Problema)
 
         self.definir_line_bloqueados()
 
@@ -47,95 +45,42 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         self.lanca_custo_hora_homem()
         self.calcula_total_maodeobra()
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Terceiros)
-            cor_widget(self.widget_MaoObra)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor7)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_widget_escuro(self.widget_Total_Mao)
-            cor_widget_escuro(self.widget_Total_Servico)
-            cor_widget_escuro(self.widget_Totais)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_23)
-            cor_fonte(self.label_28)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_57)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_59)
-            cor_fonte(self.label_61)
-            cor_fonte(self.label_62)
-            cor_fonte(self.label_63)
-            cor_fonte(self.label_64)
-            cor_fonte(self.label_67)
-            cor_fonte(self.label_68)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_70)
-            cor_fonte(self.label_71)
-            cor_fonte(self.label_72)
-            cor_fonte(self.label_75)
-            cor_fonte(self.label_76)
-            cor_fonte(self.label_Venda_Total)
-            cor_fonte(self.label_Custo_Total)
-            cor_fonte(self.label_Custo_Materiais)
-            cor_fonte(self.label_custo_Mao)
-            cor_fonte(self.label_Descricao_Mao)
-            cor_fonte(self.label_Descricao_Servico)
-            cor_fonte(self.label_Tempo_Mao)
-            cor_fonte(self.label_Total_Mao)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.label_Titulo_2)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_estrutura(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 40)
-            nome_tabela.setColumnWidth(1, 210)
-            nome_tabela.setColumnWidth(2, 100)
-            nome_tabela.setColumnWidth(3, 30)
-            nome_tabela.setColumnWidth(4, 60)
-            nome_tabela.setColumnWidth(5, 65)
-            nome_tabela.setColumnWidth(6, 65)
-            nome_tabela.setColumnWidth(7, 110)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_problema(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 40)
-            nome_tabela.setColumnWidth(1, 210)
-            nome_tabela.setColumnWidth(2, 100)
-            nome_tabela.setColumnWidth(3, 30)
-            nome_tabela.setColumnWidth(4, 60)
-            nome_tabela.setColumnWidth(5, 65)
-            nome_tabela.setColumnWidth(6, 65)
-            nome_tabela.setColumnWidth(7, 110)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def atualiza_mascara_moeda(self, unit):
         try:
@@ -148,7 +93,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_line_bloqueados(self):
         try:
@@ -161,7 +107,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo_acabado(self):
         if not self.processando:
@@ -173,11 +120,11 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                 codigo_produto = self.line_Codigo_Estrut.text()
 
                 if not codigo_produto:
-                    mensagem_alerta('O campo "Código" não pode estar vazio!')
+                    self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                     self.limpa_dados_produto_estrutura()
                     self.limpa_tabelas()
                 elif int(codigo_produto) == 0:
-                    mensagem_alerta('O campo "Código" não pode ser "0"!')
+                    self.mensagem_alerta('O campo "Código" não pode ser "0"!')
                     self.limpa_dados_produto_estrutura()
                     self.limpa_tabelas()
                 else:
@@ -185,7 +132,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
-                tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
             finally:
                 self.processando = False
@@ -198,7 +146,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_dados_produto_estrutura()
                 self.limpa_tabelas()
                 self.line_Codigo_Estrut.clear()
@@ -208,14 +156,15 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                 if conjunto == 10:
                     self.lanca_dados_acabado()
                 else:
-                    mensagem_alerta('Este produto não tem o conjunto classificado como "Produtos Acabados"!')
+                    self.mensagem_alerta('Este produto não tem o conjunto classificado como "Produtos Acabados"!')
                     self.limpa_dados_produto_estrutura()
                     self.limpa_tabelas()
                     self.line_Codigo_Estrut.clear()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_acabado(self):
         try:
@@ -238,9 +187,9 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
             tipo_material = self.line_Tipo_Estrut.text()
 
             if not tipo_material:
-                mensagem_alerta('O campo "Tipo de Material" não pode estar vazio!\n\n'
-                                'Entre no cadastro de produtos e defina o Tipo de Material:\n'
-                                'Exemplos: CONJUNTO, USINAGEM, INDUSTRIALIZACAO')
+                self.mensagem_alerta('O campo "Tipo de Material" não pode estar vazio!\n\n'
+                                     'Entre no cadastro de produtos e defina o Tipo de Material:\n'
+                                     'Exemplos: CONJUNTO, USINAGEM, INDUSTRIALIZACAO')
                 self.limpa_dados_produto_estrutura()
                 self.limpa_tabelas()
                 self.line_Codigo_Estrut.clear()
@@ -268,16 +217,18 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tabelas(self):
         try:
-            limpa_tabela(self.table_Estrutura)
-            limpa_tabela(self.table_Problema)
+            self.table_Estrutura.setRowCount(0)
+            self.table_Problema.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_produto_estrutura(self):
         try:
@@ -288,7 +239,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_dados_mao_de_obra_servico(self):
         try:
@@ -299,7 +251,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         try:
@@ -310,7 +263,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_estrutura(self):
         try:
@@ -366,7 +320,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_descricao_tempo_mao_de_obra(self, codigo):
         try:
@@ -386,7 +341,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_tempo_mao_de_obra(self):
         try:
@@ -407,7 +363,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_descricao_custo_servico(self, codigo):
         try:
@@ -427,7 +384,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpar(self):
         self.limpa_tudo()
@@ -463,7 +421,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_custo_total(self):
         try:
@@ -500,7 +459,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def chama_barra_progresso(self):
         try:
@@ -508,7 +468,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def produtos_problema(self):
         try:
@@ -584,7 +545,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_estrutura_problema(self, nivel, codigo, qtde):
         try:
@@ -620,7 +582,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calcula_valor_venda(self):
         try:
@@ -639,7 +602,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_custo_hora_homem(self):
         try:
@@ -652,7 +616,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calcula_total_maodeobra(self):
         try:
@@ -671,7 +636,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mascara_custo_servico(self):
         try:
@@ -695,7 +661,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_custo_servico(self):
         try:
@@ -726,7 +693,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                                    f"where id = {mestre};")
                     conecta.commit()
 
-                    mensagem_alerta(f"Custo do Serviço de Terceiros atualizado com sucesso!")
+                    self.mensagem_alerta(f"Custo do Serviço de Terceiros atualizado com sucesso!")
 
                     self.soma_custo_total()
 
@@ -745,7 +712,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

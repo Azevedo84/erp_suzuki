@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
         self.widget_cabecalho = QtWidgets.QWidget(self.centralwidget)
         self.widget_cabecalho.setMinimumSize(QtCore.QSize(0, 40))
         self.widget_cabecalho.setMaximumSize(QtCore.QSize(16777215, 40))
-        self.widget_cabecalho.setStyleSheet("")
+        self.widget_cabecalho.setStyleSheet("background-color: rgb(0, 170, 255);")
         self.widget_cabecalho.setObjectName("widget_cabecalho")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget_cabecalho)
         self.horizontalLayout.setContentsMargins(10, 5, 10, 5)

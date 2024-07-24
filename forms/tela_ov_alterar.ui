@@ -53,7 +53,7 @@
        </font>
       </property>
       <property name="styleSheet">
-       <string notr="true"/>
+       <string notr="true">background-color: rgb(0, 170, 255);</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
@@ -275,7 +275,7 @@
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">background-color: rgb(182, 182, 182);</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
@@ -569,7 +569,7 @@
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true"/>
+             <string notr="true">background-color: rgb(182, 182, 182);</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <property name="spacing">
@@ -1651,7 +1651,7 @@
        <item>
         <widget class="QWidget" name="widget_Cor3" native="true">
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">background-color: rgb(182, 182, 182);</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="spacing">
@@ -1760,7 +1760,7 @@
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true"/>
+       <string notr="true">background-color: rgb(182, 182, 182);</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0,0,0">
        <property name="spacing">
@@ -2435,7 +2435,7 @@ Tudo</string>
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">background-color: rgb(182, 182, 182);</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_25">
           <property name="spacing">
@@ -2557,7 +2557,7 @@ Tudo</string>
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">background-color: rgb(182, 182, 182);</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_16">
           <property name="leftMargin">

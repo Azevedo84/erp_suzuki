@@ -13,6 +13,12 @@ try:
                           password='masterkey',
                           charset='ANSI')
 
+    conecta_robo = fdb.connect(database=r'C:\HallSys\db\Horus\Suzuki\ROBOZINHO.GDB',
+                               host='PUBLICO',
+                               port=3050,
+                               user='sysdba',
+                               password='masterkey',
+                               charset='ANSI')
 
 except Exception as e:
     print(e)

@@ -1,4 +1,4 @@
-import fdb
+from banco_dados.conexao import conecta_robo
 import socket
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -8,14 +8,6 @@ import smtplib
 
 msg_erro = 'Houve um problema com a função '
 msg_erro1 = '\nComunique o desenvolvedor sobre o erro abaixo:\n\n'
-
-
-conecta = fdb.connect(database=r'C:\HallSys\db\Horus\Suzuki\ROBOZINHO.GDB',
-                      host='PUBLICO',
-                      port=3050,
-                      user='sysdba',
-                      password='masterkey',
-                      charset='ANSI')
 
 
 def mensagem_email():
@@ -84,20 +76,25 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(25/06) PRODUTO CONSULTAR: REMOVIDO CORRETOR ORTOGRAFICO', ]
+lista_modifica = ['(27/06) OP CONSUMIR: CORRIGIDO ERRO QUANDO CLICAR DUAS NA PARTE BRANCA DA TABELA',
+                  '(02/07) SOL INCLUIR: INCLUIDO ITEM AO CADASTRO DA SOLICITACAO',
+                  '(03/07) OP CONSUMIR: PERMITIDO SOMENTE NUMEROS NO CAMPO OP E CODIGO PRODUTO',
+                  '(11/07) OC ALTERAR: CORRIGIDO FORMA DE ALTERAR AS ORDENS DE COMPRA',
+                  '(17/07) ESTRUTURA INCLUIR: CORRIGIDO FORMA DE ALTERAR AS ESTRUTURAS',
+                  '(22/07) ERP: REVISADO FORMA DE TRATAR OS ERROS GRAVADOS NO BANCO']
 
 programa = "ERP SUZUKI"
-versao = "2.01.005"
+versao = "2.01.006"
 nome_computador = socket.gethostname()
 
-cursor = conecta.cursor()
+cursor = conecta_robo.cursor()
 cursor.execute("select GEN_ID(GEN_CONTROLE_VERSOES_ID,0) from rdb$database;")
 ultimo_id0 = cursor.fetchall()
 ultimo_id1 = ultimo_id0[0]
 ultimo_id = int(ultimo_id1[0]) + 1
 print(ultimo_id)
 
-cursor = conecta.cursor()
+cursor = conecta_robo.cursor()
 cursor.execute(f"Insert into CONTROLE_VERSOES "
                f"(ID, PROGRAMA, VERSAO, NOME_PC) "
                f"values (GEN_ID(GEN_CONTROLE_VERSOES_ID,1), '{programa}', '{versao}', '{nome_computador}');")
@@ -106,12 +103,12 @@ if lista_modifica:
     for i in lista_modifica:
         print(i)
 
-        cursor = conecta.cursor()
+        cursor = conecta_robo.cursor()
         cursor.execute(f"Insert into MODIFICACOES_VERSOES "
                        f"(ID, MODIFICACAO, ID_VERSAO, NOME_PC) "
                        f"values (GEN_ID(GEN_MODIFICACOES_VERSOES_ID,1), '{i}', {ultimo_id}, '{nome_computador}');")
 
-conecta.commit()
+conecta_robo.commit()
 
 envia_email(lista_modifica, versao)
 

@@ -1,13 +1,12 @@
 import sys
 from banco_dados.conexao import conecta
-from arquivos.chamar_arquivos import definir_caminho_arquivo
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_cores import cor_branco, cor_vermelho, cor_cinza_claro
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
 from forms.tela_op_encerrar import *
-from PyQt5.QtWidgets import QApplication, QShortcut, QMainWindow
+from banco_dados.controle_erros import grava_erro_banco
+from arquivos.chamar_arquivos import definir_caminho_arquivo
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.cores import cor_branco, cor_vermelho, cor_cinza_claro
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QShortcut, QMainWindow, QMessageBox
 from PyQt5.QtGui import QKeySequence, QFont, QColor
 from PyQt5.QtCore import Qt
 import pandas as pd
@@ -17,6 +16,7 @@ from pathlib import Path
 from datetime import date, datetime
 import inspect
 import os
+import traceback
 
 
 class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
@@ -24,15 +24,13 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
 
-        cor_fundo_tela(self)
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela_estrutura(self.table_Estrutura)
-        self.layout_tabela_consumo(self.table_ConsumoOS)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Estrutura)
+        layout_cabec_tab(self.table_ConsumoOS)
 
         self.tab_shortcut = QShortcut(QKeySequence(Qt.Key_Tab), self)
         self.tab_shortcut.activated.connect(self.manipula_tab)
@@ -52,71 +50,42 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
         self.line_Num_OP.setFocus()
 
         self.qtde_vezes_select = 0
-
-    def layout_proprio(self):
+        
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label)
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_17)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_5)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_8)
-            cor_fonte(self.label_28)
-            cor_fonte(self.checkBox_Excel)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Salvar)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
+
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_estrutura(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 43)
-            nome_tabela.setColumnWidth(1, 42)
-            nome_tabela.setColumnWidth(2, 220)
-            nome_tabela.setColumnWidth(3, 110)
-            nome_tabela.setColumnWidth(4, 35)
-            nome_tabela.setColumnWidth(5, 55)
-            nome_tabela.setColumnWidth(6, 70)
-            nome_tabela.setColumnWidth(7, 55)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela_consumo(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            nome_tabela.setColumnWidth(0, 38)
-            nome_tabela.setColumnWidth(1, 65)
-            nome_tabela.setColumnWidth(2, 45)
-            nome_tabela.setColumnWidth(3, 200)
-            nome_tabela.setColumnWidth(4, 110)
-            nome_tabela.setColumnWidth(5, 35)
-            nome_tabela.setColumnWidth(6, 50)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_tab(self):
         try:
@@ -125,7 +94,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def dados_os(self):
         try:
@@ -140,23 +110,25 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_linenumero_os(self):
         try:
             numero_os_line = self.line_Num_OP.text()
             if len(numero_os_line) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
                 self.reiniciar()
             elif int(numero_os_line) == 0:
-                mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
                 self.reiniciar()
             else:
                 self.verifica_sql_os()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_os(self):
         try:
@@ -166,14 +138,15 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                            f"FROM ordemservico where numero = {numero_os_line};")
             extrair_dados = cursor.fetchall()
             if not extrair_dados:
-                mensagem_alerta('Este número de "OP" não existe!')
+                self.mensagem_alerta('Este número de "OP" não existe!')
                 self.reiniciar()
             else:
                 self.verifica_vinculo_materia()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_vinculo_materia(self):
         try:
@@ -190,14 +163,15 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                     verifica_cadastro = verifica_cadastro + 1
 
             if verifica_cadastro > 0:
-                mensagem_alerta('O material consumido não está vinculado com a estrutura!')
+                self.mensagem_alerta('O material consumido não está vinculado com a estrutura!')
                 self.reiniciar()
             else:
                 self.verifica_dados_os()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_dados_os(self):
         try:
@@ -214,22 +188,22 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                            f"where mestre = {produto_os} ORDER BY produto.descricao;")
             itens_select_estrut = cursor.fetchall()
             if not itens_select_estrut:
-                mensagem_alerta('Este material não tem estrutura cadastrada!')
+                self.mensagem_alerta('Este material não tem estrutura cadastrada!')
                 self.reiniciar()
             elif status_os != "A":
-                mensagem_alerta('Esta "OP" está encerrada!')
+                self.mensagem_alerta('Esta "OP" está encerrada!')
                 self.reiniciar()
             elif data_emissao is None:
-                mensagem_alerta('Esta "OP" está sem data de emissão!')
+                self.mensagem_alerta('Esta "OP" está sem data de emissão!')
                 self.reiniciar()
             elif produto_os is None:
-                mensagem_alerta('Esta "OP" está sem código de produto!')
+                self.mensagem_alerta('Esta "OP" está sem código de produto!')
                 self.reiniciar()
             elif qtde_os is None:
-                mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             elif numero_os is None:
-                mensagem_alerta('O número da "OP" deve ser maior que "0"!')
+                self.mensagem_alerta('O número da "OP" deve ser maior que "0"!')
                 self.reiniciar()
             else:
                 self.lanca_dados_os()
@@ -239,7 +213,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_os(self):
         try:
@@ -267,7 +242,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def select_total(self):
         try:
@@ -298,7 +274,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def select_estrutura(self):
         try:
@@ -318,7 +295,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipulando_dados_select(self):
         try:
@@ -400,7 +378,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def select_mistura(self):
         try:
@@ -470,7 +449,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def separar_dados_select(self):
         try:
@@ -514,7 +494,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def jutando_tabelas_extraidas(self):
         try:
@@ -536,7 +517,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabelas(self):
         try:
@@ -615,7 +597,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def reiniciar(self):
         try:
@@ -634,7 +617,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
         try:
@@ -652,7 +636,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gera_excel(self):
         try:
@@ -864,13 +849,14 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
             writer.save()
 
-            mensagem_alerta(f"Ordem de Produção Nº {num_op} encerrada e "
+            self.mensagem_alerta(f"Ordem de Produção Nº {num_op} encerrada e "
                                                         f"excel gerado com sucesso!!")
             self.reiniciar()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
@@ -902,7 +888,7 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                         prod_sem_saldo.append(dados)
 
             if diferentes > 0:
-                mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
+                self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
             elif sem_saldo > 0:
                 texto_composto = ""
                 if len(prod_sem_saldo) > 1:
@@ -911,14 +897,14 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                         texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
                         texto_composto = texto_composto + "\n" + texto
 
-                    mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
+                    self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
                                                                 f'encerrar a\n'
                                                                 f'Ordem de Produção Nº {num_op}\n'
                                                                 f'{texto_composto}!')
                 else:
                     cod_os, descr_os, quantidade = prod_sem_saldo[0]
                     texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                    mensagem_alerta(f'O produto abaixo está sem saldo para '
+                    self.mensagem_alerta(f'O produto abaixo está sem saldo para '
                                                                 f'encerrar a\n'
                                                                 f'Ordem de Produção Nº {num_op}\n'
                                                                 f'{texto}!')
@@ -927,7 +913,8 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def salvar_lista(self):
         try:
@@ -966,7 +953,7 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
                 resultado = cursor.fetchall()
 
                 if len(resultado) > 1:
-                    mensagem_alerta(f'Foi detectado um conflito com a movimentação '
+                    self.mensagem_alerta(f'Foi detectado um conflito com a movimentação '
                                                                 f'dos produtos.\n'
                                                                 f'Comunique o desenvolverdor sobre o problema.')
                 else:
@@ -1010,12 +997,13 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
             if self.checkBox_Excel.isChecked():
                 self.gera_excel()
             else:
-                mensagem_alerta(f"Ordem de Produção Nº {num_op} encerrada com sucesso!")
+                self.mensagem_alerta(f"Ordem de Produção Nº {num_op} encerrada com sucesso!")
                 self.reiniciar()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':
