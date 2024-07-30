@@ -1509,6 +1509,8 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
 
                         if campos_atualizados:
                             campos_update = ", ".join(campos_atualizados)
+
+                            cursor = conecta.cursor()
                             cursor.execute(f"UPDATE produtoordemcompra SET {campos_update} "
                                            f"WHERE id = {id_oc_pord};")
 

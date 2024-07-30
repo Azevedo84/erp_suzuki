@@ -1,11 +1,12 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_prod_incluir import *
+from forms.tela_prod_alterar import *
 from banco_dados.controle_erros import grava_erro_banco
-from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.telas import tamanho_aplicacao, icone
+from comandos.telas import icone
 from comandos.lines import validador_decimal
+from comandos.conversores import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt5.QtCore import pyqtSignal, QDate
 import inspect
 import os
 import re
@@ -13,8 +14,10 @@ from datetime import date
 import traceback
 
 
-class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None):
+class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
+    alteracao = pyqtSignal(bool)
+
+    def __init__(self, dados_produto, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
@@ -22,27 +25,27 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_cadastro.png")
-        tamanho_aplicacao(self)
-        layout_cabec_tab(self.table_Produto)
-
-        self.table_Produto.viewport().installEventFilter(self)
-
-        self.btn_Limpar.clicked.connect(self.limpa_tudo)
 
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
-        self.line_Codigo.editingFinished.connect(self.lanca_codigo_barras)
-
         validador_decimal(self.line_NCM, numero=9999999.000)
 
-        self.inicio_manipula_pre_cadastro()
+        self.definir_line_bloqueados()
+
         self.lanca_combo_conjunto()
         self.lanca_combo_tipo()
         self.lanca_combo_projeto()
         self.data_emissao()
 
         self.processando = False
-        
+
+        self.dados_produto = dados_produto
+
+        if dados_produto:
+            self.lanca_dados_produto(dados_produto)
+
+            self.line_Descricao.setFocus()
+
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
             tb = traceback.extract_tb(excecao)
@@ -78,12 +81,85 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-            
-    def limpa_tabela(self):
-        try:
-            nome_tabela = self.table_Produto
 
-            nome_tabela.setRowCount(0)
+    def definir_line_bloqueados(self):
+        try:
+            self.line_Codigo.setReadOnly(True)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_dados_produto(self, dados):
+        try:
+            codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
+            tipo, projeto, qtde_mini, ncm, obs = dados
+
+            if emissao:
+                emissao_date = QDate.fromString(emissao, 'dd/MM/yyyy')
+                self.date_Emissao.setDate(emissao_date)
+
+            self.line_Codigo.setText(codigo)
+            self.line_Barras.setText(barra)
+            self.line_Descricao.setText(descr)
+            self.line_DescrCompl.setText(compl)
+            self.line_Referencia.setText(ref)
+            self.line_Embalagem.setText(embalagem)
+            self.line_kg_mt.setText(kg_mt)
+            self.line_Custo_Unit.setText(custo)
+            self.line_Local.setText(local)
+            self.line_Qtde_Mini.setText(qtde_mini)
+            self.plain_Obs.setPlainText(obs)
+
+            if not ncm:
+                self.line_NCM.setText("")
+                self.line_NCM.setStyleSheet("QLineEdit { background-color: yellow; }")
+            else:
+                self.line_NCM.setText(ncm)
+                self.line_NCM.setStyleSheet("QLineEdit { background-color: white; }")
+
+            um_count = self.combo_UM.count()
+            for i_um in range(um_count):
+                um_text = self.combo_UM.itemText(i_um)
+                if um in um_text:
+                    self.combo_UM.setCurrentText(um_text)
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, conjunto FROM conjuntos where conjunto = '{conjunto}';")
+            lista_conj = cursor.fetchall()
+            if lista_conj:
+                id_conj, descr_conj = lista_conj[0]
+                conj_certo = f"{id_conj} - {descr_conj}"
+                conjunto_count = self.combo_Conjunto.count()
+                for i_conjunto in range(conjunto_count):
+                    conjunto_text = self.combo_Conjunto.itemText(i_conjunto)
+                    if conj_certo in conjunto_text:
+                        self.combo_Conjunto.setCurrentText(conjunto_text)
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, tipomaterial FROM TIPOMATERIAL where tipomaterial = '{tipo}';")
+            lista_tipo = cursor.fetchall()
+            if lista_tipo:
+                id_tipo, descr_tipo = lista_tipo[0]
+                tipo_certo = f"{id_tipo} - {descr_tipo}"
+                tipo_count = self.combo_Tipo.count()
+                for i_tipo in range(tipo_count):
+                    tipo_text = self.combo_Tipo.itemText(i_tipo)
+                    if tipo_certo in tipo_text:
+                        self.combo_Tipo.setCurrentText(tipo_text)
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, projeto FROM PROJETO where projeto = '{projeto}';")
+            lista_projeto = cursor.fetchall()
+            if lista_projeto:
+                id_projeto, descr_projeto = lista_projeto[0]
+                projeto_certo = f"{id_projeto} - {descr_projeto}"
+                projeto_count = self.combo_Projeto.count()
+                for i_projeto in range(projeto_count):
+                    projeto_text = self.combo_Projeto.itemText(i_projeto)
+                    if projeto_certo in projeto_text:
+                        self.combo_Projeto.setCurrentText(projeto_text)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -94,9 +170,9 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
         try:
             padrao = re.compile(r'^D \d{2}\.\d{2}\.\d{3}\.\d{2}$')
             correspondencia = padrao.match(referencia)
-    
+
             return correspondencia
-        
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
@@ -108,31 +184,13 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 string_final = string.rstrip()
             else:
                 string_final = string
-    
+
             if string_final.startswith(' '):
                 string_final1 = string_final.lstrip()
             else:
                 string_final1 = string_final.lstrip()
-    
+
             return string_final1
-        
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def inicio_manipula_pre_cadastro(self):
-        try:
-            self.limpa_tabela()
-
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT id, descricao, referencia, um, fornecedor "
-                           f"FROM PRODUTOPRELIMINAR "
-                           f"WHERE (codigo IS NULL) AND (entregue IS NULL OR entregue = '');")
-            dados_banco = cursor.fetchall()
-
-            if dados_banco:
-                lanca_tabela(self.table_Produto, dados_banco)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -237,175 +295,6 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             finally:
                 self.processando = False
 
-    def eventFilter(self, source, event):
-        try:
-            qtable_widget = self.table_Produto
-
-            if (event.type() == QtCore.QEvent.MouseButtonDblClick and
-                    event.buttons() == QtCore.Qt.LeftButton and
-                    source is qtable_widget.viewport()):
-
-                self.label_Fornecedor.setText("")
-
-                self.limpa_dados_produto()
-
-                item = qtable_widget.currentItem()
-
-                extrai_recomendados = extrair_tabela(qtable_widget)
-                item_selecionado = extrai_recomendados[item.row()]
-
-                id_pre, desc, ref, um, forn = item_selecionado
-
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
-                               f"kg_mt, fornecedor, data_criacao, codigo "
-                               f"FROM PRODUTOPRELIMINAR "
-                               f"where id = {id_pre};")
-                dados_banco = cursor.fetchall()
-
-                if dados_banco:
-                    for i in dados_banco:
-                        id_pres, registro, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
-
-                        descr_sem = self.remover_espaco_branco_ini_fim(descrs)
-                        compl_sem = self.remover_espaco_branco_ini_fim(compl)
-                        ref_sem = self.remover_espaco_branco_ini_fim(refs)
-
-                        ja_existe = self.verifica_ref_desenho_existe(ref_sem)
-                        if ja_existe:
-                            msg = ""
-                            for ii in ja_existe:
-                                cod_des, descr_des, ref_des = ii
-                                msg += f"{cod_des} - {descr_des} - {ref_des}\n"
-                            self.mensagem_alerta(f"Já existe produtos com este número de desenho!\n\n{msg}")
-                        else:
-                            if forns:
-                                self.label_Fornecedor.setText(forns)
-                                self.manipula_fornecedor_tipo(forns)
-
-                            if ums == "KG":
-                                self.line_Embalagem.setText("SIM")
-
-                            self.manipula_ref_desenho(ref_sem)
-                            self.manipula_descricao_tipo(descr_sem)
-
-                            self.line_ID_Pre.setText(str(id_pres))
-                            self.line_Descricao.setText(descr_sem)
-                            self.line_DescrCompl.setText(compl_sem)
-                            self.line_Referencia.setText(ref_sem)
-                            self.line_NCM.setText(ncm)
-                            self.line_kg_mt.setText(str(kg_mt))
-                            self.line_Custo_Unit.setText("0")
-                            self.line_Qtde_Mini.setText("0")
-
-                            um_count = self.combo_UM.count()
-                            for i_um in range(um_count):
-                                um_text = self.combo_UM.itemText(i_um)
-                                if ums in um_text:
-                                    self.combo_UM.setCurrentText(um_text)
-
-                            self.line_Codigo.setFocus()
-
-            return super(QMainWindow, self).eventFilter(source, event)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def manipula_ref_desenho(self, refs):
-        try:
-            if self.verifica_formato_referencia(refs):
-                ref_sem_d = refs[2:]
-                cod_maq = int(ref_sem_d[0:2])
-
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT num_maq, descricao FROM maquina "
-                               f"where num_maq = {cod_maq};")
-                dados_maquina = cursor.fetchall()
-                if dados_maquina:
-                    id_maq, descr_maq = dados_maquina[0]
-                    self.label_Maquina_Des.setText(descr_maq)
-
-                tp = int(ref_sem_d[-2:])
-                conj_peca = (ref_sem_d[3:5])
-
-                if tp == 1 or tp == 3 or tp == 4 or tp == 5 or tp == 6 or tp == 7:
-                    if conj_peca == "00":
-                        tip_count = self.combo_Tipo.count()
-                        for i_tip in range(tip_count):
-                            tip_text = self.combo_Tipo.itemText(i_tip)
-                            if "87 - CONJUNTO" in tip_text:
-                                self.combo_Tipo.setCurrentText(tip_text)
-
-                    elif conj_peca == "01":
-                        if tp == 3 or tp == 5 or tp == 6:
-                            if conj_peca == "01":
-                                tip_count = self.combo_Tipo.count()
-                                for i_tip in range(tip_count):
-                                    tip_text = self.combo_Tipo.itemText(i_tip)
-                                    if "88 - USINAGEM" in tip_text:
-                                        self.combo_Tipo.setCurrentText(tip_text)
-
-                    if tp == 7:
-                        tip_count = self.combo_Tipo.count()
-                        for i_tip in range(tip_count):
-                            tip_text = self.combo_Tipo.itemText(i_tip)
-                            if "119 - INDUSTRIALIZACAO" in tip_text:
-                                self.combo_Tipo.setCurrentText(tip_text)
-
-                    conj_count = self.combo_Conjunto.count()
-                    for i_conj in range(conj_count):
-                        conj_text = self.combo_Conjunto.itemText(i_conj)
-                        if "10 - Produtos Acabados" in conj_text:
-                            self.combo_Conjunto.setCurrentText(conj_text)
-                else:
-                    conj_count = self.combo_Conjunto.count()
-                    for i_conj in range(conj_count):
-                        conj_text = self.combo_Conjunto.itemText(i_conj)
-                        if "8 - Materia Prima" in conj_text:
-                            self.combo_Conjunto.setCurrentText(conj_text)
-
-                if tp == 23:
-                    tip_count = self.combo_Tipo.count()
-                    for i_tip in range(tip_count):
-                        tip_text = self.combo_Tipo.itemText(i_tip)
-                        if "116 - CORTE A LASER F" in tip_text:
-                            self.combo_Tipo.setCurrentText(tip_text)
-
-                elif tp == 21:
-                    tip_count = self.combo_Tipo.count()
-                    for i_tip in range(tip_count):
-                        tip_text = self.combo_Tipo.itemText(i_tip)
-                        if "85 - CORTE A J'AGUA" in tip_text:
-                            self.combo_Tipo.setCurrentText(tip_text)
-
-                elif tp == 22:
-                    tip_count = self.combo_Tipo.count()
-                    for i_tip in range(tip_count):
-                        tip_text = self.combo_Tipo.itemText(i_tip)
-                        if "84 - CORTE A LASER" in tip_text:
-                            self.combo_Tipo.setCurrentText(tip_text)
-
-                elif tp == 24:
-                    tip_count = self.combo_Tipo.count()
-                    for i_tip in range(tip_count):
-                        tip_text = self.combo_Tipo.itemText(i_tip)
-                        if "125 - CORTE A OXICORTE" in tip_text:
-                            self.combo_Tipo.setCurrentText(tip_text)
-
-            else:
-                conj_count = self.combo_Conjunto.count()
-                for i_conj in range(conj_count):
-                    conj_text = self.combo_Conjunto.itemText(i_conj)
-                    if "8 - Materia Prima" in conj_text:
-                        self.combo_Conjunto.setCurrentText(conj_text)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
     def verifica_ref_desenho_existe(self, refs):
         try:
             ja_existe = []
@@ -509,7 +398,6 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
     def limpa_dados_produto(self):
         try:
-            self.line_ID_Pre.clear()
             self.line_Codigo.clear()
             self.line_Referencia.clear()
             self.line_Descricao.clear()
@@ -528,8 +416,6 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             self.combo_Tipo.setCurrentText("")
             self.combo_Projeto.setCurrentText("")
 
-            self.label_Maquina_Des.setText("")
-
             self.data_emissao()
 
         except Exception as e:
@@ -540,7 +426,6 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
     def limpa_tudo(self):
         try:
             self.limpa_dados_produto()
-            self.inicio_manipula_pre_cadastro()
             self.lanca_combo_conjunto()
             self.lanca_combo_tipo()
             self.lanca_combo_projeto()
@@ -580,109 +465,149 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
                 lista_completa = cursor.fetchall()
                 if lista_completa:
-                    self.mensagem_alerta(f'Este código de produto já foi cadastrado!')
-                else:
                     if um == "KG":
                         kg_mt = self.line_kg_mt.text()
                         if not kg_mt:
                             self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
                         else:
-                            self.salvar_produto()
+                            self.salvar_alteracao()
                     else:
-                        self.salvar_produto()
+                        self.salvar_alteracao()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def verifica_pre_cadastro(self):
+    def salvar_alteracao(self):
         try:
-            id_pre = self.line_ID_Pre.text()
-            cod_produto = self.line_Codigo.text()
+            if self.dados_produto:
+                codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
+                tipo, projeto, qtde_mini, ncm, obs = self.dados_produto
 
-            if id_pre:
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
-                               f"kg_mt, fornecedor, data_criacao, codigo "
-                               f"FROM PRODUTOPRELIMINAR "
-                               f"where id = {id_pre};")
-                dados_banco = cursor.fetchall()
+                ref_a = self.line_Referencia.text()
+                descr_a = self.line_Descricao.text()
+                compl_a = self.line_DescrCompl.text()
+                embalagem_a = self.line_Embalagem.text()
+                ncm_a = self.line_NCM.text()
+                kg_mt_a = self.line_kg_mt.text()
+                qtde_mini_a = self.line_Qtde_Mini.text()
+                custo_a = self.line_Custo_Unit.text()
 
-                if dados_banco:
-                    for i in dados_banco:
-                        id_pres, registro, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
+                local_a = self.line_Local.text()
+                obs_plain = self.plain_Obs.toPlainText()
+                obs_a = obs_plain.upper()
 
-                        cursor = conecta.cursor()
-                        cursor.execute(f"UPDATE PRODUTOPRELIMINAR SET CODIGO = {cod_produto} WHERE id = {id_pres};")
+                conjunt = self.combo_Conjunto.currentText()
+                if conjunt:
+                    conjuntotete = conjunt.find(" - ") + 3
+                    conjunto_a = conjunt[conjuntotete:]
+                else:
+                    conjunto_a = ""
 
-                        conecta.commit()
+                tip = self.combo_Tipo.currentText()
+                if tip:
+                    tipotete = tip.find(" - ") + 3
+                    tipo_a = tip[tipotete:]
+                else:
+                    tipo_a = ""
 
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+                um_a = self.combo_UM.currentText()
 
-    def salvar_produto(self):
-        try:
-            cod_produto = self.line_Codigo.text()
-            ref = self.line_Referencia.text()
-            descr = self.line_Descricao.text()
-            compl = self.line_DescrCompl.text()
-            embalagem = self.line_Embalagem.text()
-            ncm = self.line_NCM.text()
-            kg_mt = self.line_kg_mt.text()
-            qtde_minima = self.line_Qtde_Mini.text()
-            custo_unit = self.line_Custo_Unit.text()
-            local = self.line_Local.text()
-            cod_barras = self.line_Barras.text()
+                projet = self.combo_Projeto.currentText()
+                if projet:
+                    projetotete = projet.find(" - ") + 3
+                    projeto_a = projet[projetotete:]
 
-            obs = self.plain_Obs.toPlainText()
+                else:
+                    projeto_a = ""
 
-            conjunto = self.combo_Conjunto.currentText()
-            conjuntotete = conjunto.find(" - ")
-            id_conjunto = conjunto[:conjuntotete]
+                kg_mt_float = valores_para_float(kg_mt)
+                kg_mt_float_a = valores_para_float(kg_mt_a)
 
-            tipo = self.combo_Tipo.currentText()
-            tipotete = tipo.find(" - ")
-            id_tipo = tipo[:tipotete]
+                custo_float = valores_para_float(custo)
+                custo_float_a = valores_para_float(custo_a)
 
-            um = self.combo_UM.currentText()
+                qtde_mini_float = valores_para_float(qtde_mini)
+                qtde_mini_float_a = valores_para_float(qtde_mini_a)
 
-            data_hoje = date.today()
+                campos_atualizados = []
 
-            projeto = self.combo_Projeto.currentText()
-            if projeto:
-                projetotete = projeto.find(" - ")
-                id_projeto = projeto[:projetotete]
+                if descr != descr_a:
+                    campos_atualizados.append(f"DESCRICAO = '{descr_a}'")
 
-                cursor = conecta.cursor()
-                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, DESCRICAO, "
-                               f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
-                               f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
-                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, PROJETO, OBS2, NCM) "
-                               f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{descr}', '{compl}', '{embalagem}', '{um}', '0', '0', "
-                               f"'{kg_mt}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', '{data_hoje}', "
-                               f"'0', '{id_tipo}', '{id_projeto}', '{obs}', '{ncm}');")
-            else:
-                cursor = conecta.cursor()
-                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, DESCRICAO, "
-                               f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
-                               f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
-                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, OBS2, NCM) "
-                               f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{descr}', '{compl}', '{embalagem}', '{um}', '0', '0', "
-                               f"'{kg_mt}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', '{data_hoje}', "
-                               f"'0', '{id_tipo}', '{obs}', '{ncm}');")
+                if compl != compl_a:
+                    campos_atualizados.append(f"DESCRICAOCOMPLEMENTAR = '{compl_a}'")
 
-                conecta.commit()
+                if ref != ref_a:
+                    campos_atualizados.append(f"OBS = '{ref_a}'")
 
-            self.mensagem_alerta(f"Cadastro do produto {cod_produto} realizado com Sucesso!")
+                if um != um_a:
+                    campos_atualizados.append(f"UNIDADE = '{um_a}'")
 
-            self.verifica_pre_cadastro()
+                if embalagem != embalagem_a:
+                    campos_atualizados.append(f"EMBALAGEM = '{embalagem_a}'")
 
-            self.limpa_tudo()
+                if kg_mt_float != kg_mt_float_a:
+                    campos_atualizados.append(f"KILOSMETRO = '{kg_mt_float_a}'")
+
+                if custo_float != custo_float_a:
+                    campos_atualizados.append(f"CUSTOUNITARIO = '{custo_float_a}'")
+
+                if local != local_a:
+                    campos_atualizados.append(f"LOCALIZACAO = '{local_a}'")
+
+                if conjunto != conjunto_a:
+                    if conjunto_a:
+                        conjuntotete = conjunt.find(" - ")
+                        id_conj_a = conjunt[:conjuntotete]
+                    else:
+                        id_conj_a = "NULL"
+                    campos_atualizados.append(f"CONJUNTO = '{id_conj_a}'")
+
+                if tipo != tipo_a:
+                    if tipo_a:
+                        tipotete = tip.find(" - ")
+                        id_tipo_a = tip[:tipotete]
+                    else:
+                        id_tipo_a = "NULL"
+                    campos_atualizados.append(f"TIPOMATERIAL = '{id_tipo_a}'")
+
+                if projeto != projeto_a:
+                    if projeto_a:
+                        projetotete = projet.find(" - ")
+                        id_projeto_a = projet[:projetotete]
+                    else:
+                        id_projeto_a = "NULL"
+                    campos_atualizados.append(f"PROJETO = {id_projeto_a}")
+
+                if qtde_mini_float != qtde_mini_float_a:
+                    campos_atualizados.append(f"QUANTIDADEMIN = '{qtde_mini_float_a}'")
+
+                if ncm != ncm_a:
+                    campos_atualizados.append(f"NCM = '{ncm_a}'")
+
+                if obs != obs_a:
+                    campos_atualizados.append(f"OBS2 = '{obs_a}'")
+
+                if campos_atualizados:
+                    campos_update = ", ".join(campos_atualizados)
+                    print(campos_update)
+
+                    cod_produto = self.line_Codigo.text()
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"UPDATE produto SET {campos_update} "
+                                   f"WHERE codigo = '{cod_produto}';")
+
+                    conecta.commit()
+
+                    self.mensagem_alerta(f"Cadastro do produto {cod_produto} atualizado com Sucesso!")
+
+                    foi_alterado = True
+
+                    self.alteracao.emit(foi_alterado)
+                    self.close()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -692,6 +617,6 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaProdutoIncluir()
+    tela = TelaProdutoAlterar("")
     tela.show()
     qt.exec_()

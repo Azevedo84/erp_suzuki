@@ -190,7 +190,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
                     num_ped, req, cliente, id_cod, cod, descr, ref, um, qtde, ent, saldo, conj, terc, unit, estrut, \
                     obs, solic = i
-                    data = f'{ent.day}/{ent.month}/{ent.year}'
+
+                    data_pr = date.today() + timedelta(days=7)
+                    data = f'{data_pr.day}/{data_pr.month}/{data_pr.year}'
 
                     if saldo >= qtde:
                         cursor = conecta.cursor()
@@ -643,9 +645,6 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 for tabi in dados_tabela:
                     num_pi, req_cli, cod, desc, ref, um, qtde, unit, ipi, total, entr, qtde_ent, obs, solic = tabi
 
-                    data_pr = date.today() + timedelta(days=7)
-                    data_prev = '{}/{}/{}'.format(data_pr.day, data_pr.month, data_pr.year)
-
                     solicitante = solic
                     observacao = obs
 
@@ -685,7 +684,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                         qtdezinha_float = float(qtde)
 
                     dados = (cod, desc, ref, um, qtdezinha_float, unit_1_final, ipi_final, total_1_final,
-                             data_prev, obs)
+                             entr, obs)
                     d_um.append(dados)
 
                 df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'UM', 'Qtde', 'unit', 'Ipi %',

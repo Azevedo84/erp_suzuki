@@ -4,7 +4,7 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.cores import cor_branco
 from comandos.conversores import valores_para_float, valores_para_virgula
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt5.QtCore import pyqtSignal, QDate
+from PyQt5.QtCore import pyqtSignal, QDate, Qt
 import inspect
 import os
 from datetime import date, timedelta, datetime
@@ -20,6 +20,8 @@ class TelaOcAlterarProduto(QMainWindow, Ui_MainWindow):
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
+
+        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
 
         self.data_emissao_oc = ""
 

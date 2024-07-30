@@ -539,9 +539,10 @@ class TelaOvAlterar(QMainWindow, Ui_MainWindow):
             extrai_produtos_pi = extrair_tabela(self.table_PI_Aberto)
             if extrai_produtos_pi:
                 for i in extrai_produtos_pi:
-                    num_pi, cliente, cod, descr, ref, um, qtde, entrega = i
+                    num_pi, cliente, cod, descr, um, qtde, entrega = i
 
                     if nome_cliente == cliente and cod == codigo_produto:
+                        print(nome_cliente, cliente, cod, codigo_produto)
                         self.line_Num_PI_Manu.setText(str(num_pi))
                         self.line_Qtde_Manu.setText(str(qtde))
                         self.lanca_dados_produto_manual()

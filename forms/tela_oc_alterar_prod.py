@@ -15,6 +15,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setWindowModality(QtCore.Qt.ApplicationModal)
+        MainWindow.setEnabled(True)
         MainWindow.resize(415, 343)
         MainWindow.setMinimumSize(QtCore.QSize(0, 0))
         MainWindow.setDocumentMode(False)

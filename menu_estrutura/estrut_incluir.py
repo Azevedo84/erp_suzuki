@@ -802,8 +802,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
     def verifica_salvamento(self):
         try:
-            teve_lancado = False
-
             codigo_produto = self.line_Codigo_Estrut.text()
             status = self.line_Status.text()
 
@@ -821,6 +819,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     if not extrai_tabela:
                         if self.pergunta_confirmacao(f'A tabela "Estrutura" está vazia! Deseja mesmo continuar?'):
                             teve_lancado = self.salvar_produtos_estrutura(extrai_tabela)
+                            self.salvar_dados_adicionais(teve_lancado)
                     else:
                         tipo_material = self.line_Tipo_Estrut.text()
 
@@ -831,6 +830,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                                 self.mensagem_alerta('O campo "Descrição do Serviço" não pode estar vazio!')
                             else:
                                 teve_lancado = self.salvar_produtos_estrutura(extrai_tabela)
+                                self.salvar_dados_adicionais(teve_lancado)
                         else:
                             descr_mao = self.line_Descricao_Mao.text()
                             tempo = self.line_Tempo_Mao.text()
@@ -839,8 +839,7 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                                 self.mensagem_alerta('Os campos "Descrição e Tempo de Serviço" não podem estar vazio!')
                             else:
                                 teve_lancado = self.salvar_produtos_estrutura(extrai_tabela)
-
-                self.salvar_dados_adicionais(teve_lancado)
+                                self.salvar_dados_adicionais(teve_lancado)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

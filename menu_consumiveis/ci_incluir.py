@@ -26,6 +26,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         layout_cabec_tab(self.table_Consumo)
         layout_cabec_tab(self.table_Estoque)
 
+        self.line_Obs.setText("PRODUÇÃO INTERNA")
+
         self.table_Recomendacao.viewport().installEventFilter(self)
 
         self.btn_Consulta_OC.clicked.connect(self.consultar_oc)

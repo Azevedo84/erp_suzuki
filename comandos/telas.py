@@ -2,9 +2,10 @@ import sys
 from banco_dados.controle_erros import grava_erro_banco
 from arquivos.chamar_arquivos import definir_caminho_arquivo
 from comandos.cores import cabecalho_tela, widgets, textos, fonte_botao, fundo_botao, widgets_escuro
-from comandos.cores import fundo_tela, fundo_tela_menu
-from PyQt5.QtWidgets import QDesktopWidget
-from PyQt5.QtGui import QIcon
+from comandos.cores import fundo_tela, fundo_tela_menu, cor_branco
+from PyQt5.QtWidgets import QDesktopWidget, QPushButton, QVBoxLayout, QLabel, QSizePolicy
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QPixmap, QFont, QIcon
 import os
 import inspect
 import traceback
@@ -39,6 +40,86 @@ def icone(self, nome_imagem):
         caminho_arquivo = definir_caminho_arquivo(camino)
 
         self.setWindowIcon(QIcon(caminho_arquivo))
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
+def criar_botao(nome_imagem, texto_botao):
+    try:
+        botao = QPushButton()
+        botao.setFixedSize(60, 60)
+        botao.setStyleSheet(f"background-color: {cor_branco};")
+
+        botao.setCursor(Qt.PointingHandCursor)
+
+        layout = QVBoxLayout()
+        layout.setSpacing(3)
+
+        img_label = QLabel()
+        camino = os.path.join('..', 'arquivos', 'icones', nome_imagem)
+        caminho_imagem = definir_caminho_arquivo(camino)
+
+        # Verificação se a imagem existe
+        if not os.path.exists(caminho_imagem):
+            print(f"Erro: A imagem {caminho_imagem} não foi encontrada.")
+            return None
+
+        icon = QPixmap(caminho_imagem)
+        img_label.setPixmap(icon.scaled(QSize(25, 25), aspectRatioMode=Qt.KeepAspectRatio))
+        img_label.setAlignment(Qt.AlignCenter)
+
+        text_label = QLabel(texto_botao)
+        text_label.setAlignment(Qt.AlignCenter)
+        font = QFont()
+        font.setPointSize(8)
+        text_label.setFont(font)
+
+        layout.addWidget(img_label)
+        layout.addWidget(text_label)
+
+        botao.setLayout(layout)
+
+        return botao
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
+def editar_botao(botao, nome_imagem, texto_botao, tamanho):
+    try:
+        layout = QVBoxLayout()
+        layout.setSpacing(3)
+
+        img_label = QLabel()
+        camino = os.path.join('..', 'arquivos', 'icones', nome_imagem)
+        caminho_imagem = definir_caminho_arquivo(camino)
+
+        if not os.path.exists(caminho_imagem):
+            print(f"Erro: A imagem {caminho_imagem} não foi encontrada.")
+            return None
+
+        icon = QPixmap(caminho_imagem)
+        img_label.setPixmap(icon.scaled(QSize(tamanho, tamanho), aspectRatioMode=Qt.KeepAspectRatio))
+        img_label.setAlignment(Qt.AlignCenter)
+
+        text_label = QLabel(texto_botao)
+        text_label.setAlignment(Qt.AlignCenter)
+        font = QFont()
+        font.setPointSize(8)
+        text_label.setFont(font)
+
+        layout.addWidget(img_label)
+        layout.addWidget(text_label)
+
+        botao.setLayout(layout)
+
+        # Ajustando o tamanho mínimo do botão
+        botao.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
     except Exception as e:
         nome_funcao = inspect.currentframe().f_code.co_name

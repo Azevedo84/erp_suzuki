@@ -4,7 +4,7 @@ from forms.tela_menu1 import *
 from banco_dados.controle_erros import grava_erro_banco
 from comandos.cores import cor_branco
 from comandos.telas import icone
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QMessageBox, QPushButton, QVBoxLayout, QLabel
 from PyQt5.QtCore import QTimer, QSize, Qt
 from PyQt5.QtGui import QPixmap, QFont
 import os
@@ -15,8 +15,6 @@ import getpass
 import subprocess
 from datetime import datetime
 import traceback
-
-from PyQt5.QtWidgets import QVBoxLayout, QLabel
 
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
@@ -33,8 +31,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         botoes = dados[0][2]
         lista_botoes = botoes.split(',')
 
-        self.versao = f"Versão 2.01.005"
-        self.data_versao = f"25/06/2024"
+        self.versao = f"Versão 2.01.006"
+        self.data_versao = f"24/07/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)

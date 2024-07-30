@@ -121,3 +121,26 @@ def moeda_reais_para_float(valor_moeda):
         nome_funcao = inspect.currentframe().f_code.co_name
         exc_traceback = sys.exc_info()[2]
         trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
+def float_para_virgula(valor_float):
+    try:
+        if valor_float:
+            limpa_string = str(valor_float)
+        else:
+            limpa_string = "0"
+
+        if limpa_string:
+            if "." in limpa_string:
+                string_com_virgula = limpa_string.replace('.', ',')
+            else:
+                string_com_virgula = limpa_string
+        else:
+            string_com_virgula = "0,00"
+
+        return string_com_virgula
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)

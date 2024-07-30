@@ -953,12 +953,13 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                 qtde_float = float(qtde)
 
             num_sol = 'X'
+            num_item = 'X'
 
             destino = self.line_Destino.text()
             destino_maius = destino.upper()
             destino_certa = unidecode(destino_maius)
 
-            dados = (num_sol, cod, descr, ref_certa, um, qtde_float, unit, ipi, fornecedor,
+            dados = (num_sol, num_item, cod, descr, ref_certa, um, qtde_float, unit, ipi, fornecedor,
                      destino_certa, self.nome_computador)
 
             extrair_sol.append(dados)
