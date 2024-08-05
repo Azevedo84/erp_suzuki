@@ -107,6 +107,23 @@ def float_para_moeda_reais(valor):
         trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
 
 
+def float_para_porcentagem(valor):
+    try:
+        if valor:
+            ipi_2casas = ("%.2f" % valor)
+            valor_string = valores_para_virgula(ipi_2casas)
+            valor_final = valor_string + "%"
+        else:
+            valor_final = ""
+
+        return valor_final
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
 def moeda_reais_para_float(valor_moeda):
     try:
         # Remove o símbolo da moeda e os separadores de milhar

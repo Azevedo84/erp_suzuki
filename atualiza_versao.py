@@ -55,8 +55,8 @@ def envia_email(alteracoes, versao_final):
 
         body = f"{saudacao}\n\nAbaixo a lista de modificações feitas na atualizção {versao_final}:\n\n"
 
-        for iste in alteracoes:
-            body += f"- {iste}\n"
+        for i in alteracoes:
+            body += f"- {i}\n"
 
         body += f"\n{msg_final}"
 
@@ -76,13 +76,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(24/07) OV ALTERAR: CORRIGIDO ERRO AO ADICIONAR PRODUTOS',
-                  '(24/07) REQ INCLUIR: CORRIGIDO ERRO AO ADICIONAR PRODUTOS MANUALMENTE',
-                  '(25/07) OV INCLUIR: ALTERADO A DATA DE ENTREGA PARA 1 SEMANA APOS EMISSAO',
-                  '(30/07) CI INCLUIR: ADICIONADO "PRODUÇÃO INTERNA" NO CAMPO "OBSERVAÇÃO"']
+lista_modifica = ['(05/08) PRODUTO CONSULTA: INCLUIR CONSULTA AO PRODUTO SEMELHANTE AO DO HORUS']
 
 programa = "ERP SUZUKI"
-versao = "2.01.007"
+versao = "2.02.000"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

@@ -1,19 +1,21 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_produto import *
+from forms.tela_prod_consultar import *
+from arquivos.chamar_arquivos import definir_caminho_arquivo
 from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import lanca_tabela, layout_cabec_tab
 from comandos.telas import tamanho_aplicacao, icone, editar_botao
 from comandos.lines import validador_inteiro
 from comandos.conversores import float_para_virgula
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt5.QtGui import QIcon
 import inspect
 import os
 import traceback
 from datetime import date
 
 
-class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
+class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -21,14 +23,26 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
+        caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
+        caminho_arquivo = definir_caminho_arquivo(caminho)
+        icon = QIcon(caminho_arquivo)
+        self.btn_Lupa_Prod.setIcon(icon)
+        self.escolher_produto = []
+        self.btn_Lupa_Prod.clicked.connect(self.abrir_tela_escolher_produto)
+
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
         layout_cabec_tab(self.table_Estoque)
 
         self.definir_bloqueados()
 
-        self.prod_incluir = []
-        self.prod_alterar = []
+        self.tela_prod_incluir = []
+        self.tela_prod_alterar = []
+        self.tela_movimentacao = []
+        self.tela_compras = []
+        self.tela_estrutura = []
+        self.tela_preco_venda = []
+        self.tela_ppc_prod = []
 
         validador_inteiro(self.line_Codigo, 123456)
 
@@ -43,6 +57,12 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
         editar_botao(self.btn_Excluir, "excluir.png", 'Excluir', 35)
         self.btn_Excluir.clicked.connect(self.excluir_produto)
 
+        self.btn_Mov.clicked.connect(self.abrir_movimentacao)
+        self.btn_Compras.clicked.connect(self.abrir_compras)
+        self.btn_Estrutura.clicked.connect(self.abrir_estrutura)
+        self.btn_Preco.clicked.connect(self.abrir_preco_venda)
+        self.btn_Pcp.clicked.connect(self.abrir_pcp_produto)
+
         self.processando = False
 
         self.definir_line_bloqueados()
@@ -50,6 +70,11 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
         self.btn_Alterar.setHidden(True)
         self.btn_Excluir.setHidden(True)
         self.btn_Imprimir.setHidden(True)
+        self.btn_Mov.setHidden(True)
+        self.btn_Compras.setHidden(True)
+        self.btn_Estrutura.setHidden(True)
+        self.btn_Preco.setHidden(True)
+        self.btn_Pcp.setHidden(True)
 
         self.line_Codigo.setFocus()
 
@@ -138,11 +163,88 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def abrir_tela_escolher_produto(self):
+        cod_prod = self.line_Codigo.text()
+        from menu_cadastros.prod_pesquisar import TelaProdutoPesquisar
+
+        self.escolher_produto = TelaProdutoPesquisar(cod_prod, True)
+        self.escolher_produto.produto_escolhido.connect(self.atualizar_produto_entry)
+        self.escolher_produto.show()
+
+    def atualizar_produto_entry(self, produto):
+        self.line_Codigo.setText(produto)
+        self.verifica_line_codigo_manual()
+
+    def abrir_movimentacao(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            from menu_cadastros.prod_mov import TelaProdutoMovimentacao
+            self.tela_movimentacao = TelaProdutoMovimentacao(codigo)
+            self.tela_movimentacao.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_compras(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            from menu_cadastros.prod_compras import TelaProdutoCompras
+            self.tela_compras = TelaProdutoCompras(codigo)
+            self.tela_compras.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_estrutura(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            from menu_estrutura.estrut_incluir import TelaEstruturaIncluir
+            self.tela_estrutura = TelaEstruturaIncluir(codigo)
+            self.tela_estrutura.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_preco_venda(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            from menu_estrutura.estrut_custo import TelaCusto
+            self.tela_preco_venda = TelaCusto(codigo)
+            self.tela_preco_venda.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_pcp_produto(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            from menu_pcp.pcp_produto import TelaPcpProduto
+            self.tela_ppc_prod = TelaPcpProduto(codigo)
+            self.tela_ppc_prod.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def abrir_tela_novo(self):
         try:
             from menu_cadastros.pro_incluir import TelaProdutoIncluir
-            self.prod_incluir = TelaProdutoIncluir()
-            self.prod_incluir.show()
+            self.tela_prod_incluir = TelaProdutoIncluir()
+            self.tela_prod_incluir.show()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -173,9 +275,9 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
                      conjunto, tipo, projeto, qtde_mini, ncm, obs)
 
             from menu_cadastros.prod_alterar import TelaProdutoAlterar
-            self.prod_alterar = TelaProdutoAlterar(dados)
-            self.prod_alterar.alteracao.connect(self.atualizar_dados_produto)
-            self.prod_alterar.show()
+            self.tela_prod_alterar = TelaProdutoAlterar(dados)
+            self.tela_prod_alterar.alteracao.connect(self.atualizar_dados_produto)
+            self.tela_prod_alterar.show()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -401,10 +503,7 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
 
                 codigo_produto = self.line_Codigo.text()
 
-                if not codigo_produto:
-                    self.mensagem_alerta('O campo "Código" não pode estar vazio')
-                    self.limpa_dados_produto()
-                elif int(codigo_produto) == 0:
+                if int(codigo_produto) == 0:
                     self.mensagem_alerta('O campo "Código" não pode ser "0"')
                     self.limpa_dados_produto()
                 else:
@@ -445,7 +544,7 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
                         f"COALESCE(prod.obs, ''), prod.unidade, COALESCE(prod.localizacao, ''), prod.ncm, "
                         f"prod.quantidade, prod.embalagem, COALESCE(prod.kilosmetro, ''), conj.conjunto, "
                         f"COALESCE(tip.tipomaterial, ''), prod.DATA_CRIACAO, COALESCE(prod.embalagem, ''), "
-                        f"prod.custounitario, prod.quantidademin, proj.projeto "
+                        f"prod.custounitario, prod.quantidademin, proj.projeto, conj.id, prod.obs2 "
                         f"FROM produto as prod "
                         f"LEFT JOIN conjuntos conj ON prod.conjunto = conj.id "
                         f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
@@ -454,7 +553,7 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
             detalhes_produto = cur.fetchall()
             if detalhes_produto:
                 id_prod, barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, conjunto, tipo, \
-                data, embalagem, custo, minima, projeto = detalhes_produto[0]
+                data, embalagem, custo, minima, projeto, id_conj, obs = detalhes_produto[0]
 
                 barras_sem_espacos = barras.strip()
 
@@ -476,6 +575,7 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
                 self.line_Conjunto.setText(conjunto)
                 self.line_Tipo.setText(tipo)
                 self.line_Projeto.setText(projeto)
+                self.plain_Obs.setPlainText(obs)
 
                 if minima:
                     min_str = str(minima)
@@ -495,6 +595,15 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
                 self.btn_Alterar.setHidden(False)
                 self.btn_Excluir.setHidden(False)
                 self.btn_Imprimir.setHidden(False)
+                self.btn_Mov.setHidden(False)
+                self.btn_Compras.setHidden(False)
+                self.btn_Preco.setHidden(False)
+                self.btn_Pcp.setHidden(False)
+
+                if id_conj == 10:
+                    self.btn_Estrutura.setHidden(False)
+                else:
+                    self.btn_Estrutura.setHidden(True)
             else:
                 self.mensagem_alerta("Este cadastro de produto não existe!")
                 self.line_Codigo.clear()
@@ -530,6 +639,11 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
             self.btn_Alterar.setHidden(True)
             self.btn_Excluir.setHidden(True)
             self.btn_Imprimir.setHidden(True)
+            self.btn_Mov.setHidden(True)
+            self.btn_Compras.setHidden(True)
+            self.btn_Estrutura.setHidden(True)
+            self.btn_Preco.setHidden(True)
+            self.btn_Pcp.setHidden(True)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -554,6 +668,6 @@ class TelaConsultaProduto(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaConsultaProduto()
+    tela = TelaProdutoConsultar()
     tela.show()
     qt.exec_()

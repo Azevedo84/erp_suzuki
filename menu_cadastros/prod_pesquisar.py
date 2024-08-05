@@ -1,6 +1,6 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_prod_consultar import *
+from forms.tela_prod_pesquisar import *
 from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
 from comandos.telas import tamanho_aplicacao, icone
@@ -17,7 +17,7 @@ from openpyxl import Workbook
 import traceback
 
 
-class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
+class TelaProdutoPesquisar(QMainWindow, Ui_MainWindow):
     produto_escolhido = pyqtSignal(str)
 
     def __init__(self, produto, outra_tela, parent=None):
@@ -76,7 +76,7 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-            
+
     def limpa_tabela(self):
         try:
             nome_tabela = self.table_Resultado
@@ -1604,6 +1604,6 @@ class TelaProdutoConsulta(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaProdutoConsulta("", False)
+    tela = TelaProdutoPesquisar("", False)
     tela.show()
     qt.exec_()

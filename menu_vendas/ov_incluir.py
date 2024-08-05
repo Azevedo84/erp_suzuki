@@ -655,33 +655,33 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                     else:
                         if "," in unit:
                             unit_1_com_ponto = unit.replace(',', '.')
-                            unit_1_float = float(unit_1_com_ponto)
+                            unit_1_float = valores_para_float(unit_1_com_ponto)
                         else:
-                            unit_1_float = float(unit)
+                            unit_1_float = valores_para_float(unit)
 
                         if "," in total:
                             total_1_com_ponto = total.replace(',', '.')
-                            total_1_float = float(total_1_com_ponto)
+                            total_1_float = valores_para_float(total_1_com_ponto)
                         else:
-                            total_1_float = float(total)
+                            total_1_float = valores_para_float(total)
 
-                        unit_1_final = float(unit_1_float)
-                        total_1_final = float(total_1_float)
+                        unit_1_final = valores_para_float(unit_1_float)
+                        total_1_final = valores_para_float(total_1_float)
 
                         if ipi == 0.00:
                             ipi_final = 0.00
                         else:
                             if "," in ipi:
                                 ipi_com_ponto = ipi.replace(',', '.')
-                                ipi_final = float(ipi_com_ponto)
+                                ipi_final = valores_para_float(ipi_com_ponto)
                             else:
-                                ipi_final = float(ipi)
+                                ipi_final = valores_para_float(ipi)
 
                     if "," in qtde:
                         qtdezinha_com_ponto = qtde.replace(',', '.')
-                        qtdezinha_float = float(qtdezinha_com_ponto)
+                        qtdezinha_float = valores_para_float(qtdezinha_com_ponto)
                     else:
-                        qtdezinha_float = float(qtde)
+                        qtdezinha_float = valores_para_float(qtde)
 
                     dados = (cod, desc, ref, um, qtdezinha_float, unit_1_final, ipi_final, total_1_final,
                              entr, obs)

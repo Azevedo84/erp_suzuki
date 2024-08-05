@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.01.007"
-        self.data_versao = f"30/07/2024"
+        self.versao = f"Versão 2.02.000"
+        self.data_versao = f"05/08/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -33,6 +33,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.pre_incluir = []
         self.pre_status = []
         self.prod_incluir = []
+        self.prod_alterar = []
+        self.prod_pesquisar = []
         self.prod_consultar = []
 
         self.sol_incluir = []
@@ -149,6 +151,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.action_Pre_Incluir_2.triggered.connect(self.definir_tela_action)
             self.action_Pre_Status_2.triggered.connect(self.definir_tela_action)
             self.action_Prod_Incluir.triggered.connect(self.definir_tela_action)
+            self.actionAlterar_Produto.triggered.connect(self.definir_tela_action)
+            self.actionPesquisar_Produto.triggered.connect(self.definir_tela_action)
             self.action_Consultar_Produto.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
@@ -206,9 +210,19 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.prod_incluir = TelaProdutoIncluir()
                 self.prod_incluir.show()
 
+            elif sender == self.actionAlterar_Produto:
+                from menu_cadastros.prod_alterar import TelaProdutoAlterar
+                self.prod_alterar = TelaProdutoAlterar("")
+                self.prod_alterar.show()
+
+            elif sender == self.actionPesquisar_Produto:
+                from menu_cadastros.prod_pesquisar import TelaProdutoPesquisar
+                self.prod_pesquisar = TelaProdutoPesquisar("", False)
+                self.prod_pesquisar.show()
+
             elif sender == self.action_Consultar_Produto:
-                from menu_cadastros.prod_consultar import TelaProdutoConsulta
-                self.prod_consultar = TelaProdutoConsulta("", False)
+                from menu_cadastros.prod_consulta import TelaProdutoConsultar
+                self.prod_consultar = TelaProdutoConsultar()
                 self.prod_consultar.show()
 
             elif sender == self.action_Sol_Incluir:
@@ -253,12 +267,12 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
             elif sender == self.action_Estr_Incluir:
                 from menu_estrutura.estrut_incluir import TelaEstruturaIncluir
-                self.estr_incluir = TelaEstruturaIncluir()
+                self.estr_incluir = TelaEstruturaIncluir("")
                 self.estr_incluir.show()
 
             elif sender == self.action_Estr_Custo:
                 from menu_estrutura.estrut_custo import TelaCusto
-                self.estr_custo = TelaCusto()
+                self.estr_custo = TelaCusto("")
                 self.estr_custo.show()
 
             elif sender == self.action_Pcp_Previsao:
@@ -268,7 +282,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
             elif sender == self.action_Pcp_Produto:
                 from menu_pcp.pcp_produto import TelaPcpProduto
-                self.pcp_produto = TelaPcpProduto()
+                self.pcp_produto = TelaPcpProduto("")
                 self.pcp_produto.show()
 
             elif sender == self.action_OP_Incluir:

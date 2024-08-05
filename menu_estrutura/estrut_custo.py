@@ -5,7 +5,7 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.lines import validador_inteiro
 from comandos.telas import tamanho_aplicacao, icone
-from comandos.conversores import valores_para_float, valores_para_virgula
+from comandos.conversores import valores_para_float, valores_para_virgula, float_para_moeda_reais
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
@@ -14,7 +14,7 @@ import traceback
 
 
 class TelaCusto(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, produto, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
@@ -36,10 +36,16 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         self.processando = False
 
+        if produto:
+            self.line_Codigo_Estrut.setText(produto)
+            self.line_Codigo_Estrut.setReadOnly(True)
+            self.verifica_line_codigo_acabado()
+
         self.progressBar.setHidden(True)
 
         self.widget_MaoObra.setHidden(True)
         self.widget_Terceiros.setHidden(True)
+        self.widget_Compra.setHidden(True)
 
         validador_inteiro(self.line_Codigo_Estrut, 123456)
 
@@ -156,10 +162,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                 if conjunto == 10:
                     self.lanca_dados_acabado()
                 else:
-                    self.mensagem_alerta('Este produto não tem o conjunto classificado como "Produtos Acabados"!')
-                    self.limpa_dados_produto_estrutura()
-                    self.limpa_tabelas()
-                    self.line_Codigo_Estrut.clear()
+                    self.lanca_dados_compras()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -199,9 +202,11 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                 if tipo == "INDUSTRIALIZACAO":
                     self.widget_Terceiros.setHidden(False)
                     self.widget_MaoObra.setHidden(True)
+                    self.widget_Compra.setHidden(True)
                 else:
                     self.widget_MaoObra.setHidden(False)
                     self.widget_Terceiros.setHidden(True)
+                    self.widget_Compra.setHidden(True)
 
                 self.lanca_descricao_tempo_mao_de_obra(codigo_produto)
                 self.lanca_descricao_custo_servico(codigo_produto)
@@ -214,6 +219,49 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
                 self.chama_barra_progresso()
                 Thread(target=self.produtos_problema).start()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_dados_compras(self):
+        try:
+            codigo_produto = self.line_Codigo_Estrut.text()
+            cur = conecta.cursor()
+            cur.execute(f"SELECT prod.descricao, COALESCE(tip.tipomaterial, '') as tipus, "
+                        f"COALESCE(prod.obs, '') as ref, prod.unidade, "
+                        f"COALESCE(prod.ncm, '') as ncm, COALESCE(prod.obs2, '') as obs, prod.conjunto "
+                        f"FROM produto as prod "
+                        f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
+                        f"where codigo = {codigo_produto};")
+            detalhes_produto = cur.fetchall()
+            descr, tipo, ref, um, ncm, obs, id_conj = detalhes_produto[0]
+
+            self.line_Descricao_Estrut.setText(descr)
+            self.line_Referencia_Estrut.setText(ref)
+            self.line_Tipo_Estrut.setText(tipo)
+            self.line_UM_Estrut.setText(um)
+
+            tipo_material = self.line_Tipo_Estrut.text()
+
+            if not tipo_material:
+                self.mensagem_alerta('O campo "Tipo de Material" não pode estar vazio!\n\n'
+                                     'Entre no cadastro de produtos e defina o Tipo de Material:\n'
+                                     'Exemplos: CONJUNTO, USINAGEM, INDUSTRIALIZACAO')
+                self.limpa_dados_produto_estrutura()
+                self.limpa_tabelas()
+                self.line_Codigo_Estrut.clear()
+            else:
+                self.line_Obs.setText(obs)
+
+                self.widget_Terceiros.setHidden(True)
+                self.widget_MaoObra.setHidden(True)
+                self.widget_Compra.setHidden(False)
+
+                self.lanca_descricao_custo_compra(codigo_produto)
+
+                self.table_Estrutura.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -381,6 +429,35 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                         self.line_Valor_Servico.setText(str(custo))
 
                 self.mascara_custo_servico()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_descricao_custo_compra(self, codigo):
+        try:
+            custo_compra_final = "R$ 0,00"
+            custo_compra_float = 0
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, custounitario FROM produto WHERE codigo = {codigo};")
+            dados_produto = cursor.fetchall()
+            if dados_produto:
+                for i in dados_produto:
+                    id_prod, custo_compra = i
+
+                    custo_compra_float = valores_para_float(custo_compra)
+                    custo_compra_final = float_para_moeda_reais(custo_compra_float)
+                    self.line_Custo_Compra.setText(str(custo_compra_final))
+
+            self.label_Custo_Materiais.setText(custo_compra_final)
+            self.label_Custo_Total.setText(custo_compra_final)
+
+            preco = (custo_compra_float + (custo_compra_float * 0.05)) / 0.7663
+            valor_final = float_para_moeda_reais(preco)
+
+            self.label_Venda_Total.setText(valor_final)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -718,6 +795,6 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaCusto()
+    tela = TelaCusto("")
     tela.show()
     qt.exec_()

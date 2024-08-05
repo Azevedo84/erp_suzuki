@@ -14,7 +14,7 @@ import traceback
 
 
 class TelaPcpProduto(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, produto, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
@@ -40,6 +40,11 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
         self.line_Codigo.editingFinished.connect(self.verifica_line_codigo_manual)
 
         self.processando = False
+
+        if produto:
+            self.line_Codigo.setText(produto)
+            self.line_Codigo.setReadOnly(True)
+            self.verifica_line_codigo_manual()
 
         self.definir_line_bloqueados()
         
@@ -801,6 +806,6 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaPcpProduto()
+    tela = TelaPcpProduto("")
     tela.show()
     qt.exec_()

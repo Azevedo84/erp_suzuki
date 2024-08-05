@@ -37,11 +37,8 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
         caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
         caminho_arquivo = definir_caminho_arquivo(caminho)
-
         icon = QIcon(caminho_arquivo)
-
         self.btn_Lupa_Prod.setIcon(icon)
-
         self.escolher_produto = []
         self.btn_Lupa_Prod.clicked.connect(self.abrir_tela_escolher_produto)
 
@@ -957,8 +954,6 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
     def pintar_bloquear_tabela_solicitacao(self):
         try:
             dados_tabela = extrair_tabela(self.table_Solicitacao)
-
-            fonte = QFont("Segoe UI", 7)
 
             for index, dados in enumerate(dados_tabela):
                 cod, descr, ref, um, qtde, destino = dados
@@ -2233,9 +2228,9 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
 
     def abrir_tela_escolher_produto(self):
         cod_prod = self.line_Codigo_Manu.text()
-        from menu_cadastros.prod_consultar import TelaProdutoConsulta
+        from menu_cadastros.prod_pesquisar import TelaProdutoPesquisar
 
-        self.escolher_produto = TelaProdutoConsulta(cod_prod, True)
+        self.escolher_produto = TelaProdutoPesquisar(cod_prod, True)
         self.escolher_produto.produto_escolhido.connect(self.atualizar_produto_entry)
         self.escolher_produto.show()
 

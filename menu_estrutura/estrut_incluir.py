@@ -15,7 +15,7 @@ import traceback
 
 
 class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, produto, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
@@ -27,6 +27,13 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         layout_cabec_tab(self.table_Estrutura)
 
         self.definir_line_bloqueados()
+
+        self.processando = False
+
+        if produto:
+            self.line_Codigo_Estrut.setText(produto)
+            self.line_Codigo_Estrut.setReadOnly(True)
+            self.verifica_line_codigo_acabado()
 
         self.line_Codigo_Estrut.setFocus()
 
@@ -41,8 +48,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         self.btn_Limpar.clicked.connect(self.limpar)
 
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
-
-        self.processando = False
 
         self.check_Converte_Manu.stateChanged.connect(self.verifica_check_converter_kilos)
 
@@ -987,6 +992,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaEstruturaIncluir()
+    tela = TelaEstruturaIncluir("")
     tela.show()
     qt.exec_()
