@@ -283,7 +283,7 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 self.line_CodForn.clear()
                 self.line_CodForn.setFocus()
             else:
-                nom_fornecedor = dados_fornecedor[0][1]
+                nom_fornecedor = dados_fornecedor[0][1].strip()
                 self.line_NomeForn.setText(nom_fornecedor)
                 self.line_Codigo.setFocus()
 

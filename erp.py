@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.02.000"
-        self.data_versao = f"05/08/2024"
+        self.versao = f"Versão 2.03.000"
+        self.data_versao = f"07/08/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -36,6 +36,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.prod_alterar = []
         self.prod_pesquisar = []
         self.prod_consultar = []
+        self.cad_cliente = []
 
         self.sol_incluir = []
         self.req_incluir = []
@@ -154,6 +155,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.actionAlterar_Produto.triggered.connect(self.definir_tela_action)
             self.actionPesquisar_Produto.triggered.connect(self.definir_tela_action)
             self.action_Consultar_Produto.triggered.connect(self.definir_tela_action)
+            self.actionCliente.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
@@ -224,6 +226,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_cadastros.prod_consulta import TelaProdutoConsultar
                 self.prod_consultar = TelaProdutoConsultar()
                 self.prod_consultar.show()
+
+            elif sender == self.actionCliente:
+                from menu_cadastros.cad_cliente import TelaCadastroCliente
+                self.cad_cliente = TelaCadastroCliente()
+                self.cad_cliente.show()
 
             elif sender == self.action_Sol_Incluir:
                 from menu_compras.sol_incluir import TelaSolIncluir

@@ -227,6 +227,7 @@
     </widget>
     <addaction name="menuProduto_Preliminar"/>
     <addaction name="menuProduto"/>
+    <addaction name="actionCliente"/>
    </widget>
    <widget class="QMenu" name="menu_Compras">
     <property name="title">
@@ -673,6 +674,11 @@
   <action name="actionPesquisar_Produto">
    <property name="text">
     <string>Pesquisar Produto</string>
+   </property>
+  </action>
+  <action name="actionCliente">
+   <property name="text">
+    <string>Cliente</string>
    </property>
   </action>
  </widget>
