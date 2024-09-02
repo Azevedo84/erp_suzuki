@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.03.000"
-        self.data_versao = f"07/08/2024"
+        self.versao = f"Versão 2.04.000"
+        self.data_versao = f"02/09/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -37,6 +37,13 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.prod_pesquisar = []
         self.prod_consultar = []
         self.cad_cliente = []
+        self.cad_fornecedor = []
+        self.cad_conjunto = []
+        self.cad_funcionario = []
+        self.cad_cfop = []
+        self.cad_tipo_material = []
+        self.cad_projeto = []
+        self.local_estoque = []
 
         self.sol_incluir = []
         self.req_incluir = []
@@ -156,6 +163,13 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.actionPesquisar_Produto.triggered.connect(self.definir_tela_action)
             self.action_Consultar_Produto.triggered.connect(self.definir_tela_action)
             self.actionCliente.triggered.connect(self.definir_tela_action)
+            self.actionFornecedor.triggered.connect(self.definir_tela_action)
+            self.actionFuncionario.triggered.connect(self.definir_tela_action)
+            self.actionConjunto.triggered.connect(self.definir_tela_action)
+            self.actionNatureza_Opera_o_CFOP.triggered.connect(self.definir_tela_action)
+            self.actionTipo_de_Material.triggered.connect(self.definir_tela_action)
+            self.actionProjetos.triggered.connect(self.definir_tela_action)
+            self.actionLocais_de_Estoque.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
@@ -231,6 +245,41 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_cadastros.cad_cliente import TelaCadastroCliente
                 self.cad_cliente = TelaCadastroCliente()
                 self.cad_cliente.show()
+
+            elif sender == self.actionFornecedor:
+                from menu_cadastros.cad_fornecedor import TelaCadastroFornecedor
+                self.cad_fornecedor = TelaCadastroFornecedor()
+                self.cad_fornecedor.show()
+
+            elif sender == self.actionFuncionario:
+                from menu_cadastros.cad_funcionario import TelaCadastroFuncionario
+                self.cad_funcionario = TelaCadastroFuncionario()
+                self.cad_funcionario.show()
+
+            elif sender == self.actionConjunto:
+                from menu_cadastros.cad_conjunto import TelaCadastroConjunto
+                self.cad_conjunto = TelaCadastroConjunto()
+                self.cad_conjunto.show()
+
+            elif sender == self.actionNatureza_Opera_o_CFOP:
+                from menu_cadastros.cad_natureza import TelaCadastroNatureza
+                self.cad_cfop = TelaCadastroNatureza()
+                self.cad_cfop.show()
+
+            elif sender == self.actionTipo_de_Material:
+                from menu_cadastros.cad_tipomaterial import TelaCadastroTipoMaterial
+                self.cad_tipo_material = TelaCadastroTipoMaterial()
+                self.cad_tipo_material.show()
+
+            elif sender == self.actionProjetos:
+                from menu_cadastros.cad_projeto import TelaCadastroProjeto
+                self.cad_projeto = TelaCadastroProjeto()
+                self.cad_projeto .show()
+
+            elif sender == self.actionLocais_de_Estoque:
+                from menu_cadastros.cad_local_estoque import TelaCadastroLocalEstoque
+                self.local_estoque = TelaCadastroLocalEstoque()
+                self.local_estoque.show()
 
             elif sender == self.action_Sol_Incluir:
                 from menu_compras.sol_incluir import TelaSolIncluir

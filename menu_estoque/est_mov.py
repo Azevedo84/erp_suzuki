@@ -138,6 +138,8 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                            f"CASE WHEN m.tipo = 210 THEN ('OP '|| produtoos.numero) "
                            f"WHEN m.tipo = 110 THEN ('OP '|| ordemservico.numero) "
                            f"WHEN m.tipo = 130 THEN ('NF '|| entradaprod.nota) "
+                           f"WHEN m.tipo = 140 THEN ('INVENTÁRIO') "
+                           f"WHEN m.tipo = 240 THEN ('INVENTÁRIO') "
                            f"WHEN m.tipo = 230 THEN ('NF '|| saidaprod.numero) "
                            f"WHEN m.tipo = 250 THEN ('Devol. OS '|| produtoservico.numero) "
                            f"WHEN m.tipo = 112 THEN ('OS '|| produtoservico.numero) "
@@ -147,10 +149,12 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                            f"CASE WHEN m.tipo = 210 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 110 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 130 THEN (fornecedores.razao) "
+                           f"WHEN m.tipo = 140 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 230 THEN (clientes.razao) "
                            f"WHEN m.tipo = 250 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 112 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 220 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 240 THEN (funcionarios.funcionario) "
                            f"END AS teste, "
                            f"COALESCE(m.obs, '') "
                            f"FROM movimentacao m "
@@ -304,6 +308,9 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             ent_os = 112
             ent_os_112 = "produtoservico.numero"
 
+            ent_inv = 140
+            ent_inv_140 = "produtoservico.numero"
+
             sai_nf = 230
             sai_nf_230 = "saidaprod.numero"
 
@@ -316,8 +323,12 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             sai_ci = 220
             sai_ci_220 = "produtoos.numero"
 
-            return ent_nf, ent_nf_130, ent_op, ent_op_110, ent_os, ent_os_112, sai_nf, sai_nf_230, \
-                    sai_devolucao, sai_devolucao_250, sai_op, sai_op_210, sai_ci, sai_ci_220
+            sai_inv = 240
+            sai_inv_240 = "produtoos.numero"
+
+            return ent_nf, ent_nf_130, ent_op, ent_op_110, ent_os, ent_os_112, sai_nf, \
+                   sai_nf_230, ent_inv, ent_inv_140, sai_devolucao, sai_devolucao_250, \
+                   sai_op, sai_op_210, sai_ci, sai_ci_220, sai_inv, sai_inv_240
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -362,7 +373,7 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             elif mes_fim == "11":
                 mes_certo = "Novembro"
             elif mes_fim == "12":
-                mes_certo = "Novembro"
+                mes_certo = "Dezembro"
             else:
                 mes_certo = ""
 
@@ -376,7 +387,9 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
     def tititutu(self, data_inicial, data_final):
         try:
             ent_nf, ent_nf_130, ent_op, ent_op_110, ent_os, ent_os_112, sai_nf, sai_nf_230, \
-                sai_devolucao, sai_devolucao_250, sai_op, sai_op_210, sai_ci, sai_ci_220 = self.tipos_movimentos()
+            ent_inv, ent_inv_140, sai_devolucao, sai_devolucao_250, sai_op, sai_op_210, sai_ci, \
+            sai_ci_220, sai_inv, sai_inv_240 = self.tipos_movimentos()
+
             results = []
             ops_entradas = []
 
@@ -390,6 +403,10 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                 results.append(dados)
 
             total = self.select_mov(data_inicial, data_final, ent_os, ent_os_112)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov(data_inicial, data_final, ent_inv, ent_inv_140)
             for dados in total:
                 results.append(dados)
 
@@ -410,6 +427,10 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                 results.append(dados)
 
             total = self.select_mov(data_inicial, data_final, sai_ci, sai_ci_220)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov(data_inicial, data_final, sai_inv, sai_inv_240)
             for dados in total:
                 results.append(dados)
 

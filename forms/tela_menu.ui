@@ -227,7 +227,14 @@
     </widget>
     <addaction name="menuProduto_Preliminar"/>
     <addaction name="menuProduto"/>
+    <addaction name="actionConjunto"/>
     <addaction name="actionCliente"/>
+    <addaction name="actionFornecedor"/>
+    <addaction name="actionFuncionario"/>
+    <addaction name="actionNatureza_Opera_o_CFOP"/>
+    <addaction name="actionTipo_de_Material"/>
+    <addaction name="actionProjetos"/>
+    <addaction name="actionLocais_de_Estoque"/>
    </widget>
    <widget class="QMenu" name="menu_Compras">
     <property name="title">
@@ -679,6 +686,41 @@
   <action name="actionCliente">
    <property name="text">
     <string>Cliente</string>
+   </property>
+  </action>
+  <action name="actionFornecedor">
+   <property name="text">
+    <string>Fornecedor</string>
+   </property>
+  </action>
+  <action name="actionFuncionario">
+   <property name="text">
+    <string>Funcionário</string>
+   </property>
+  </action>
+  <action name="actionConjunto">
+   <property name="text">
+    <string>Conjunto</string>
+   </property>
+  </action>
+  <action name="actionNatureza_Opera_o_CFOP">
+   <property name="text">
+    <string>Natureza Operação (CFOP)</string>
+   </property>
+  </action>
+  <action name="actionTipo_de_Material">
+   <property name="text">
+    <string>Tipo de Material</string>
+   </property>
+  </action>
+  <action name="actionProjetos">
+   <property name="text">
+    <string>Projeto</string>
+   </property>
+  </action>
+  <action name="actionLocais_de_Estoque">
+   <property name="text">
+    <string>Local de Estoque</string>
    </property>
   </action>
  </widget>

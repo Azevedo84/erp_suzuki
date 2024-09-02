@@ -463,6 +463,8 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
 
                     self.mensagem_alerta(f"Cadastro do produto {codigo} foi excluído com Sucesso!")
                     self.limpa_dados_produto()
+                    self.line_Codigo.clear()
+                    self.line_Codigo.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -506,6 +508,8 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
                 if int(codigo_produto) == 0:
                     self.mensagem_alerta('O campo "Código" não pode ser "0"')
                     self.limpa_dados_produto()
+                    self.line_Codigo.clear()
+                    self.line_Codigo.setFocus()
                 else:
                     self.verifica_sql_produto_manual()
                     self.table_Estoque.setFocus()
@@ -528,7 +532,11 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
             if not detalhes_produto:
                 self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_dados_produto()
+                self.line_Codigo.clear()
+                self.line_Codigo.setFocus()
             else:
+                self.limpa_dados_produto()
+                self.table_Estoque.clearContents()
                 self.lanca_dados_produto_manual()
 
         except Exception as e:
@@ -618,7 +626,6 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
             data_hoje = date.today()
             self.date_Emissao.setDate(data_hoje)
 
-            self.line_Codigo.clear()
             self.line_Referencia.clear()
             self.line_Descricao.clear()
             self.line_DescrCompl.clear()

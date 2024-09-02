@@ -1932,6 +1932,7 @@ class TelaSolIncluir(QMainWindow, Ui_MainWindow):
             observacao_requisicao = self.line_Obs.text()
             obs_req_maiuscula = observacao_requisicao.upper()
             observacao_certa = unidecode(obs_req_maiuscula)
+
             nome_computador = socket.gethostname()
 
             datamov = self.date_Emissao.text()

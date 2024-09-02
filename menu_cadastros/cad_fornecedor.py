@@ -1,6 +1,6 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_cad_cliente import *
+from forms.tela_cad_fornecedor import *
 from banco_dados.controle_erros import grava_erro_banco
 from banco_dados.bc_consultas import definir_proximo_registro
 from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
@@ -15,7 +15,7 @@ import traceback
 from unidecode import unidecode
 
 
-class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
+class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -29,12 +29,6 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
 
         self.lanca_numero_id()
         self.definir_data_emissao()
-        self.manipula_dados_tabela()
-
-        validador_so_numeros(self.line_Num)
-        self.line_Num.setReadOnly(True)
-
-        validador_so_numeros(self.line_Registro)
 
         self.table_Lista.viewport().installEventFilter(self)
 
@@ -44,6 +38,11 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
 
         self.btn_Consulta.clicked.connect(self.procura_palavra)
         self.line_Consulta.returnPressed.connect(lambda: self.procura_palavra())
+
+        validador_so_numeros(self.line_Num)
+        self.line_Num.setReadOnly(True)
+
+        validador_so_numeros(self.line_Registro)
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -121,7 +120,7 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
 
     def lanca_numero_id(self):
         try:
-            definir_proximo_registro(self.line_Num, "id", "clientes")
+            definir_proximo_registro(self.line_Num, "id", "fornecedores")
             self.line_Registro.setFocus()
 
         except Exception as e:
@@ -139,44 +138,13 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def manipula_dados_tabela(self):
-        try:
-            tabela_nova = []
-
-            cursor = conecta.cursor()
-            cursor.execute(f"select id, data_criacao, "
-                           f"registro, razao, COALESCE(venda, '') "
-                           f"from clientes "
-                           f"where id <> 0 "
-                           f"order by razao;")
-            select_numero = cursor.fetchall()
-
-            if select_numero:
-                for i in select_numero:
-                    id_cliente, data, registro, razao, venda = i
-
-                    data_formatada = timestamp_brasileiro(data)
-
-                    dados = (id_cliente, data_formatada, registro, razao, venda)
-                    tabela_nova.append(dados)
-
-            if tabela_nova:
-                lanca_tabela(self.table_Lista, tabela_nova)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
     def reiniciando_tela(self):
         try:
             self.line_Registro.clear()
             self.line_Descricao.clear()
-            self.check_Venda.setChecked(False)
             self.line_Consulta.clear()
 
             self.lanca_numero_id()
-            self.manipula_dados_tabela()
             self.definir_desbloqueios()
 
         except Exception as e:
@@ -197,10 +165,9 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
                 palavra_maiuscula = palavra_consulta.upper()
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT DISTINCT id, data_criacao, "
-                               f"registro, razao, COALESCE(venda, '') "
-                               f"FROM clientes "
-                               f"WHERE razao LIKE '%{palavra_maiuscula}%' and id <> 0 "
+                cursor.execute(f"SELECT DISTINCT id, data_criacao, registro, razao "
+                               f"FROM fornecedores "
+                               f"WHERE razao LIKE '%{palavra_maiuscula}%' "
                                f"ORDER BY razao;")
                 palavra = cursor.fetchall()
 
@@ -209,11 +176,11 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
                     self.line_Consulta.clear()
                 else:
                     for i in palavra:
-                        id_cliente, data, registro, razao, venda = i
+                        id_fornecedor, data, registro, razao = i
 
                         data_formatada = timestamp_brasileiro(data)
 
-                        dados = (id_cliente, data_formatada, registro, razao, venda)
+                        dados = (id_fornecedor, data_formatada, registro, razao)
                         tabela_nova.append(dados)
 
                 if tabela_nova:
@@ -234,16 +201,11 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
                 extrai_recomendados = extrair_tabela(self.table_Lista)
                 item_selecionado = extrai_recomendados[item.row()]
 
-                id_cli, criacao, registro, desc, venda = item_selecionado
+                id_cli, criacao, registro, desc = item_selecionado
 
                 self.line_Num.setText(id_cli)
                 self.line_Registro.setText(registro)
                 self.line_Descricao.setText(desc)
-
-                if venda == "S":
-                    self.check_Venda.setChecked(True)
-                else:
-                    self.check_Venda.setChecked(False)
 
                 self.definir_bloqueios()
 
@@ -284,48 +246,39 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
                 self.line_Descricao.setFocus()
             else:
                 cursor = conecta.cursor()
-                cursor.execute(f"select id, data_criacao, registro, razao, COALESCE(venda, '') "
-                               f"from clientes where id = {num_id} and id <> 0 ;")
-                cliente = cursor.fetchall()
-
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT * "
-                               f"FROM pedidointerno "
-                               f"WHERE id_cliente = {num_id};")
-                pedido_interno = cursor.fetchall()
+                cursor.execute(f"select id, data_criacao, registro, razao "
+                               f"from fornecedores where id = {num_id};")
+                fornecedor = cursor.fetchall()
 
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT * "
                                f"FROM ordemcompra "
-                               f"WHERE cliente = {num_id};")
+                               f"WHERE fornecedor = {num_id};")
                 ordem_compra = cursor.fetchall()
 
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT * "
-                               f"FROM saida "
-                               f"WHERE cliente = {num_id};")
-                notas_saida = cursor.fetchall()
+                               f"FROM entrada "
+                               f"WHERE fornecedor = {num_id};")
+                notas_entrada = cursor.fetchall()
 
-                if not cliente:
-                    self.mensagem_alerta(f'O cadastro de cliente Nº {num_id} não existe!')
-                elif pedido_interno:
-                    self.mensagem_alerta(f'O cadastro de cliente Nº {num_id} não pode ser excluído, '
-                                         f'pois este cliente tem vinculo com Pedidos Internos!')
+                if not fornecedor:
+                    self.mensagem_alerta(f'O cadastro de Fornecedor Nº {num_id} não existe!')
                 elif ordem_compra:
-                    self.mensagem_alerta(f'O cadastro de cliente Nº {num_id} não pode ser excluído, '
-                                         f'pois este cliente tem vinculo com Ordens de Venda!')
-                elif notas_saida:
-                    self.mensagem_alerta(f'O cadastro de cliente Nº {num_id} não pode ser excluído, '
-                                         f'pois este cliente tem vinculo com Notas Fiscais de Saída!')
+                    self.mensagem_alerta(f'O cadastro de Fornecedor Nº {num_id} não pode ser excluído, '
+                                         f'pois existem vinculos com Ordens de Compra!')
+                elif notas_entrada:
+                    self.mensagem_alerta(f'O cadastro de Fornecedor Nº {num_id} não pode ser excluído, '
+                                         f'pois existem vinculos com Notas Fiscais de Entrada!')
                 else:
-                    msg = f'Tem certeza que deseja excluir o Cliente {nome}?'
+                    msg = f'Tem certeza que deseja excluir o Fornecedor {nome}?'
                     if self.pergunta_confirmacao(msg):
                         cursor = conecta.cursor()
-                        cursor.execute(f"DELETE FROM clientes WHERE id = {num_id};")
+                        cursor.execute(f"DELETE FROM fornecedores WHERE id = {num_id};")
 
                         conecta.commit()
 
-                        self.mensagem_alerta(f"Cadastro do Cliente {nome} foi excluído com Sucesso!")
+                        self.mensagem_alerta(f"Cadastro do Fornecedor {nome} foi excluído com Sucesso!")
 
                         self.reiniciando_tela()
 
@@ -380,66 +333,41 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
             descr_maiuscula = descr.upper()
             descr_sem_acentos = unidecode(descr_maiuscula)
 
-            if self.check_Venda.isChecked():
-                venda = "S"
-            else:
-                venda = "NULL"
-
             cursor = conecta.cursor()
-            cursor.execute(f"select id, data_criacao, registro, razao, COALESCE(venda, '') "
-                           f"from clientes where id = {num_id};")
-            cliente = cursor.fetchall()
+            cursor.execute(f"select id, data_criacao, registro, razao "
+                           f"from fornecedores where id = {num_id};")
+            fornecedor = cursor.fetchall()
 
-            if cliente:
-                num_id_b, criacao_b, registro_b, razao_b, vend = cliente[0]
-
-                if vend:
-                    if vend == " ":
-                        venda_b = "NULL"
-                    else:
-                        venda_b = vend
-                else:
-                    venda_b = "NULL"
+            if fornecedor:
+                num_id_b, criacao_b, registro_b, razao_b = fornecedor[0]
 
                 campos_atualizados = []
                 if descr_sem_acentos != razao_b:
                     campos_atualizados.append(f"razao = '{descr_sem_acentos}'")
-                if venda != venda_b:
-                    if venda == "NULL":
-                        campos_atualizados.append(f"venda = {venda}")
-                    else:
-                        campos_atualizados.append(f"venda = '{venda}'")
 
                 if campos_atualizados:
-                    msg = f'Deseja realmente atualizar o cadastro do Cliente?'
+                    msg = f'Deseja realmente atualizar o cadastro do Fornecedor?'
                     if self.pergunta_confirmacao(msg):
                         campos_update = ", ".join(campos_atualizados)
 
-                        cursor.execute(f"UPDATE clientes SET {campos_update} "
+                        cursor.execute(f"UPDATE fornecedores SET {campos_update} "
                                        f"WHERE id = {num_id_b};")
 
                         conecta.commit()
 
-                        msg = f'O cadastro do cliente {descr_sem_acentos} foi atualizado com sucesso!'
+                        msg = f'O cadastro do Fornecedor {descr_sem_acentos} foi atualizado com sucesso!'
                         self.mensagem_alerta(msg)
 
             else:
-                msg = f'Deseja realmente cadastrar este cliente?'
+                msg = f'Deseja realmente cadastrar este Fornecedor?'
                 if self.pergunta_confirmacao(msg):
-                    if venda == "NULL":
-                        cursor = conecta.cursor()
-                        cursor.execute(f"Insert into clientes (ID, RAZAO, REGISTRO, VENDA) "
-                                       f"values (GEN_ID(GEN_CLIENTES_ID,1), '{descr_sem_acentos}', '{registro}', "
-                                       f"{venda});")
-                    else:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"Insert into clientes (ID, RAZAO, REGISTRO, VENDA) "
-                                       f"values (GEN_ID(GEN_CLIENTES_ID,1), '{descr_sem_acentos}', '{registro}', "
-                                       f"'{venda}');")
+                    cursor = conecta.cursor()
+                    cursor.execute(f"Insert into fornecedores (ID, RAZAO, REGISTRO) "
+                                   f"values (GEN_ID(GEN_FORNECEDORES_ID,1), '{descr_sem_acentos}', '{registro}');")
 
                     conecta.commit()
 
-                    msg = f'O cadastro do cliente {descr_sem_acentos} foi criado com sucesso!'
+                    msg = f'O cadastro do Fornecedor {descr_sem_acentos} foi criado com sucesso!'
                     self.mensagem_alerta(msg)
 
             self.reiniciando_tela()
@@ -452,6 +380,6 @@ class TelaCadastroCliente(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaCadastroCliente()
+    tela = TelaCadastroFornecedor()
     tela.show()
     qt.exec_()

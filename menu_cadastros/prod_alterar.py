@@ -86,6 +86,30 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def pergunta_confirmacao(self, mensagem):
+        try:
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
+
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def verifica_line_codigo_manual(self):
         if not self.processando:
             try:
@@ -590,8 +614,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta(f'O Código de barras do produto não pode estar vazio!')
             elif not descr:
                 self.mensagem_alerta(f'A Descrição do produto não pode estar vazia!')
-            elif not ncm:
-                self.mensagem_alerta(f'A NCM do produto não pode estar vazia!')
             elif not um:
                 self.mensagem_alerta(f'A Unidade de Medida (UM) do produto não pode estar vazia!')
             elif not conjunto:
@@ -599,18 +621,29 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             elif not tipo:
                 self.mensagem_alerta(f'O Tipo de Material do produto não pode estar vazio!')
             else:
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
-                lista_completa = cursor.fetchall()
-                if lista_completa:
-                    if um == "KG":
-                        kg_mt = self.line_kg_mt.text()
-                        if not kg_mt:
-                            self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
+                if not ncm:
+                    msg = f'A NCM do produto não deveria estar vazia!\n\n' \
+                          f'Tem certeza que deseja continuar?'
+                    if self.pergunta_confirmacao(msg):
+                        status = True
+                    else:
+                        status = False
+                else:
+                    status = True
+
+                if status:
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
+                    lista_completa = cursor.fetchall()
+                    if lista_completa:
+                        if um == "KG":
+                            kg_mt = self.line_kg_mt.text()
+                            if not kg_mt:
+                                self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
+                            else:
+                                self.salvar_alteracao()
                         else:
                             self.salvar_alteracao()
-                    else:
-                        self.salvar_alteracao()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -723,16 +756,23 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     campos_atualizados.append(f"QUANTIDADEMIN = '{qtde_mini_float_a}'")
 
                 if ncm != ncm_a:
-                    campos_atualizados.append(f"NCM = '{ncm_a}'")
+                    if ncm_a:
+                        campos_atualizados.append(f"NCM = '{ncm_a}'")
+                    else:
+                        campos_atualizados.append(f"NCM = NULL")
 
                 if obs != obs_a:
-                    campos_atualizados.append(f"OBS2 = '{obs_a}'")
+                    if obs_a:
+                        campos_atualizados.append(f"OBS2 = '{obs_a}'")
+                    else:
+                        campos_atualizados.append(f"OBS2 = NULL")
 
                 if campos_atualizados:
                     campos_update = ", ".join(campos_atualizados)
-                    print(campos_update)
 
                     cod_produto = self.line_Codigo.text()
+
+                    print(campos_update)
 
                     cursor = conecta.cursor()
                     cursor.execute(f"UPDATE produto SET {campos_update} "

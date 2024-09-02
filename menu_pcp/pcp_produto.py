@@ -5,7 +5,7 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import lanca_tabela, layout_cabec_tab
 from comandos.telas import tamanho_aplicacao, icone
 from comandos.cores import cor_verde, widgets, cor_vermelho
-from comandos.lines import validador_inteiro
+from comandos.lines import validador_so_numeros
 from comandos.conversores import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
@@ -33,7 +33,7 @@ class TelaPcpProduto(QMainWindow, Ui_MainWindow):
         layout_cabec_tab(self.table_Usado)
         layout_cabec_tab(self.table_Mov)
 
-        validador_inteiro(self.line_Codigo, 123456)
+        validador_so_numeros(self.line_Codigo)
 
         self.showMaximized()
 

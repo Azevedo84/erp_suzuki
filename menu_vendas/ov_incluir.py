@@ -38,6 +38,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
 
         self.btn_Excel.clicked.connect(self.gera_excel)
 
+        validator = QtGui.QRegExpValidator(QtCore.QRegExp(r'\d+'), self.line_Num_OV)
+        self.line_Num_OV.setValidator(validator)
+
         self.definir_emissao()
         self.manipula_dados_pi()
 
@@ -175,7 +178,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                            f"prod.id, prod.codigo, prod.descricao, "
                            f"COALESCE(prod.obs, '') as obs, "
                            f"prod.unidade, prodint.qtde, prodint.data_previsao, prod.quantidade, "
-                           f"conj.conjunto, prod.terceirizado, prod.custounitario, prod.custoestrutura, "
+                           f"prod.conjunto, prod.terceirizado, prod.custounitario, prod.custoestrutura, "
                            f"COALESCE(ped.obs, '') as obs, ped.solicitante "
                            f"FROM PRODUTOPEDIDOINTERNO as prodint "
                            f"INNER JOIN produto as prod ON prodint.id_produto = prod.id "
@@ -199,12 +202,12 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                         cursor.execute(f"UPDATE produto SET custoestrutura = '{0}' where id = {id_cod};")
                         conecta.commit()
 
-                        if conj == 'Produtos Acabados':
+                        if conj == 10:
                             estrutura = self.verifica_estrutura_problema(1, cod, qtde)
                             for itens in estrutura:
                                 ni_e, cod_e, des_e, ref_e, um_e, qtd_e, conj_e, temp_e, terc_e, unit_e, est_e = itens
 
-                                if conj_e == 'Produtos Acabados':
+                                if conj_e == 10:
                                     if temp_e or terc_e:
                                         pass
                                     else:
@@ -232,7 +235,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 self.mensagem_alerta(f"O produto {cod} não tem custo unitário definido!")
 
                         if not problemas_produto:
-                            if conj == 'Produtos Acabados':
+                            if conj == 10:
                                 qtde_float = valores_para_float(qtde)
 
                                 custo_estrut_float = valores_para_float(estrut)
@@ -270,7 +273,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
     def verifica_estrutura_problema(self, nivel, codigo, qtde):
         try:
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, conj.conjunto, "
+            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, prod.conjunto, "
                            f"prod.tempo, prod.terceirizado, prod.custounitario, prod.custoestrutura "
                            f"FROM produto as prod "
                            f"LEFT JOIN tipomaterial as tip ON prod.tipomaterial = tip.id "
@@ -627,12 +630,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             if dados_tabela and cliente:
                 data_hoje = date.today()
                 data_certa = data_hoje.strftime("%d/%m/%Y")
-                print(data_certa)
 
                 valor_t = self.line_Total_Geral.text()
-                print(valor_t)
                 total_float = valores_para_float(valor_t)
-                print(total_float)
 
                 cliente_maiuscula = cliente.upper()
                 cliente_certo = unidecode(cliente_maiuscula)

@@ -36,11 +36,6 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         self.processando = False
 
-        if produto:
-            self.line_Codigo_Estrut.setText(produto)
-            self.line_Codigo_Estrut.setReadOnly(True)
-            self.verifica_line_codigo_acabado()
-
         self.progressBar.setHidden(True)
 
         self.widget_MaoObra.setHidden(True)
@@ -51,6 +46,11 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
         self.lanca_custo_hora_homem()
         self.calcula_total_maodeobra()
+
+        if produto:
+            self.line_Codigo_Estrut.setText(produto)
+            self.line_Codigo_Estrut.setReadOnly(True)
+            self.verifica_line_codigo_acabado()
         
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -330,7 +330,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT mat.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, "
-                           f"conj.conjunto, prod.unidade, "
+                           f"prod.conjunto, prod.unidade, "
                            f"(mat.quantidade * 1) as qtde, prod.terceirizado, prod.custounitario, prod.custoestrutura "
                            f"from materiaprima as mat "
                            f"INNER JOIN produto prod ON mat.codigo = prod.codigo "
@@ -346,7 +346,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                     unit_float = valores_para_float(unit)
                     estrut_float = valores_para_float(estrut)
 
-                    if conjunto == 'Produtos Acabados':
+                    if conjunto == 10:
                         total = qtde_float * estrut_float
 
                         total_rs = self.atualiza_mascara_moeda(total)
@@ -570,7 +570,8 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
 
                 for i in tab_ordenada:
                     niv, codi, descr, ref, um, qtdi, conj, temp, terc, unit, estrut = i
-                    if conj == 'Produtos Acabados':
+
+                    if conj == 'PRODUTOS ACABADOS':
                         if temp or terc:
                             pass
                         else:

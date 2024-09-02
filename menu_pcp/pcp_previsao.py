@@ -561,6 +561,9 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
             detalhes_pai = cursor.fetchall()
             id_pai, cod_pai, descr_pai, ref_pai, um_pai, saldo, tipo = detalhes_pai[0]
 
+            if cod_pai == "72463":
+                print(num_pi, cod_or, descr_or, qtdei, detalhes_pai[0])
+
             msg1 = "Verificando Estrutura:"
             msg2 = f"Código: {cod_pai}"
             msg3 = f"{descr_pai}"
@@ -597,6 +600,9 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                 novo_saldo = saldo_float - qtde_flt_c_oc
                 lanca_saldo = (cod_pai, novo_saldo)
                 lista_saldos.append(lanca_saldo)
+
+            if cod_pai == "72463":
+                print(num_pi, novo_saldo, qtde_flt_c_oc)
 
             if novo_saldo < 0 and qtde_flt_c_oc > 0:
                 coco = novo_saldo + qtde_flt_c_oc

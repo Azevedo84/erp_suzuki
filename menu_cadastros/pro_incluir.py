@@ -357,13 +357,13 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                     conj_count = self.combo_Conjunto.count()
                     for i_conj in range(conj_count):
                         conj_text = self.combo_Conjunto.itemText(i_conj)
-                        if "10 - Produtos Acabados" in conj_text:
+                        if "10 - PRODUTOS ACABADOS" in conj_text:
                             self.combo_Conjunto.setCurrentText(conj_text)
                 else:
                     conj_count = self.combo_Conjunto.count()
                     for i_conj in range(conj_count):
                         conj_text = self.combo_Conjunto.itemText(i_conj)
-                        if "8 - Materia Prima" in conj_text:
+                        if "8 - MATERIA PRIMA" in conj_text:
                             self.combo_Conjunto.setCurrentText(conj_text)
 
                 if tp == 23:
@@ -398,7 +398,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 conj_count = self.combo_Conjunto.count()
                 for i_conj in range(conj_count):
                     conj_text = self.combo_Conjunto.itemText(i_conj)
-                    if "8 - Materia Prima" in conj_text:
+                    if "8 - MATERIA PRIMA" in conj_text:
                         self.combo_Conjunto.setCurrentText(conj_text)
 
         except Exception as e:

@@ -161,3 +161,18 @@ def float_para_virgula(valor_float):
         nome_funcao = inspect.currentframe().f_code.co_name
         exc_traceback = sys.exc_info()[2]
         trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
+def timestamp_brasileiro(data_e_tempo):
+    try:
+        if data_e_tempo:
+            data_formatada = data_e_tempo.strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            data_formatada = ""
+
+        return data_formatada
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)

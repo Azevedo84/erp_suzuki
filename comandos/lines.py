@@ -1,7 +1,7 @@
 import sys
 from banco_dados.controle_erros import grava_erro_banco
-from PyQt5.QtCore import QLocale
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtCore import QLocale, QRegExp
+from PyQt5.QtGui import QDoubleValidator, QIntValidator, QRegExpValidator
 from datetime import date
 import os
 import inspect
@@ -51,6 +51,17 @@ def validador_inteiro(nome_line, numero):
         validator = QIntValidator(0, numero, nome_line)
         locale = QLocale("pt_BR")
         validator.setLocale(locale)
+        nome_line.setValidator(validator)
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+
+def validador_so_numeros(nome_line):
+    try:
+        validator = QRegExpValidator(QRegExp(r'\d+'), nome_line)
         nome_line.setValidator(validator)
 
     except Exception as e:
