@@ -92,7 +92,10 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
 
     def consulta_tred(self):
         try:
-            dados_tabela = self.define_tabela()
+            if self.radio_Almox.isChecked():
+                dados_tabela = self.define_tabela_almox()
+            else:
+                dados_tabela = self.define_tabela_total()
 
             if dados_tabela:
                 lanca_tabela(self.table_OP, dados_tabela)
@@ -102,7 +105,7 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def select_mov(self, data_inicio, data_fim, num_tipo, nome_tipo):
+    def select_mov_almox(self, data_inicio, data_fim, num_tipo, nome_tipo):
         try:
             cursor = conecta.cursor()
             cursor.execute(f"SELECT COALESCE((extract(day from m.data)||'/'||"
@@ -182,7 +185,87 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def define_tabela(self):
+    def select_mov_total(self, data_inicio, data_fim, num_tipo, nome_tipo):
+        try:
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT COALESCE((extract(day from m.data)||'/'||"
+                           f"extract(month from m.data)||'/'||extract(year from m.data)), '') AS DATA, "
+                           f"produto.codigo, produto.descricao, "
+                           f"COALESCE(produto.obs, ''), produto.unidade, "
+                           f"COALESCE(CASE WHEN m.tipo < 200 THEN m.quantidade END, 0) AS Qtde_Entrada, "
+                           f"COALESCE(CASE WHEN m.tipo > 200 THEN m.quantidade END, 0) AS Qtde_Saida, "
+                           f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo<200 and localestoque=m.localestoque)-"
+                           f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo>200 and localestoque=m.localestoque)+"
+                           f"(case when ((select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or ((m2.data=m.data) "
+                           f"and (m2.id>m.id)))) or(m.tipo>200 and m2.data>m.data)) "
+                           f"and m2.tipo<200)*-1) is null then 0 else "
+                           f"((select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or((m2.data=m.data) "
+                           f"and (m2.id>m.id)))) or(m.tipo>200 and m2.data>m.data)) "
+                           f"and m2.tipo<200)*-1) end) + "
+                           f"(case when (select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"((m2.data=m.data and (m2.id>m.id  or (m.tipo<200)) )or(m2.data>m.data)) "
+                           f"and m2.tipo>200) is null then 0 else (select sum(m2.quantidade) "
+                           f"from movimentacao m2 where m2.localestoque=m.localestoque "
+                           f"and m2.produto=m.produto and ((m2.data=m.data "
+                           f"and (m2.id>m.id or (m.tipo<200)) )or(m2.data>m.data)) and m2.tipo>200) end) "
+                           f"as saldo, "
+                           f"CASE WHEN m.tipo = 210 THEN ('OP '|| produtoos.numero) "
+                           f"WHEN m.tipo = 110 THEN ('OP '|| ordemservico.numero) "
+                           f"WHEN m.tipo = 130 THEN ('NF '|| entradaprod.nota) "
+                           f"WHEN m.tipo = 140 THEN ('INVENTÁRIO') "
+                           f"WHEN m.tipo = 240 THEN ('INVENTÁRIO') "
+                           f"WHEN m.tipo = 230 THEN ('NF '|| saidaprod.numero) "
+                           f"WHEN m.tipo = 250 THEN ('Devol. OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 112 THEN ('OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 220 THEN 'CI' "
+                           f"END AS OS_NF_CI, "
+                           f"COALESCE(natop.descricao, ''), localestoque.nome, "
+                           f"CASE WHEN m.tipo = 210 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 110 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 130 THEN (fornecedores.razao) "
+                           f"WHEN m.tipo = 140 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 230 THEN (clientes.razao) "
+                           f"WHEN m.tipo = 250 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 112 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 220 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 240 THEN (funcionarios.funcionario) "
+                           f"END AS teste, "
+                           f"COALESCE(m.obs, '') "
+                           f"FROM movimentacao m "
+                           f"INNER JOIN produto ON (m.codigo = produto.codigo) "
+                           f"INNER JOIN localestoque ON (m.localestoque = localestoque.id) "
+                           f"LEFT JOIN funcionarios ON (m.funcionario = funcionarios.id) "
+                           f"LEFT JOIN saidaprod ON (m.id = saidaprod.movimentacao) "
+                           f"LEFT JOIN entradaprod ON (m.id = entradaprod.movimentacao) "
+                           f"LEFT JOIN produtoservico ON (m.id = produtoservico.movimentacao) "
+                           f"LEFT JOIN ordemservico ON (m.id = ordemservico.movimentacao) "
+                           f"LEFT JOIN produtoos ON (m.id = produtoos.movimentacao) "
+                           f"LEFT JOIN fornecedores ON (entradaprod.fornecedor = fornecedores.id) "
+                           f"LEFT JOIN clientes ON (saidaprod.cliente = clientes.id) "
+                           f"LEFT JOIN natop ON (( COALESCE( saidaprod.natureza, 0 ) + "
+                           f"COALESCE( entradaprod.natureza, 0 ) ) = natop.ID) "
+                           f"WHERE m.data >= '{data_inicio}' and m.data <= '{data_fim}' "
+                           f"and m.tipo = {num_tipo} "
+                           f"order by m.data, {nome_tipo}, m.id;")
+            results = cursor.fetchall()
+
+            return results
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def define_tabela_almox(self):
         try:
             results = []
 
@@ -199,18 +282,18 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                 for data in range(0, dif1 + 1):
                     data_muda = data_inicio_certa + timedelta(days=data)
 
-                    results0 = self.select_movimentis(data_inicio_certa, data_fim_certa)
+                    results0 = self.select_movimentis_almox(data_inicio_certa, data_fim_certa)
 
                     if not results0:
                         results = []
                     else:
-                        movimento, ops_entradas = self.tititutu(data_muda, data_muda)
+                        movimento, ops_entradas = self.tititutu_almox(data_muda, data_muda)
                         for dados in movimento:
                             results.append(dados)
             else:
                 data_muda = data_inicio_certa
 
-                results0 = self.select_movimentis(data_inicio_certa, data_fim_certa)
+                results0 = self.select_movimentis_almox(data_inicio_certa, data_fim_certa)
 
                 if not results0:
                     msg = f'Neste período não houve movimentações!'
@@ -218,7 +301,7 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                     self.widget_Progress.setHidden(True)
                     results = []
                 else:
-                    movimento, ops_entradas = self.tititutu(data_muda, data_muda)
+                    movimento, ops_entradas = self.tititutu_almox(data_muda, data_muda)
                     for dados in movimento:
                         results.append(dados)
 
@@ -231,7 +314,56 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def select_movimentis(self, data_inicio, data_fim):
+    def define_tabela_total(self):
+        try:
+            results = []
+
+            data_inicio = self.date_Inicio.text()
+            data_inicio_certa = datetime.strptime(data_inicio, '%d/%m/%Y').date()
+
+            data_fim = self.date_Final.text()
+            data_fim_certa = datetime.strptime(data_fim, '%d/%m/%Y').date()
+
+            dif = data_fim_certa - data_inicio_certa
+            dif1 = dif.days
+
+            if dif1 != 0:
+                for data in range(0, dif1 + 1):
+                    data_muda = data_inicio_certa + timedelta(days=data)
+
+                    results0 = self.select_movimentis_total(data_inicio_certa, data_fim_certa)
+
+                    if not results0:
+                        results = []
+                    else:
+                        movimento, ops_entradas = self.tititutu_total(data_muda, data_muda)
+                        for dados in movimento:
+                            results.append(dados)
+            else:
+                data_muda = data_inicio_certa
+
+                results0 = self.select_movimentis_total(data_inicio_certa, data_fim_certa)
+
+                if not results0:
+                    msg = f'Neste período não houve movimentações!'
+                    self.label_Msg.setText(msg)
+                    self.widget_Progress.setHidden(True)
+                    results = []
+                else:
+                    movimento, ops_entradas = self.tititutu_total(data_muda, data_muda)
+                    for dados in movimento:
+                        results.append(dados)
+
+            self.widget_Progress.setHidden(True)
+
+            return results
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def select_movimentis_almox(self, data_inicio, data_fim):
         try:
             cursor = conecta.cursor()
             cursor.execute(f"SELECT COALESCE((extract(day from m.data)||'/'||"
@@ -287,6 +419,72 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                            f"COALESCE( entradaprod.natureza, 0 ) ) = natop.ID) "
                            f"WHERE m.data >= '{data_inicio}' and m.data <= '{data_fim}' "
                            f"and localestoque.id IN (1, 2) "
+                           f"order by m.data, Qtde_Entrada, m.id;")
+            select_movis = cursor.fetchall()
+
+            return select_movis
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def select_movimentis_total(self, data_inicio, data_fim):
+        try:
+            print("total")
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT COALESCE((extract(day from m.data)||'/'||"
+                           f"extract(month from m.data)||'/'||extract(year from m.data)), '') AS DATA, "
+                           f"produto.codigo, produto.descricao, "
+                           f"COALESCE(produto.obs, ''), produto.unidade, "
+                           f"COALESCE(CASE WHEN m.tipo < 200 THEN m.quantidade END, 0) AS Qtde_Entrada, "
+                           f"COALESCE(CASE WHEN m.tipo > 200 THEN m.quantidade END, 0) AS Qtde_Saida, "
+                           f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo<200 and localestoque=m.localestoque)-"
+                           f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo>200 and localestoque=m.localestoque)+"
+                           f"(case when ((select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or ((m2.data=m.data) "
+                           f"and (m2.id>m.id)))) or(m.tipo>200 and m2.data>m.data)) "
+                           f"and m2.tipo<200)*-1) is null then 0 else "
+                           f"((select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or((m2.data=m.data) "
+                           f"and (m2.id>m.id)))) or(m.tipo>200 and m2.data>m.data)) "
+                           f"and m2.tipo<200)*-1) end) + "
+                           f"(case when (select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"((m2.data=m.data and (m2.id>m.id  or (m.tipo<200)) )or(m2.data>m.data)) "
+                           f"and m2.tipo>200) is null then 0 else (select sum(m2.quantidade) "
+                           f"from movimentacao m2 where m2.localestoque=m.localestoque "
+                           f"and m2.produto=m.produto and ((m2.data=m.data "
+                           f"and (m2.id>m.id or (m.tipo<200)) )or(m2.data>m.data)) and m2.tipo>200) end) "
+                           f"as saldo, "
+                           f"CASE WHEN m.tipo = 210 THEN ('OP '|| produtoos.numero) "
+                           f"WHEN m.tipo = 110 THEN ('OP '|| ordemservico.numero) "
+                           f"WHEN m.tipo = 130 THEN ('NF '|| entradaprod.nota) "
+                           f"WHEN m.tipo = 230 THEN ('NF '|| saidaprod.numero) "
+                           f"WHEN m.tipo = 250 THEN ('Devol. OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 112 THEN ('OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 220 THEN 'CI' "
+                           f"END AS OS_NF_CI, "
+                           f"COALESCE(natop.descricao, ''), localestoque.nome, "
+                           f"COALESCE(funcionarios.funcionario, ''), COALESCE(m.obs, '') "
+                           f"FROM movimentacao m "
+                           f"INNER JOIN produto ON (m.codigo = produto.codigo) "
+                           f"INNER JOIN localestoque ON (m.localestoque = localestoque.id) "
+                           f"LEFT JOIN funcionarios ON (m.funcionario = funcionarios.id) "
+                           f"LEFT JOIN saidaprod ON (m.id = saidaprod.movimentacao) "
+                           f"LEFT JOIN entradaprod ON (m.id = entradaprod.movimentacao) "
+                           f"LEFT JOIN produtoservico ON (m.id = produtoservico.movimentacao) "
+                           f"LEFT JOIN ordemservico ON (m.id = ordemservico.movimentacao) "
+                           f"LEFT JOIN produtoos ON (m.id = produtoos.movimentacao) "
+                           f"LEFT JOIN natop ON (( COALESCE( saidaprod.natureza, 0 ) + "
+                           f"COALESCE( entradaprod.natureza, 0 ) ) = natop.ID) "
+                           f"WHERE m.data >= '{data_inicio}' and m.data <= '{data_fim}' "
                            f"order by m.data, Qtde_Entrada, m.id;")
             select_movis = cursor.fetchall()
 
@@ -384,7 +582,7 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def tititutu(self, data_inicial, data_final):
+    def tititutu_almox(self, data_inicial, data_final):
         try:
             ent_nf, ent_nf_130, ent_op, ent_op_110, ent_os, ent_os_112, sai_nf, sai_nf_230, \
             ent_inv, ent_inv_140, sai_devolucao, sai_devolucao_250, sai_op, sai_op_210, sai_ci, \
@@ -393,24 +591,24 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
             results = []
             ops_entradas = []
 
-            total = self.select_mov(data_inicial, data_final, ent_nf, ent_nf_130)
+            total = self.select_mov_almox(data_inicial, data_final, ent_nf, ent_nf_130)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, ent_op, ent_op_110)
+            total = self.select_mov_almox(data_inicial, data_final, ent_op, ent_op_110)
             for dados in total:
                 ops_entradas.append(dados)
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, ent_os, ent_os_112)
+            total = self.select_mov_almox(data_inicial, data_final, ent_os, ent_os_112)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, ent_inv, ent_inv_140)
+            total = self.select_mov_almox(data_inicial, data_final, ent_inv, ent_inv_140)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, sai_nf, sai_nf_230)
+            total = self.select_mov_almox(data_inicial, data_final, sai_nf, sai_nf_230)
             for dados in total:
                 data, cod, descr, ref, um, ent, saida, saldo, os_nf_ci, cfop, local, solcic, obs = dados
                 if not os_nf_ci:
@@ -418,19 +616,76 @@ class TelaEstMovimentacao(QMainWindow, Ui_ConsultaOP):
                 else:
                     results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, sai_devolucao, sai_devolucao_250)
+            total = self.select_mov_almox(data_inicial, data_final, sai_devolucao, sai_devolucao_250)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, sai_op, sai_op_210)
+            total = self.select_mov_almox(data_inicial, data_final, sai_op, sai_op_210)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, sai_ci, sai_ci_220)
+            total = self.select_mov_almox(data_inicial, data_final, sai_ci, sai_ci_220)
             for dados in total:
                 results.append(dados)
 
-            total = self.select_mov(data_inicial, data_final, sai_inv, sai_inv_240)
+            total = self.select_mov_almox(data_inicial, data_final, sai_inv, sai_inv_240)
+            for dados in total:
+                results.append(dados)
+
+            return results, ops_entradas
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def tititutu_total(self, data_inicial, data_final):
+        try:
+            ent_nf, ent_nf_130, ent_op, ent_op_110, ent_os, ent_os_112, sai_nf, sai_nf_230, \
+            ent_inv, ent_inv_140, sai_devolucao, sai_devolucao_250, sai_op, sai_op_210, sai_ci, \
+            sai_ci_220, sai_inv, sai_inv_240 = self.tipos_movimentos()
+
+            results = []
+            ops_entradas = []
+
+            total = self.select_mov_total(data_inicial, data_final, ent_nf, ent_nf_130)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, ent_op, ent_op_110)
+            for dados in total:
+                ops_entradas.append(dados)
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, ent_os, ent_os_112)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, ent_inv, ent_inv_140)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, sai_nf, sai_nf_230)
+            for dados in total:
+                data, cod, descr, ref, um, ent, saida, saldo, os_nf_ci, cfop, local, solcic, obs = dados
+                if not os_nf_ci:
+                    pass
+                else:
+                    results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, sai_devolucao, sai_devolucao_250)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, sai_op, sai_op_210)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, sai_ci, sai_ci_220)
+            for dados in total:
+                results.append(dados)
+
+            total = self.select_mov_total(data_inicial, data_final, sai_inv, sai_inv_240)
             for dados in total:
                 results.append(dados)
 

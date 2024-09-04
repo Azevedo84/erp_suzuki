@@ -76,17 +76,11 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(07/08) PCP PRODUTO: VALIDADOR INT NO CAMPO CODIGO',
-                  '(08/08) OV INCLUIR: CORRIGIDO PROBLEMA COM CONJUNTO',
-                  '(12/08) CADASTRO FORNECEDOR: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR',
-                  '(26/08) CADASTRO FUNCIONARIO: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR',
-                  '(28/08) CADASTRO CFOP: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR',
-                  '(29/08) CADASTRO TIPO MATERIAL: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR',
-                  '(30/08) CADASTRO PROJETO: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR',
-                  '(02/09) CADASTRO LOCAL ESTOQUE: INCLUIDO CADASTRO INCLUIR/ALTERAR/EXCLUIR', ]
+lista_modifica = ['(03/09) ALTERAR PRODUTO: CORRIGIDO ERRO NO LANCAMENTO DE VARIAVEIS DO PRODUTO',
+                  '(04/09) ENCERRAR OP: BLOQUEIO TEMPORARIO', ]
 
 programa = "ERP SUZUKI"
-versao = "2.04.000"
+versao = "2.04.001"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

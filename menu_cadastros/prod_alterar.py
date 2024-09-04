@@ -150,6 +150,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
     def lanca_dados_produto_manual(self):
         try:
             codigo_produto = self.line_Codigo.text()
+
             cur = conecta.cursor()
             cur.execute(f"SELECT prod.id, prod.codbarras, prod.descricao, COALESCE(prod.descricaocomplementar, ''), "
                         f"COALESCE(prod.obs, ''), prod.unidade, COALESCE(prod.localizacao, ''), prod.ncm, "
@@ -162,6 +163,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                         f"LEFT JOIN projeto proj ON prod.projeto = proj.id "
                         f"where prod.codigo = {codigo_produto};")
             detalhes_produto = cur.fetchall()
+
             if detalhes_produto:
                 id_prod, barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, conjunto, tipo, \
                 data, embalagem, custo, minima, projeto, id_conj, obs = detalhes_produto[0]
@@ -183,47 +185,52 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 self.line_Local.setText(local)
                 self.plain_Obs.setPlainText(obs)
 
-                um_count = self.combo_UM.count()
-                for i_um in range(um_count):
-                    um_text = self.combo_UM.itemText(i_um)
-                    if um in um_text:
-                        self.combo_UM.setCurrentText(um_text)
+                if um:
+                    um_count = self.combo_UM.count()
+                    for i_um in range(um_count):
+                        um_text = self.combo_UM.itemText(i_um)
+                        if um in um_text:
+                            self.combo_UM.setCurrentText(um_text)
 
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, conjunto FROM conjuntos where conjunto = '{conjunto}';")
-                lista_conj = cursor.fetchall()
-                if lista_conj:
-                    id_conj, descr_conj = lista_conj[0]
-                    conj_certo = f"{id_conj} - {descr_conj}"
-                    conjunto_count = self.combo_Conjunto.count()
-                    for i_conjunto in range(conjunto_count):
-                        conjunto_text = self.combo_Conjunto.itemText(i_conjunto)
-                        if conj_certo in conjunto_text:
-                            self.combo_Conjunto.setCurrentText(conjunto_text)
+                if conjunto:
+                    cursor = conecta.cursor()
+                    cursor.execute("SELECT id, conjunto FROM conjuntos where conjunto = ?", (conjunto, ))
+                    lista_conj = cursor.fetchall()
+                    if lista_conj:
+                        id_conj, descr_conj = lista_conj[0]
+                        conj_certo = f"{id_conj} - {descr_conj}"
+                        conjunto_count = self.combo_Conjunto.count()
+                        for i_conjunto in range(conjunto_count):
+                            conjunto_text = self.combo_Conjunto.itemText(i_conjunto)
+                            if conj_certo in conjunto_text:
+                                self.combo_Conjunto.setCurrentText(conjunto_text)
 
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, tipomaterial FROM TIPOMATERIAL where tipomaterial = '{tipo}';")
-                lista_tipo = cursor.fetchall()
-                if lista_tipo:
-                    id_tipo, descr_tipo = lista_tipo[0]
-                    tipo_certo = f"{id_tipo} - {descr_tipo}"
-                    tipo_count = self.combo_Tipo.count()
-                    for i_tipo in range(tipo_count):
-                        tipo_text = self.combo_Tipo.itemText(i_tipo)
-                        if tipo_certo in tipo_text:
-                            self.combo_Tipo.setCurrentText(tipo_text)
+                if tipo:
+                    cursor = conecta.cursor()
+                    cursor.execute("SELECT id, tipomaterial FROM TIPOMATERIAL WHERE tipomaterial = ?", (tipo,))
+                    lista_tipo = cursor.fetchall()
 
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, projeto FROM PROJETO where projeto = '{projeto}';")
-                lista_projeto = cursor.fetchall()
-                if lista_projeto:
-                    id_projeto, descr_projeto = lista_projeto[0]
-                    projeto_certo = f"{id_projeto} - {descr_projeto}"
-                    projeto_count = self.combo_Projeto.count()
-                    for i_projeto in range(projeto_count):
-                        projeto_text = self.combo_Projeto.itemText(i_projeto)
-                        if projeto_certo in projeto_text:
-                            self.combo_Projeto.setCurrentText(projeto_text)
+                    if lista_tipo:
+                        id_tipo, descr_tipo = lista_tipo[0]
+                        tipo_certo = f"{id_tipo} - {descr_tipo}"
+                        tipo_count = self.combo_Tipo.count()
+                        for i_tipo in range(tipo_count):
+                            tipo_text = self.combo_Tipo.itemText(i_tipo)
+                            if tipo_certo in tipo_text:
+                                self.combo_Tipo.setCurrentText(tipo_text)
+
+                if projeto:
+                    cursor = conecta.cursor()
+                    cursor.execute("SELECT id, projeto FROM PROJETO where projeto =  ?", (projeto,))
+                    lista_projeto = cursor.fetchall()
+                    if lista_projeto:
+                        id_projeto, descr_projeto = lista_projeto[0]
+                        projeto_certo = f"{id_projeto} - {descr_projeto}"
+                        projeto_count = self.combo_Projeto.count()
+                        for i_projeto in range(projeto_count):
+                            projeto_text = self.combo_Projeto.itemText(i_projeto)
+                            if projeto_certo in projeto_text:
+                                self.combo_Projeto.setCurrentText(projeto_text)
 
                 if minima:
                     min_str = str(minima)
