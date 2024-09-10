@@ -728,15 +728,19 @@ class TelaPiAlterar(QMainWindow, Ui_MainWindow):
             dados_interno_banco = cursor.fetchall()
             emissao_b, id_cliente_b, solicitante_b, num_req_b, pc_b, status_b, obs_b = dados_interno_banco[0]
 
-            if id_cliente != str(id_cliente_b) \
-                    or num_req != num_req_b \
-                    or solicitante != solicitante_b \
-                    or obs != obs_b:
-                cursor = conecta.cursor()
-                cursor.execute(f"UPDATE pedidointerno SET id_cliente = {id_cliente}, "
-                               f"solicitante = '{solicitante}', "
-                               f"num_req_cliente = {num_req}, "
-                               f"obs = '{obs}' "
+            campos_atualizados = []
+            if id_cliente != str(id_cliente_b):
+                campos_atualizados.append(f"id_cliente = {id_cliente}")
+            if num_req != num_req_b:
+                campos_atualizados.append(f"num_req_cliente = {num_req}")
+            if solicitante != solicitante_b:
+                campos_atualizados.append(f"solicitante = '{solicitante}'")
+            if obs != obs_b:
+                campos_atualizados.append(f"obs = '{obs}'")
+
+            if campos_atualizados:
+                campos_update = ", ".join(campos_atualizados)
+                cursor.execute(f"UPDATE pedidointerno SET {campos_update} "
                                f"WHERE id = {num_pi};")
 
                 qtde_salvamentos += 1

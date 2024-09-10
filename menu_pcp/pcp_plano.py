@@ -1,30 +1,28 @@
 import sys
 from banco_dados.conexao import conecta
 from forms.tela_pcp_plano import *
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_fonte, cor_btn, cor_widget_cab, cor_widget
-from comandos.comando_telas import cor_fundo_tela
-from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone
+from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut, QMessageBox
 from PyQt5.QtGui import QKeySequence, QFont, QColor
 from PyQt5.QtCore import Qt
 import inspect
 import os
+import traceback
 
 
 class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
-
-        cor_fundo_tela(self)
+        
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
-        self.layout_tabela(self.table_Estrutura)
-        self.layout_proprio()
+        layout_cabec_tab(self.table_Estrutura)
 
         self.tab_shortcut = QShortcut(QKeySequence(Qt.Key_Tab), self)
         self.tab_shortcut.activated.connect(self.manipula_tab)
@@ -62,58 +60,41 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
         self.checkBox_OP_Pend.stateChanged.connect(self.verifica_line_qtde)
         self.checkBox_Saldo_Acabado.stateChanged.connect(self.verifica_line_qtde)
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_16)
-            cor_fonte(self.label_14)
-            cor_fonte(self.label_15)
-            cor_fonte(self.label_18)
-            cor_fonte(self.label_19)
-            cor_fonte(self.label_20)
-            cor_fonte(self.label)
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_12)
-            cor_fonte(self.label_25)
-            cor_fonte(self.label_24)
-            cor_fonte(self.label_22)
-            cor_fonte(self.label_Titulo)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.checkBox_Crescente)
-            cor_fonte(self.checkBox_Comprados)
-            cor_fonte(self.checkBox_Sem_Saldo)
-            cor_fonte(self.checkBox_Compra_Pend)
-            cor_fonte(self.checkBox_OP_Pend)
-            cor_fonte(self.checkBox_Saldo_Acabado)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_btn(self.btn_Atualizar)
-            cor_btn(self.btn_Consultar_Cod)
-            cor_btn(self.btn_Consulta_Estrut)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def layout_tabela(self, nome_tabela):
-        try:
-            layout_cabec_tab(nome_tabela)
-
-            self.table_Estrutura.setColumnWidth(0, 45)
-            self.table_Estrutura.setColumnWidth(1, 220)
-            self.table_Estrutura.setColumnWidth(2, 130)
-            self.table_Estrutura.setColumnWidth(3, 40)
-            self.table_Estrutura.setColumnWidth(4, 55)
-            self.table_Estrutura.setColumnWidth(5, 140)
-            self.table_Estrutura.setColumnWidth(6, 55)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_tab(self):
         try:
@@ -125,7 +106,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def configura_label(self):
         try:
@@ -141,7 +123,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def pintar_tabela(self):
         try:
@@ -170,23 +153,25 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_codigo(self):
         try:
             codigo_produto = self.line_Codigo.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo.clear()
             else:
                 self.verifica_sql_codigo()
         
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_sql_codigo(self):
         try:
@@ -196,14 +181,15 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
-                mensagem_alerta('Este código de produto não existe!')
+                self.mensagem_alerta('Este código de produto não existe!')
                 self.line_Codigo.clear()
             else:
                 self.lanca_dados_codigo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_codigo(self):
         try:
@@ -221,7 +207,7 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
             numero = str(quantidade_id).replace('.', ',')
 
             if quantidade_id_float < 0:
-                mensagem_alerta(f'Este produto está com saldo negativo!\n'
+                self.mensagem_alerta(f'Este produto está com saldo negativo!\n'
                                                             f'Saldo Total = {quantidade_id_float}')
                 self.line_Codigo.clear()
             else:
@@ -234,21 +220,22 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_line_qtde(self):
         try:
             codigo_produto = self.line_Codigo.text()
             if len(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode estar vazio')
+                self.mensagem_alerta('O campo "Código" não pode estar vazio')
                 self.line_Codigo.clear()
             elif int(codigo_produto) == 0:
-                mensagem_alerta('O campo "Código" não pode ser "0"')
+                self.mensagem_alerta('O campo "Código" não pode ser "0"')
                 self.line_Codigo.clear()
             else:
                 qtdezinha = self.line_Qtde.text()
                 if not qtdezinha:
-                    mensagem_alerta('O campo "Qtde:" não pode estar vazio')
+                    self.mensagem_alerta('O campo "Qtde:" não pode estar vazio')
                     self.line_Qtde.clear()
                     self.line_Qtde.setFocus()
                 else:
@@ -259,7 +246,7 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
                         qtdezinha_float = float(qtdezinha)
 
                     if qtdezinha_float == 0:
-                        mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                        self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                         self.line_Qtde.clear()
                         self.line_Qtde.setFocus()
                     else:
@@ -268,7 +255,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def sql_estrutura(self, codigo, quantidade):
         try:
@@ -298,7 +286,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_saldo_acabado(self, codigo, quantidade):
         try:
@@ -383,7 +372,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def calculo_sem_saldo_acabado(self, codigo, quantidade):
         try:
@@ -436,7 +426,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def consulta_dados(self):
         try:
@@ -478,7 +469,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def classifica_inicio(self):
         try:
@@ -511,7 +503,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_ops(self, tabela_nova):
         try:
@@ -591,7 +584,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def classifica_tipo(self, tabela_nova1):
         try:
@@ -629,7 +623,7 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
                         dadus1 = (cod1, descr1, ref1, um1, qtde1, tipo1, saldo1)
                         tabela_nova2.append(dadus1)
             if soma_itens == 0:
-                mensagem_alerta(f'Na lista de produtos não existe esse tipo de material!')
+                self.mensagem_alerta(f'Na lista de produtos não existe esse tipo de material!')
                 self.combo_Tipo.setCurrentIndex(0)
                 self.verifica_line_qtde()
             else:
@@ -637,7 +631,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def classifica_mat_comprados(self, tabela_nova2):
         try:
@@ -665,7 +660,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def procura_compras(self, tabela_nova3):
         try:
@@ -729,7 +725,8 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def classifica_sem_saldo(self, tabela_nova4):
         try:
@@ -753,15 +750,16 @@ class TelaPcpPlano(QMainWindow, Ui_ConsultaPcp_Prod):
                 tabela_nova5 = tabela_nova4
 
             if not tabela_nova5:
-                mensagem_alerta(f'Com essa classificação, não existem materiais sem saldo!')
+                self.mensagem_alerta(f'Com essa classificação, não existem materiais sem saldo!')
                 tabela_nova5 = tabela_nova4
 
-            lanca_tabela(self.table_Estrutura, tabela_nova5, edita_largura=False)
+            lanca_tabela(self.table_Estrutura, tabela_nova5)
             self.pintar_tabela()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':

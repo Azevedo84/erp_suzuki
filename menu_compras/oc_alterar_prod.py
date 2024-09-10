@@ -236,7 +236,7 @@ class TelaOcAlterarProduto(QMainWindow, Ui_MainWindow):
 
                 if data_entrega < data_emissao_oc:
                     self.mensagem_alerta(f'A data de Entrega não pode ser menor que a data de '
-                                    f'Emissão da Ordem: {self.data_emissao_oc}')
+                                         f'Emissão da Ordem: {self.data_emissao_oc}')
                 elif not qtde:
                     self.mensagem_alerta('O campo "Qtde" não pode estar vazio')
                     self.line_Qtde.setFocus()
@@ -251,7 +251,7 @@ class TelaOcAlterarProduto(QMainWindow, Ui_MainWindow):
 
                     if qtde_float < qtde_nf_float:
                         self.mensagem_alerta("A quantidade da Ordem não pode ser menor que a quantidade "
-                                        "das Notas Fiscais de compra!")
+                                             "das Notas Fiscais de compra!")
                     else:
                         unit_float = valores_para_float(unit)
 

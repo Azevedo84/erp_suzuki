@@ -1077,7 +1077,7 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             dados_alterados = extrair_tabela(self.table_Produtos_OC)
 
-            for itens in dados_alterados:
+            for indice, itens in enumerate(dados_alterados, start=1):
                 num_req, item_req, cod_produto, descr, ref, um, qtde, unit, ipi, total, entrega = itens
 
                 codigo_int = int(cod_produto)
@@ -1112,10 +1112,10 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
                 id_req = extrair_req[0][0]
 
                 cursor = conecta.cursor()
-                cursor.execute(f"Insert into produtoordemcompra (ID, MESTRE, PRODUTO, QUANTIDADE, UNITARIO, "
+                cursor.execute(f"Insert into produtoordemcompra (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, UNITARIO, "
                                f"IPI, DATAENTREGA, NUMERO, CODIGO, PRODUZIDO, ID_PROD_REQ) "
                                f"values (GEN_ID(GEN_PRODUTOORDEMCOMPRA_ID,1), {ultimo_oc}, "
-                               f"{id_produto}, {qtde_item_float}, {valor_unit_float}, {ipi_item_float}, "
+                               f"{indice}, {id_produto}, {qtde_item_float}, {valor_unit_float}, {ipi_item_float}, "
                                f"'{entrega_prod}', {numero_oc_int}, '{codigo_int}', 0.0, {id_req});")
 
                 cursor = conecta.cursor()
