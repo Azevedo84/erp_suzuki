@@ -19,8 +19,14 @@ def definir_proximo_registro(nome_line, nome_coluna, nome_tabela):
     cursor.execute(f"select id, {nome_coluna} from {nome_tabela} "
                    f"where {nome_coluna} = (select max({nome_coluna}) from {nome_tabela});")
     select_numero = cursor.fetchall()
-    idez, num = select_numero[0]
-    proxima_op = int(num) + 1
-    proxima_op_str = str(proxima_op)
-    nome_line.setText(proxima_op_str)
-    nome_line.setReadOnly(True)
+    if select_numero:
+        idez, num = select_numero[0]
+        proxima_op = int(num) + 1
+        proxima_op_str = str(proxima_op)
+        nome_line.setText(proxima_op_str)
+        nome_line.setReadOnly(True)
+    else:
+        proxima_op = 1
+        proxima_op_str = str(proxima_op)
+        nome_line.setText(proxima_op_str)
+        nome_line.setReadOnly(True)

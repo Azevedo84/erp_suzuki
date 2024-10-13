@@ -191,7 +191,6 @@
      <string>Produção</string>
     </property>
     <addaction name="action_OP_Incluir"/>
-    <addaction name="action_OP_Lote"/>
     <addaction name="action_OP_Alterar"/>
     <addaction name="action_OP_Consumo"/>
     <addaction name="action_OP_Encerar"/>
@@ -297,6 +296,7 @@
     <property name="title">
      <string>Estrutura</string>
     </property>
+    <addaction name="actionCadastrar_Vers_o"/>
     <addaction name="action_Estr_Incluir"/>
     <addaction name="action_Estr_Custo"/>
    </widget>
@@ -721,6 +721,11 @@
   <action name="actionLocais_de_Estoque">
    <property name="text">
     <string>Local de Estoque</string>
+   </property>
+  </action>
+  <action name="actionCadastrar_Vers_o">
+   <property name="text">
+    <string>Cadastrar Versão</string>
    </property>
   </action>
  </widget>

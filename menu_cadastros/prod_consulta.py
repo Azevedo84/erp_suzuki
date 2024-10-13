@@ -316,9 +316,23 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
                            f"where mat.codigo = '{codigo}';")
             tabela_onde_usa = cursor.fetchall()
 
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao "
+                           f"from estrutura_produto as estprod "
+                           f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                           f"where prod.codigo = '{codigo}';")
+            tabela_onde_usa_v2 = cursor.fetchall()
+
             if tabela_onde_usa:
-                cod_mestre = tabela_onde_usa[0][2]
-                descr_mestre = tabela_onde_usa[0][3]
+                cod_mestre = tabela_onde_usa[0][1]
+                descr_mestre = tabela_onde_usa[0][2]
+
+                self.mensagem_alerta(f"O código {codigo} está sendo usado na estrutura do produto "
+                                     f"{cod_mestre} - {descr_mestre} e não pode ser excluído!")
+
+            elif tabela_onde_usa_v2:
+                cod_mestre = tabela_onde_usa[0][1]
+                descr_mestre = tabela_onde_usa[0][2]
 
                 self.mensagem_alerta(f"O código {codigo} está sendo usado na estrutura do produto "
                                      f"{cod_mestre} - {descr_mestre} e não pode ser excluído!")
@@ -342,7 +356,15 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
                            f"where prod.codigo = '{codigo}';")
             tabela_estrutura = cursor.fetchall()
 
+            codigo_produto = self.line_Codigo.text()
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, codigo, id_versao FROM produto where codigo = {codigo_produto};")
+            select_prod = cursor.fetchall()
+            id_pai, cod, id_versao = select_prod[0]
+
             if tabela_estrutura:
+                self.mensagem_alerta(f"O código {codigo} tem estrutura cadastrada e não pode ser excluído!")
+            elif id_versao:
                 self.mensagem_alerta(f"O código {codigo} tem estrutura cadastrada e não pode ser excluído!")
             else:
                 self.verifica_compras_excluir()

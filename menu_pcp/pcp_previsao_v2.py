@@ -18,7 +18,7 @@ import re
 import traceback
 
 
-class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
+class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -194,57 +194,62 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
             if cod_pai:
                 cursor = conecta.cursor()
-                cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
-                               f"prod.descricao, "
-                               f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                               f"ordser.quantidade "
-                               f"from ordemservico as ordser "
-                               f"INNER JOIN produto prod ON ordser.produto = prod.id "
-                               f"where ordser.status = 'A' AND prod.codigo = {cod_pai} "
-                               f"order by ordser.numero;")
-                op_abertas = cursor.fetchall()
+                cursor.execute(f"SELECT id, codigo, id_versao FROM produto where codigo = {cod_pai};")
+                select_prod = cursor.fetchall()
+                id_pai, cod, id_versao = select_prod[0]
 
-                if op_abertas:
-                    for i in op_abertas:
-                        num_op = i[2]
-                        id_produto = i[3]
+                if id_versao:
+                    cursor = conecta.cursor()
+                    cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
+                                   f"prod.descricao, "
+                                   f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                   f"ordser.quantidade "
+                                   f"from ordemservico as ordser "
+                                   f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                                   f"where ordser.status = 'A' AND prod.codigo = {cod_pai} "
+                                   f"order by ordser.numero;")
+                    op_abertas = cursor.fetchall()
 
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT mat.id, prod.codigo, prod.descricao, "
-                                       f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                                       f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
-                                       f"(mat.quantidade)) AS Qtde, "
-                                       f"COALESCE(prod.localizacao, ''), prod.quantidade "
-                                       f"FROM materiaprima as mat "
-                                       f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                       f"where mat.mestre = {id_produto} and prod.codigo = {cod_filho} "
-                                       f"ORDER BY prod.descricao;")
-                        select_estrut = cursor.fetchall()
-                        if select_estrut:
-                            for dados_estrut in select_estrut:
-                                id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
+                    if op_abertas:
+                        for i in op_abertas:
+                            num_op = i[2]
 
-                                cursor = conecta.cursor()
-                                cursor.execute(f"SELECT max(mat.id), max(prod.codigo), max(prod.descricao), "
-                                               f"sum(prodser.qtde_materia)as total "
-                                               f"FROM materiaprima as mat "
-                                               f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                               f"INNER JOIN produtoos as prodser ON mat.id = prodser.id_materia "
-                                               f"where mat.mestre = {id_produto} "
-                                               f"and prodser.numero = {num_op} and mat.id = {id_mat_e} "
-                                               f"group by prodser.id_materia;")
-                                select_os_resumo = cursor.fetchall()
+                            cursor = conecta.cursor()
+                            cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
+                                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                           f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                                           f"(estprod.quantidade)) AS Qtde, "
+                                           f"COALESCE(prod.localizacao, ''), prod.quantidade "
+                                           f"FROM estrutura_produto as estprod "
+                                           f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                           f"where estprod.id_estrutura = {id_versao} and prod.codigo = {cod_filho} "
+                                           f"ORDER BY prod.descricao;")
+                            select_estrut = cursor.fetchall()
+                            if select_estrut:
+                                for dados_estrut in select_estrut:
+                                    id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
 
-                                if select_os_resumo:
-                                    for dados_res in select_os_resumo:
-                                        id_mat_sum, cod_sum, descr_sum, qtde_sum = dados_res
+                                    cursor = conecta.cursor()
+                                    cursor.execute(f"SELECT max(estprod.id), max(prod.codigo), max(prod.descricao), "
+                                                   f"sum(prodser.QTDE_ESTRUT_PROD)as total "
+                                                   f"FROM estrutura_produto as estprod "
+                                                   f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                                   f"INNER JOIN produtoos as prodser ON "
+                                                   f"estprod.id = prodser.id_estrut_prod "
+                                                   f"where prodser.numero = {num_op} and estprod.id = {id_mat_e} "
+                                                   f"group by prodser.id_estrut_prod;")
+                                    select_os_resumo = cursor.fetchall()
 
-                                        qtde_sum_float = valores_para_float(qtde_sum)
+                                    if select_os_resumo:
+                                        for dados_res in select_os_resumo:
+                                            id_mat_sum, cod_sum, descr_sum, qtde_sum = dados_res
 
-                                        if cod_filho == "21313":
-                                            print("dados op:", dados_res)
+                                            qtde_sum_float = valores_para_float(qtde_sum)
 
-                                        qtde_ops += qtde_sum_float
+                                            if cod_filho == "21313":
+                                                print("dados op:", dados_res)
+
+                                            qtde_ops += qtde_sum_float
 
             return qtde_ops
 
@@ -557,12 +562,12 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, "
-                           f"prod.unidade, prod.quantidade, tip.tipomaterial "
+                           f"prod.unidade, prod.quantidade, tip.tipomaterial, prod.id_versao "
                            f"FROM produto as prod "
                            f"LEFT JOIN tipomaterial as tip ON prod.tipomaterial = tip.id "
                            f"where prod.codigo = {codigos};")
             detalhes_pai = cursor.fetchall()
-            id_pai, cod_pai, descr_pai, ref_pai, um_pai, saldo, tipo = detalhes_pai[0]
+            id_pai, cod_pai, descr_pai, ref_pai, um_pai, saldo, tipo, id_estrut = detalhes_pai[0]
 
             if cod_pai == "21313":
                 print("num_pi:", num_pi, "cod_or:", cod_or, "descr_or:", descr_or, "qtdei:", qtdei, detalhes_pai[0])
@@ -604,9 +609,6 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                 lanca_saldo = (cod_pai, novo_saldo)
                 lista_saldos.append(lanca_saldo)
 
-            if cod_pai == "21313":
-                print("novo_saldo:", novo_saldo, "qtde_flt_c_oc:", qtde_flt_c_oc)
-
             if novo_saldo < 0 and qtde_flt_c_oc > 0:
                 coco = novo_saldo + qtde_flt_c_oc
                 if coco > 0:
@@ -624,21 +626,22 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
                 nivel_plus = nivel + 1
                 pts_plus = pontos + 1
 
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
-                               f"(mat.quantidade * {nova_qtde}) as qtde "
-                               f"FROM materiaprima as mat "
-                               f"INNER JOIN produto prod ON mat.produto = prod.id "
-                               f"where mestre = {id_pai};")
-                dados_estrutura = cursor.fetchall()
+                if id_estrut:
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                   f"(estprod.quantidade * {nova_qtde}) as qtde "
+                                   f"FROM estrutura_produto as estprod "
+                                   f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                   f"where estprod.id_estrutura = {id_estrut};")
+                    dados_estrutura = cursor.fetchall()
 
-                if dados_estrutura:
-                    for prod in dados_estrutura:
-                        cod_f, descr_f, ref_f, um_f, qtde_f = prod
+                    if dados_estrutura:
+                        for prod in dados_estrutura:
+                            cod_f, descr_f, ref_f, um_f, qtde_f = prod
 
-                        pcte_filho = [pts_plus, nivel_plus, cod_f, qtde_f, cod_pai, descr_pai, lista_saldos,
-                                      lista_ops_mex, lista_ocs_mex, cod_fat, num_pi, pacote]
-                        filhos.extend(self.calculo_3_verifica_estrutura(pcte_filho))
+                            pcte_filho = [pts_plus, nivel_plus, cod_f, qtde_f, cod_pai, descr_pai, lista_saldos,
+                                          lista_ops_mex, lista_ocs_mex, cod_fat, num_pi, pacote]
+                            filhos.extend(self.calculo_3_verifica_estrutura(pcte_filho))
 
             else:
                 filhos = []
@@ -1390,6 +1393,6 @@ class TelaPcpPrevisao(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaPcpPrevisao()
+    tela = TelaPcpPrevisaoV2()
     tela.show()
     qt.exec_()

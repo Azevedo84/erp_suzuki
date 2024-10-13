@@ -1,6 +1,6 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_estrut_incluir import *
+from forms.tela_estrut_incluir_v2 import *
 from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.lines import validador_decimal
@@ -9,12 +9,13 @@ from comandos.cores import cor_cinza_claro
 from comandos.conversores import valores_para_float, valores_para_virgula
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QColor
+from datetime import date
 import inspect
 import os
 import traceback
 
 
-class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
+class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
     def __init__(self, produto, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -42,6 +43,8 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         self.line_Qtde_Manu.editingFinished.connect(self.verifica_line_qtde_manual)
         self.line_Medida_Manu.editingFinished.connect(self.verifica_line_medida_manual)
         self.line_Tempo_Mao.editingFinished.connect(self.mascara_tempo_mao_de_obra)
+
+        self.combo_Versao.activated.connect(self.manipula_versao_escolhida)
 
         self.btn_ExcluirTudo.clicked.connect(self.excluir_tudo_tab_produtos)
         self.btn_ExcluirItem.clicked.connect(self.excluir_produto_tab)
@@ -260,13 +263,12 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     self.widget_MaoObra.setHidden(False)
                     self.widget_Terceiros.setHidden(True)
 
-                self.line_Codigo_Manu.setFocus()
+                self.combo_Versao.setFocus()
 
                 self.lanca_descricao_tempo_mao_de_obra(codigo_produto)
                 self.lanca_descricao_custo_servico(codigo_produto)
 
-                self.definir_status()
-                self.lanca_estrutura()
+                self.lanca_versoes()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -311,10 +313,79 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def lanca_versoes(self):
+        try:
+            codigo_produto = self.line_Codigo_Estrut.text()
+
+            tabela = []
+
+            self.combo_Versao.clear()
+            tabela.append("")
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, codigo, id_versao FROM produto where codigo = {codigo_produto};")
+            select_prod = cursor.fetchall()
+            id_pai, cod, id_versao = select_prod[0]
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, num_versao, data_versao, obs, data_criacao "
+                           f"from estrutura "
+                           f"where id_produto = {id_pai} order by data_versao;")
+            tabela_versoes = cursor.fetchall()
+
+            if tabela_versoes:
+                for i in tabela_versoes:
+                    id_estrut, num_versao, data, obs, criacao = i
+
+                    data_versao = data.strftime("%d/%m/%Y")
+
+                    if id_versao == id_estrut:
+                        status_txt = "ATIVO"
+                    else:
+                        status_txt = "INATIVO"
+
+                    msg = f"VERSÃO: {num_versao} - {data_versao} - {status_txt}"
+                    print(msg)
+                    tabela.append(msg)
+            else:
+                data_hoje = date.today()
+                data_atual = data_hoje.strftime("%d/%m/%Y")
+
+                msg = f"VERSÃO: 0 - {data_atual} - ATIVO"
+                tabela.append(msg)
+
+            self.combo_Versao.addItems(tabela)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def manipula_versao_escolhida(self):
+        try:
+            self.limpa_tabela()
+            self.lista_original = []
+
+            codigo_produto = self.line_Codigo_Estrut.text()
+            versao = self.combo_Versao.currentText()
+
+            if codigo_produto and versao:
+                self.definir_status()
+                self.lanca_estrutura()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def lanca_estrutura(self):
         try:
             nova_tabela = []
             codigo_produto = self.line_Codigo_Estrut.text()
+
+            versao = self.combo_Versao.currentText()
+            versaotete = versao.find(" - ")
+            num_versao = versao[8:versaotete]
 
             status = self.line_Status.text()
 
@@ -324,75 +395,87 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
             id_pai, cod = select_prod[0]
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT mat.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, "
-                           f"conj.conjunto, prod.unidade, (mat.quantidade * 1) as qtde, "
-                           f"COALESCE(prod.ncm, '') as ncm "
-                           f"from materiaprima as mat "
-                           f"INNER JOIN produto prod ON mat.codigo = prod.codigo "
-                           f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
-                           f"where mat.mestre = {id_pai} order by conj.conjunto DESC, prod.descricao ASC;")
-            tabela_estrutura = cursor.fetchall()
+            cursor.execute(f"SELECT id, num_versao, data_versao, obs, data_criacao "
+                           f"from estrutura "
+                           f"where id_produto = {id_pai} and num_versao = {num_versao};")
+            tabela_versoes = cursor.fetchall()
 
-            if tabela_estrutura:
-                for i in tabela_estrutura:
-                    cod_filho, descr, ref, conjunto, um, qtde, ncm = i
+            if tabela_versoes:
+                id_estrutura = tabela_versoes[0][0]
 
-                    qtde_float = float(qtde)
-                    tem_consumo = "NÃO"
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, "
+                               f"conj.conjunto, prod.unidade, (estprod.quantidade * 1) as qtde, "
+                               f"COALESCE(prod.ncm, '') as ncm "
+                               f"from estrutura_produto as estprod "
+                               f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                               f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
+                               f"where estprod.id_estrutura = {id_estrutura} "
+                               f"order by conj.conjunto DESC, prod.descricao ASC;")
+                tabela_estrutura = cursor.fetchall()
 
-                    if status == "A":
-                        cursor = conecta.cursor()
-                        cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
-                                       f"prod.descricao, "
-                                       f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                                       f"ordser.quantidade "
-                                       f"from ordemservico as ordser "
-                                       f"INNER JOIN produto prod ON ordser.produto = prod.id "
-                                       f"where ordser.status = 'A' "
-                                       f"AND prod.id = {id_pai};")
-                        op_abertas = cursor.fetchall()
+                if tabela_estrutura:
+                    for i in tabela_estrutura:
+                        cod_filho, descr, ref, conjunto, um, qtde, ncm = i
 
-                        if op_abertas:
-                            for ii in op_abertas:
-                                num_op = ii[2]
+                        qtde_float = float(qtde)
+                        tem_consumo = "NÃO"
 
-                                cursor = conecta.cursor()
-                                cursor.execute(f"SELECT mat.id, prod.codigo, prod.descricao, "
-                                               f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                                               f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
-                                               f"(mat.quantidade)) AS Qtde, "
-                                               f"COALESCE(prod.localizacao, ''), prod.quantidade "
-                                               f"FROM materiaprima as mat "
-                                               f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                               f"where mat.mestre = {id_pai} "
-                                               f"and prod.codigo = {cod_filho} "
-                                               f"ORDER BY prod.descricao;")
-                                select_estrut = cursor.fetchall()
-                                if select_estrut:
-                                    for dads_estrut in select_estrut:
-                                        id_mat_e, cod_e, des_e, ref_e, um_e, qtde_e, local_e, saldo_e = dads_estrut
+                        if status == "A":
+                            cursor = conecta.cursor()
+                            cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.id, "
+                                           f"prod.descricao, "
+                                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                           f"ordser.quantidade "
+                                           f"from ordemservico as ordser "
+                                           f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                                           f"where ordser.status = 'A' "
+                                           f"AND prod.id = {id_pai};")
+                            op_abertas = cursor.fetchall()
 
-                                        cursor = conecta.cursor()
-                                        cursor.execute(f"SELECT max(mat.id), max(prod.codigo), "
-                                                       f"max(prod.descricao), "
-                                                       f"sum(p_op.qtde_materia)as total "
-                                                       f"FROM materiaprima as mat "
-                                                       f"INNER JOIN produto as prod ON mat.produto = prod.id "
-                                                       f"INNER JOIN produtoos as p_op ON mat.id = p_op.id_materia "
-                                                       f"where mat.mestre = {id_pai} "
-                                                       f"and p_op.numero = {num_op} "
-                                                       f"and mat.id = {id_mat_e} "
-                                                       f"group by p_op.id_materia;")
-                                        select_os_resumo = cursor.fetchall()
+                            if op_abertas:
+                                for ii in op_abertas:
+                                    num_op = ii[2]
 
-                                        if select_os_resumo:
-                                            tem_consumo = "SIM"
+                                    cursor = conecta.cursor()
+                                    cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
+                                                   f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                                   f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                                                   f"(estprod.quantidade)) AS Qtde, "
+                                                   f"COALESCE(prod.localizacao, ''), prod.quantidade "
+                                                   f"FROM estrutura_produto as estprod "
+                                                   f"INNER JOIN produto as prod ON estprod.id_prod_filho = prod.id "
+                                                   f"where estprod.id_estrutura = {id_estrutura} "
+                                                   f"and prod.codigo = {cod_filho} "
+                                                   f"ORDER BY prod.descricao;")
+                                    select_estrut = cursor.fetchall()
+                                    if select_estrut:
+                                        for dads_estrut in select_estrut:
+                                            id_est_e, cod_e, des_e, ref_e, um_e, qtde_e, local_e, saldo_e = dads_estrut
 
-                    else:
-                        tem_consumo = "SIM"
+                                            cursor = conecta.cursor()
+                                            cursor.execute(f"SELECT max(estprod.id), max(prod.codigo), "
+                                                           f"max(prod.descricao), "
+                                                           f"sum(p_op.QTDE_ESTRUT_PROD)as total "
+                                                           f"FROM estrutura_produto as estprod "
+                                                           f"INNER JOIN produto as prod ON "
+                                                           f"estprod.id_prod_filho = prod.id "
+                                                           f"INNER JOIN produtoos as p_op ON "
+                                                           f"estprod.id = p_op.ID_ESTRUT_PROD "
+                                                           f"where estprod.id_estrutura = {id_estrutura} "
+                                                           f"and p_op.numero = {num_op} "
+                                                           f"and estprod.id = {id_est_e} "
+                                                           f"group by p_op.ID_ESTRUT_PROD;")
+                                            select_os_resumo = cursor.fetchall()
 
-                    dados = (cod_filho, descr, ref, um, qtde_float, ncm, conjunto, tem_consumo)
-                    nova_tabela.append(dados)
+                                            if select_os_resumo:
+                                                tem_consumo = "SIM"
+
+                        else:
+                            tem_consumo = "SIM"
+
+                        dados = (cod_filho, descr, ref, um, qtde_float, ncm, conjunto, tem_consumo)
+                        nova_tabela.append(dados)
 
             if nova_tabela:
                 lanca_tabela(self.table_Estrutura, nova_tabela)
@@ -408,33 +491,47 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         try:
             cod_pai = self.line_Codigo_Estrut.text()
 
+            versao = self.combo_Versao.currentText()
+            versaotete = versao.find(" - ")
+            num_versao = versao[8:versaotete]
+
             cursor = conecta.cursor()
-            cursor.execute(
-                f"SELECT id, codigo FROM produto WHERE codigo = '{cod_pai}';")
+            cursor.execute(f"SELECT id, codigo FROM produto WHERE codigo = '{cod_pai}';")
             dados_prod = cursor.fetchall()
             id_pai = dados_prod[0][0]
 
             if id_pai:
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT mov.id, mov.data, mov.codigo, mov.tipo, mov.quantidade, "
-                               f"COALESCE(func.funcionario, '') as fuck, loc.nome, os.numero, ent.natureza, "
-                               f"ent.nota "
-                               f"FROM movimentacao AS mov "
-                               f"LEFT JOIN funcionarios AS func ON mov.funcionario = func.id "
-                               f"INNER JOIN localestoque AS loc ON mov.localestoque = loc.id "
-                               f"LEFT JOIN ordemservico AS os ON mov.id = os.movimentacao "
-                               f"LEFT JOIN ENTRADAPROD as ent ON mov.id = ent.movimentacao "
-                               f"WHERE mov.produto = {id_pai} "
-                               f"and (os.numero IS NOT NULL or ent.natureza IS not NULL);")
-                dados_mov = cursor.fetchall()
-                if dados_mov:
-                    for i in dados_mov:
-                        id_mov, data, cod, tipo, qtde, func, local, num_op, natur, num_nf = i
+                cursor.execute(f"SELECT id, num_versao, data_versao, obs, data_criacao "
+                               f"from estrutura "
+                               f"where id_produto = {id_pai} and num_versao = {num_versao};")
+                tabela_versoes = cursor.fetchall()
+                if tabela_versoes:
+                    id_estrutura = tabela_versoes[0][0]
 
-                        if natur == 4:
-                            self.line_Status.setText("B")
-                        if num_op:
-                            self.line_Status.setText("B")
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT mov.id, mov.data, mov.codigo, mov.tipo, mov.quantidade, "
+                                   f"COALESCE(func.funcionario, '') as fuck, loc.nome, os.numero, ent.natureza, "
+                                   f"ent.nota "
+                                   f"FROM movimentacao AS mov "
+                                   f"LEFT JOIN funcionarios AS func ON mov.funcionario = func.id "
+                                   f"INNER JOIN localestoque AS loc ON mov.localestoque = loc.id "
+                                   f"LEFT JOIN ordemservico AS os ON mov.id = os.movimentacao "
+                                   f"LEFT JOIN ENTRADAPROD as ent ON mov.id = ent.movimentacao "
+                                   f"LEFT JOIN produtoos as prodos ON os.id = prodos.mestre "
+                                   f"WHERE mov.produto = {id_pai} and prodos.ID_ESTRUT_PROD = {id_estrutura} "
+                                   f"and (os.numero IS NOT NULL or ent.natureza IS not NULL);")
+                    dados_mov = cursor.fetchall()
+                    if dados_mov:
+                        for i in dados_mov:
+                            id_mov, data, cod, tipo, qtde, func, local, num_op, natur, num_nf = i
+
+                            if natur == 4:
+                                self.line_Status.setText("B")
+                            if num_op:
+                                self.line_Status.setText("B")
+                    else:
+                        self.line_Status.setText("A")
                 else:
                     self.line_Status.setText("A")
 
@@ -515,6 +612,10 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
     def limpa_tudo(self):
         self.limpa_tabela()
         self.limpa_dados_produto_estrutura()
+
+        self.combo_Versao.clear()
+        self.line_Status.clear()
+
         self.limpa_dados_mao_de_obra_servico()
         self.line_Obs.clear()
 
@@ -814,12 +915,18 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
             codigo_produto = self.line_Codigo_Estrut.text()
             status = self.line_Status.text()
 
+            versao = self.combo_Versao.currentText()
+
             if not codigo_produto:
                 self.mensagem_alerta('O campo "Código" não pode estar vazio!')
                 self.limpa_dados_produto_estrutura()
                 self.limpa_tabela()
             elif int(codigo_produto) == 0:
                 self.mensagem_alerta('O campo "Código" não pode ser "0"!')
+                self.limpa_dados_produto_estrutura()
+                self.limpa_tabela()
+            elif not versao:
+                self.mensagem_alerta('O campo "Nº Versão" não pode estar vazio!')
                 self.limpa_dados_produto_estrutura()
                 self.limpa_tabela()
             else:
@@ -859,13 +966,46 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
         try:
             teve_lancado = 0
 
+            versao = self.combo_Versao.currentText()
+            versaotete = versao.find(" - ")
+            num_versao = versao[8:versaotete]
+
             cod_prod = self.line_Codigo_Estrut.text()
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT id, etapas, tempo, obs2 FROM produto where codigo = '{cod_prod}';")
             selects = cursor.fetchall()
-
             id_prod = selects[0][0]
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, num_versao, data_versao, obs, data_criacao "
+                           f"from estrutura "
+                           f"where id_produto = {id_prod} and num_versao = {num_versao};")
+            tabela_versoes = cursor.fetchall()
+
+            if tabela_versoes:
+                id_estrutura = tabela_versoes[0][0]
+            else:
+                cursor = conecta.cursor()
+                cursor.execute("select GEN_ID(GEN_ESTRUTURA_ID,0) from rdb$database;")
+                ultimo_oc0 = cursor.fetchall()
+                ultimo_oc1 = ultimo_oc0[0]
+                id_estrutura = int(ultimo_oc1[0]) + 1
+
+                data_hoje = date.today()
+
+                obs_versao = "PRIMEIRA VERSAO CRIADA"
+
+                cursor = conecta.cursor()
+                cursor.execute(f"Insert into estrutura (id, id_produto, num_versao, data_versao, obs) "
+                               f"values (GEN_ID(GEN_ESTRUTURA_ID,1), {id_prod}, '{num_versao}', '{data_hoje}', "
+                               f"'{obs_versao}');")
+
+                conecta.commit()
+
+                cursor.execute(f"UPDATE produto SET id_versao = {id_estrutura} "
+                               f"WHERE id = {id_prod};")
+                conecta.commit()
 
             produtos_originais_tuple = []
             produtos_modificados_tuple = []
@@ -896,10 +1036,10 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     selects_sai = cursor.fetchall()
                     id_prod_sai = selects_sai[0][0]
 
-                    print(id_prod, id_prod_sai)
-
                     cursor = conecta.cursor()
-                    cursor.execute(f"DELETE FROM materiaprima where mestre = {id_prod} and produto = {id_prod_sai};")
+                    cursor.execute(f"DELETE FROM estrutura_produto "
+                                   f"where id_estrutura = {id_estrutura} "
+                                   f"and id_prod_filho = {id_prod_sai};")
                     conecta.commit()
 
                     teve_lancado += 1
@@ -915,10 +1055,10 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                     id_prod_ent = selects_ent[0][0]
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"Insert into materiaprima "
-                                   f"(ID, MESTRE, QUANTIDADE, PRODUTO, CODIGO) "
-                                   f"values (GEN_ID(GEN_MATERIAPRIMA_ID,1), "
-                                   f"{id_prod}, {qtde_ent}, {id_prod_ent}, '{cod_ent}');")
+                    cursor.execute(f"Insert into estrutura_produto "
+                                   f"(ID, ID_ESTRUTURA, ID_PROD_FILHO, QUANTIDADE) "
+                                   f"values (GEN_ID(GEN_ESTRUTURA_PRODUTO_ID,1), "
+                                   f"{id_estrutura}, {id_prod_ent}, {qtde_ent});")
                     conecta.commit()
 
                     teve_lancado += 1
@@ -979,7 +1119,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
                                f"where codigo = '{cod_prod}';")
                 conecta.commit()
 
-            print(tips_mat, obis, teve_lancado)
             if tips_mat or obis or teve_lancado:
                 self.mensagem_alerta(f"Cadastro do produto {descr} foi atualizado com Sucesso!!")
 
@@ -996,6 +1135,6 @@ class TelaEstruturaIncluir(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaEstruturaIncluir("")
+    tela = TelaEstruturaIncluirV2("")
     tela.show()
     qt.exec_()
