@@ -380,11 +380,11 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                 ides_mat, id_estrutura, qtde = i
 
                 cursor = conecta.cursor()
-                cursor.execute(f"prod.codigo, prod.descricao, COALESCE(prod.obs, '') as ref, prod.unidade, "
-                               f"COALESCE(prod.obs2, '') as obs "
+                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, ''), prod.unidade, "
+                               f"COALESCE(prod.obs2, '') "
                                f"from estrutura as est "
                                f"INNER JOIN produto prod ON est.id_produto = prod.id "
-                               f"where id = {id_estrutura};")
+                               f"where est.id = {id_estrutura};")
                 select_prod = cursor.fetchall()
 
                 if select_prod:
