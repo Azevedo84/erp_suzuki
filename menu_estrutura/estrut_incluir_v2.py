@@ -345,7 +345,6 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
                         status_txt = "INATIVO"
 
                     msg = f"VERSÃO: {num_versao} - {data_versao} - {status_txt}"
-                    print(msg)
                     tabela.append(msg)
             else:
                 data_hoje = date.today()
@@ -372,6 +371,8 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
             if codigo_produto and versao:
                 self.definir_status()
                 self.lanca_estrutura()
+
+                self.line_Codigo_Manu.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

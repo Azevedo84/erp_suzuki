@@ -10,6 +10,7 @@ import inspect
 import os
 from datetime import date, datetime
 import traceback
+import socket
 
 
 class TelaCiIncluir(QMainWindow, Ui_MainWindow):
@@ -19,6 +20,8 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
+
+        self.nome_computador = socket.gethostname()
 
         icone(self, "menu_consumiveis.png")
         tamanho_aplicacao(self)
@@ -578,16 +581,39 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
                     data_rec, c_rec, d_rec, um_rec, qtde_rec, saldo, local = item_selecionado
 
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT id, descricao, COALESCE(obs, ' ') as obs, unidade, localizacao, "
+                                   f"quantidade, conjunto "
+                                   f"FROM produto where codigo = {c_rec};")
+                    detalhes_produto = cursor.fetchall()
+
+                    ides_p, descr_p, ref_p, um_p, local_p, saldo_p, conjunto_p = detalhes_produto[0]
+
+                    saldo_float = valores_para_float(saldo)
                     qtde_rec_float = valores_para_float(qtde_rec)
-                    if qtde_rec_float > 0:
-                        qtde_final = qtde_rec_float
-                    else:
-                        qtde_final = 1
 
                     extrai_consumo = extrair_tabela(self.table_Consumo)
 
-                    didis = [c_rec, d_rec, um_rec, qtde_final, funcionario, local_est]
-                    extrai_consumo.append(didis)
+                    if conjunto_p == 10 or conjunto_p == 8 or conjunto_p == 6:
+                        if self.nome_computador == "HALLMAQMAQUINAS":
+                            if saldo_float > 0:
+                                if qtde_rec_float > 0:
+                                    qtde_final = qtde_rec_float
+                                else:
+                                    qtde_final = 1
+
+                                didis = [c_rec, d_rec, um_rec, qtde_final, funcionario, local_est]
+                                extrai_consumo.append(didis)
+
+                    else:
+                        if saldo_float > 0:
+                            if qtde_rec_float > 0:
+                                qtde_final = qtde_rec_float
+                            else:
+                                qtde_final = 1
+
+                            didis = [c_rec, d_rec, um_rec, qtde_final, funcionario, local_est]
+                            extrai_consumo.append(didis)
 
                     if extrai_consumo:
                         lanca_tabela(self.table_Consumo, extrai_consumo)
@@ -731,14 +757,35 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                     for i in extrai_recomendados:
                         data_rec, cod_rec, desc_rec, um_rec, qtde_rec, saldo, local = i
 
-                        qtde_rec_float = valores_para_float(qtde_rec)
-                        if qtde_rec_float > 0:
-                            qtde_final = qtde_rec_float
-                        else:
-                            qtde_final = 1
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT id, descricao, COALESCE(obs, ' ') as obs, unidade, localizacao, "
+                                       f"quantidade, conjunto "
+                                       f"FROM produto where codigo = {cod_rec};")
+                        detalhes_produto = cursor.fetchall()
 
-                        didis = [cod_rec, desc_rec, um_rec, qtde_final, funcionario, local_est]
-                        extrai_consumo.append(didis)
+                        ides_p, descr_p, ref_p, um_p, local_p, saldo_p, conjunto_p = detalhes_produto[0]
+
+                        saldo_float = valores_para_float(saldo)
+                        qtde_rec_float = valores_para_float(qtde_rec)
+
+                        if conjunto_p == 10 or conjunto_p == 8 or conjunto_p == 6:
+                            if self.nome_computador == "HALLMAQMAQUINAS":
+                                if saldo_float > 0:
+                                    if qtde_rec_float > 0:
+                                        qtde_final = qtde_rec_float
+                                    else:
+                                        qtde_final = 1
+
+                                    didis = [cod_rec, desc_rec, um_rec, qtde_final, funcionario, local_est]
+                                    extrai_consumo.append(didis)
+                        else:
+                            if qtde_rec_float > 0:
+                                qtde_final = qtde_rec_float
+                            else:
+                                qtde_final = 1
+
+                            didis = [cod_rec, desc_rec, um_rec, qtde_final, funcionario, local_est]
+                            extrai_consumo.append(didis)
 
                     if extrai_consumo:
                         lanca_tabela(self.table_Consumo, extrai_consumo)
@@ -782,20 +829,33 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
             codigo_produto = self.line_Codigo.text()
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT id, descricao, COALESCE(obs, ' ') as obs, unidade, localizacao, quantidade "
+            cursor.execute(f"SELECT id, descricao, COALESCE(obs, ' ') as obs, unidade, localizacao, "
+                           f"quantidade, conjunto "
                            f"FROM produto where codigo = {codigo_produto};")
             detalhes_produto = cursor.fetchall()
             if not detalhes_produto:
                 self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_manual()
             else:
-                ides, descr, ref, um, local, saldo = detalhes_produto[0]
+                ides, descr, ref, um, local, saldo, conjunto = detalhes_produto[0]
+
                 saldo_float = valores_para_float(saldo)
-                if saldo_float > 0:
-                    self.lanca_dados_produto_manual()
+
+                if conjunto == 10 or conjunto == 8 or conjunto == 6:
+                    if self.nome_computador == "HALLMAQMAQUINAS":
+                        if saldo_float > 0:
+                            self.lanca_dados_produto_manual()
+                        else:
+                            self.mensagem_alerta('Este produto não possui saldo em estoque!')
+                            self.limpa_manual()
+                    else:
+                        self.mensagem_alerta('Este produto não faz parte dos consumíveis!')
                 else:
-                    self.mensagem_alerta('Este produto não possui saldo em estoque!')
-                    self.limpa_manual()
+                    if saldo_float > 0:
+                        self.lanca_dados_produto_manual()
+                    else:
+                        self.mensagem_alerta('Este produto não possui saldo em estoque!')
+                        self.limpa_manual()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -1045,7 +1105,6 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
     def salvar_consumo_interno(self, lista_com_saldo, lista_sem_saldo):
         try:
             obss = self.line_Obs.text()
-            print(obss)
 
             if lista_sem_saldo:
                 msg = "Não foi possível salvar esta movimentação pois temos produtos sem saldo na lista:\n\n"

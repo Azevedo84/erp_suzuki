@@ -191,10 +191,10 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                 self.manipula_dados_tabela_venda(codigo_produto)
                 self.manipula_dados_tabela_compra(codigo_produto)
                 self.manipula_dados_tabela_consumo(codigo_produto)
+                self.manipula_dados_tabela_usado(codigo_produto)
 
                 if id_versao:
                     self.manipula_dados_tabela_estrutura(codigo_produto)
-                    self.manipula_dados_tabela_usado(codigo_produto)
             else:
                 self.mensagem_alerta("Este cadastro de produto não existe!")
                 self.line_Codigo.clear()
