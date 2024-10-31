@@ -569,9 +569,6 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
             detalhes_pai = cursor.fetchall()
             id_pai, cod_pai, descr_pai, ref_pai, um_pai, saldo, tipo, id_estrut = detalhes_pai[0]
 
-            if cod_pai == "21313":
-                print("num_pi:", num_pi, "cod_or:", cod_or, "descr_or:", descr_or, "qtdei:", qtdei, detalhes_pai[0])
-
             msg1 = "Verificando Estrutura:"
             msg2 = f"Código: {cod_pai}"
             msg3 = f"{descr_pai}"
@@ -609,12 +606,18 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
                 lanca_saldo = (cod_pai, novo_saldo)
                 lista_saldos.append(lanca_saldo)
 
+            if cod_pai == "10499":
+                print("num_pi:", num_pi, "cod_or:", cod_or, "descr_or:", descr_or, "qtdei:", qtdei, novo_saldo, qtde_flt_c_oc)
+
             if novo_saldo < 0 and qtde_flt_c_oc > 0:
                 coco = novo_saldo + qtde_flt_c_oc
                 if coco > 0:
                     nova_qtde = novo_saldo * -1
                 else:
                     nova_qtde = qtde_flt_c_oc
+
+                if cod_pai == "10499":
+                    print("entrei", nova_qtde)
 
                 dadoss = (pontos, nivel, cod_pai, descr_pai, ref_pai, um_pai, nova_qtde, cod_or, descr_or,
                           cod_fat, num_pi, pacote)
@@ -1030,7 +1033,15 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
             for i in nova_tabela:
                 nivel, cod, descr, ref, um, qtde, entrega, conj, cod_pai, pacote, num_pi = i
 
-                dados = (nivel, cod, descr, ref, um, qtde, entrega, conj, cod_pai, pacote, num_pi)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prod.id, tip.tipomaterial "
+                               f"FROM produto as prod "
+                               f"LEFT JOIN tipomaterial as tip ON prod.tipomaterial = tip.id "
+                               f"where prod.codigo = {cod};")
+                detalhes_produto = cursor.fetchall()
+                tipo = detalhes_produto[0][1]
+
+                dados = (nivel, cod, descr, ref, um, qtde, entrega, conj, tipo, cod_pai, pacote, num_pi)
                 lista_nova.append(dados)
 
             if lista_nova:
@@ -1038,8 +1049,8 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
                 sheet = workbook.active
                 sheet.title = "Lista Completa"
 
-                headers = ["Nivel", "Código", "Descrição", "Referência", "UM", "Qtde", "Entrega", "Tipo",
-                           "Origem", "Estrutura", "Nº PI"]
+                headers = ["Nivel", "Código", "Descrição", "Referência", "UM", "Qtde", "Entrega", "Conjunto",
+                           "Tipo", "Origem", "Estrutura", "Nº PI"]
                 sheet.append(headers)
 
                 header_row = sheet[1]
@@ -1049,7 +1060,8 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
                     edita_alinhamento(cell)
 
                 for d_ex in lista_nova:
-                    nivel_ex, cod_ex, de_ex, ref_ex, um_ex, qtde_ex, entr_ex, conj_ex, cod_pai_ex, pacote_ex, pi = d_ex
+                    nivel_ex, cod_ex, de_ex, ref_ex, um_ex, qtde_ex, entr_ex, conj_ex, tipo_ex, cod_pai_ex, \
+                    pacote_ex, pi = d_ex
 
                     nivius = int(nivel_ex)
                     codigu = int(cod_ex)
@@ -1065,8 +1077,8 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
                     else:
                         qtde_e = float(qtde_ex)
 
-                    sheet.append([nivius, codigu, de_ex, ref_ex, um_ex, qtde_e, entr_ex, conj_ex, cod_pai_ex_int,
-                                  pacote_ex, pi_int])
+                    sheet.append([nivius, codigu, de_ex, ref_ex, um_ex, qtde_e, entr_ex, conj_ex, tipo_ex,
+                                  cod_pai_ex_int, pacote_ex, pi_int])
 
                 for row in sheet.iter_rows(min_row=1,
                                            max_row=sheet.max_row,

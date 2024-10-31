@@ -53,10 +53,10 @@ def envia_email(alteracoes, versao_final):
         msg['From'] = email_user
         msg['Subject'] = subject
 
-        body = f"{saudacao}\n\nAbaixo a lista de modificações feitas na atualizção {versao_final}:\n\n"
+        body = f"{saudacao}\n\nAbaixo a lista de modificações feitas na atualização {versao_final}:\n\n"
 
-        for i in alteracoes:
-            body += f"- {i}\n"
+        for ii in alteracoes:
+            body += f"- {ii}\n"
 
         body += f"\n{msg_final}"
 
@@ -76,10 +76,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(17/10) ', ]
+lista_modifica = ['(23/10) PCP PREVISAO: ADICIONADO TIPO A LISTA COMPLETA EXCEL', ]
 
 programa = "ERP SUZUKI"
-versao = "2.05.002"
+versao = "2.05.003"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

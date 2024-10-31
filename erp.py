@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.05.002"
-        self.data_versao = f"17/10/2024"
+        self.versao = f"Versão 2.05.003"
+        self.data_versao = f"30/10/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -239,12 +239,9 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.prod_pesquisar.show()
 
             elif sender == self.action_Consultar_Produto:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_cadastros.prod_consulta import TelaProdutoConsultar
-                    self.prod_consultar = TelaProdutoConsultar()
-                    self.prod_consultar.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_cadastros.prod_consulta import TelaProdutoConsultar
+                self.prod_consultar = TelaProdutoConsultar()
+                self.prod_consultar.show()
 
             elif sender == self.actionCliente:
                 from menu_cadastros.cad_cliente import TelaCadastroCliente
@@ -292,28 +289,19 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.sol_incluir.show()
 
             elif sender == self.action_Req_Incluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_compras.req_incluir import TelaReqIncluir
-                    self.req_incluir = TelaReqIncluir()
-                    self.req_incluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_compras.req_incluir import TelaReqIncluir
+                self.req_incluir = TelaReqIncluir()
+                self.req_incluir.show()
 
             elif sender == self.action_OC_Incluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_compras.oc_incluir import TelaOcIncluir
-                    self.oc_incluir = TelaOcIncluir()
-                    self.oc_incluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_compras.oc_incluir import TelaOcIncluir
+                self.oc_incluir = TelaOcIncluir()
+                self.oc_incluir.show()
 
             elif sender == self.action_OC_Alterar:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_compras.oc_alterar import TelaOcAlterar
-                    self.oc_alterar = TelaOcAlterar()
-                    self.oc_alterar.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_compras.oc_alterar import TelaOcAlterar
+                self.oc_alterar = TelaOcAlterar()
+                self.oc_alterar.show()
 
             elif sender == self.action_Compras_Status:
                 from menu_compras.compras_status import TelaComprasStatus
@@ -326,52 +314,34 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.ci_incluir.show()
 
             elif sender == self.action_Est_Final:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_estoque.est_estoque import TelaEstEstoque
-                    self.est_final = TelaEstEstoque()
-                    self.est_final.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_estoque.est_estoque import TelaEstEstoque
+                self.est_final = TelaEstEstoque()
+                self.est_final.show()
 
             elif sender == self.action_Est_Mov:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_estoque.est_mov_v2 import TelaEstMovimentacaoV2
-                    self.est_mov = TelaEstMovimentacaoV2()
-                    self.est_mov.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_estoque.est_mov_v2 import TelaEstMovimentacaoV2
+                self.est_mov = TelaEstMovimentacaoV2()
+                self.est_mov.show()
 
             elif sender == self.action_Estr_Incluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_estrutura.estrut_incluir_v2 import TelaEstruturaIncluirV2
-                    self.estr_incluir = TelaEstruturaIncluirV2("")
-                    self.estr_incluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_estrutura.estrut_incluir_v2 import TelaEstruturaIncluirV2
+                self.estr_incluir = TelaEstruturaIncluirV2("")
+                self.estr_incluir.show()
 
             elif sender == self.action_Estr_Custo:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_estrutura.estrut_custo_v2 import TelaCustoV2
-                    self.estr_custo = TelaCustoV2("")
-                    self.estr_custo.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_estrutura.estrut_custo_v2 import TelaCustoV2
+                self.estr_custo = TelaCustoV2("")
+                self.estr_custo.show()
 
             elif sender == self.actionCadastrar_Vers_o:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_estrutura.estrut_versao import TelaCadastroVersoes
-                    self.estr_versao = TelaCadastroVersoes()
-                    self.estr_versao.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_estrutura.estrut_versao import TelaCadastroVersoes
+                self.estr_versao = TelaCadastroVersoes()
+                self.estr_versao.show()
 
             elif sender == self.action_Pcp_Previsao:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_pcp.pcp_previsao_v2 import TelaPcpPrevisaoV2
-                    self.pcp_previsao = TelaPcpPrevisaoV2()
-                    self.pcp_previsao.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_pcp.pcp_previsao_v2 import TelaPcpPrevisaoV2
+                self.pcp_previsao = TelaPcpPrevisaoV2()
+                self.pcp_previsao.show()
 
             elif sender == self.action_Pcp_Produto:
                 from menu_pcp.pcp_produto_v2 import TelaPcpProdutoV2
@@ -379,52 +349,34 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.pcp_produto.show()
 
             elif sender == self.action_OP_Incluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.op_incluir_v2 import TelaOpIncluirV2
-                    self.op_incluir = TelaOpIncluirV2()
-                    self.op_incluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.op_incluir_v2 import TelaOpIncluirV2
+                self.op_incluir = TelaOpIncluirV2()
+                self.op_incluir.show()
 
             elif sender == self.action_OP_Alterar:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.op_alterar_v2 import TelaOpAlterarV2
-                    self.op_alterar = TelaOpAlterarV2()
-                    self.op_alterar.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.op_alterar_v2 import TelaOpAlterarV2
+                self.op_alterar = TelaOpAlterarV2()
+                self.op_alterar.show()
 
             elif sender == self.action_OP_Consumo:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.op_consumir_v2 import TelaOpConsumirV2
-                    self.op_consumo = TelaOpConsumirV2()
-                    self.op_consumo.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.op_consumir_v2 import TelaOpConsumirV2
+                self.op_consumo = TelaOpConsumirV2()
+                self.op_consumo.show()
 
             elif sender == self.action_OP_Encerar:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.op_encerrar_v2 import TelaOpEncerrarV2
-                    self.op_encerar = TelaOpEncerrarV2()
-                    self.op_encerar.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.op_encerrar_v2 import TelaOpEncerrarV2
+                self.op_encerar = TelaOpEncerrarV2()
+                self.op_encerar.show()
 
             elif sender == self.action_OP_Excluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.op_excluir_v2 import TelaOpExcluirV2
-                    self.op_excluir = TelaOpExcluirV2()
-                    self.op_excluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.op_excluir_v2 import TelaOpExcluirV2
+                self.op_excluir = TelaOpExcluirV2()
+                self.op_excluir.show()
 
             elif sender == self.action_Producao_Status:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_producao.producao_status_v2 import TelaOpStatusV2
-                    self.producao_status = TelaOpStatusV2()
-                    self.producao_status.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_producao.producao_status_v2 import TelaOpStatusV2
+                self.producao_status = TelaOpStatusV2()
+                self.producao_status.show()
 
             elif sender == self.action_PI_Incluir:
                 from menu_vendas.pi_incluir import TelaPiIncluir
@@ -437,20 +389,14 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.pi_alterar.show()
 
             elif sender == self.action_OV_Incluir:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_vendas.ov_incluir import TelaOvIncluir
-                    self.ov_incluir = TelaOvIncluir()
-                    self.ov_incluir.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_vendas.ov_incluir import TelaOvIncluir
+                self.ov_incluir = TelaOvIncluir()
+                self.ov_incluir.show()
 
             elif sender == self.action_OV_Alterar:
-                if self.nome_computador == "HALLMAQMAQUINAS" or self.nome_computador == "PROJETO":
-                    from menu_vendas.ov_alterar import TelaOvAlterar
-                    self.ov_alterar = TelaOvAlterar()
-                    self.ov_alterar.show()
-                else:
-                    self.mensagem_alerta("Esta tela está temporariamente bloqueada para acesso!")
+                from menu_vendas.ov_alterar import TelaOvAlterar
+                self.ov_alterar = TelaOvAlterar()
+                self.ov_alterar.show()
 
             elif sender == self.action_Vendas_Status:
                 from menu_vendas.vendas_status import TelaVendasStatus
