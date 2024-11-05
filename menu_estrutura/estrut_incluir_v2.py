@@ -520,7 +520,7 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
                                    f"LEFT JOIN ordemservico AS os ON mov.id = os.movimentacao "
                                    f"LEFT JOIN ENTRADAPROD as ent ON mov.id = ent.movimentacao "
                                    f"LEFT JOIN produtoos as prodos ON os.id = prodos.mestre "
-                                   f"WHERE mov.produto = {id_pai} and prodos.ID_ESTRUT_PROD = {id_estrutura} "
+                                   f"WHERE mov.produto = {id_pai} and os.id_estrutura = {id_estrutura} "
                                    f"and (os.numero IS NOT NULL or ent.natureza IS not NULL);")
                     dados_mov = cursor.fetchall()
                     if dados_mov:

@@ -701,7 +701,7 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
                     total_consumo = 0
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT mat.id, "
+                    cursor.execute(f"SELECT estprod.id, "
                                    f"((SELECT quantidade FROM ordemservico where numero = {op}) * "
                                    f"(estprod.quantidade)) AS Qtde "
                                    f"FROM estrutura_produto as estprod "
