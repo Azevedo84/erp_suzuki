@@ -76,12 +76,11 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(31/10) PRODUCAO STATUS: CORRIGIDO ERRO NA CONSULTA TODOS CONSUMIDOS',
-                  '(04/11) REQUISIÇÃO: CORRIGIDO ERRO CHAMAR GRUPO DE FORNECEDOR',
-                  '(05/11) ESTRUTURA: CORRIGIDO ERRO DEFINIR SE PRODUTO TEM MOVIMENTO', ]
+lista_modifica = ['(06/11) ORDEM DE COMPRA INCLUIR: CORRIGIDO ERRO BOTAO "EXCLUIR TUDO"',
+                  '(06/11) ORDEM DE COMPRA INCLUIR: CORRIGIDO ERRO INSERIR CAMPO "OBSERVACAO"', ]
 
 programa = "ERP SUZUKI"
-versao = "2.05.005"
+versao = "2.05.006"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

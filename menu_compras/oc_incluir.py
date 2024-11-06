@@ -771,26 +771,11 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
         try:
             nome_tabela = self.table_Produtos_OC
 
-            pode_excluir = True
-
             dados_tab = extrair_tabela(nome_tabela)
             if not dados_tab:
                 self.mensagem_alerta(f'A tabela "Produtos Ordem de Compra" está vazia!')
             else:
-                for i in dados_tab:
-                    num_req, item_req, cod_pr, desc, ref, um, qtde, unit, ipi, total, entr, q_nf = i
-
-                    q_nf_float = valores_para_float(q_nf)
-
-                    if q_nf_float:
-                        pode_excluir = False
-                        break
-
-                if pode_excluir:
-                    nome_tabela.setRowCount(0)
-                else:
-                    self.mensagem_alerta(f'Os produtos não podem ser excluídos em razão de Notas Fiscais '
-                                         f'de compra vinculadas!')
+                nome_tabela.setRowCount(0)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -1056,6 +1041,8 @@ class TelaOcIncluir(QMainWindow, Ui_MainWindow):
 
             obs = self.line_Obs.text()
             obs_m = obs.upper()
+            obs_m = obs_m.encode("utf-8").decode("utf-8")
+            print(len(obs_m))
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT id, razao FROM fornecedores where registro = {cod_fornecedor};")
