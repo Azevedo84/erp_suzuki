@@ -43,6 +43,7 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
         self.tela_estrutura = []
         self.tela_preco_venda = []
         self.tela_ppc_prod = []
+        self.tela_prod_ficha = []
 
         validador_inteiro(self.line_Codigo, 123456)
 
@@ -62,6 +63,7 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
         self.btn_Estrutura.clicked.connect(self.abrir_estrutura)
         self.btn_Preco.clicked.connect(self.abrir_preco_venda)
         self.btn_Pcp.clicked.connect(self.abrir_pcp_produto)
+        self.btn_Imprimir.clicked.connect(self.abrir_prod_ficha)
 
         self.processando = False
 
@@ -234,6 +236,17 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
             from menu_pcp.pcp_produto import TelaPcpProduto
             self.tela_ppc_prod = TelaPcpProduto(codigo)
             self.tela_ppc_prod.show()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_prod_ficha(self):
+        try:
+            from menu_cadastros.prod_fichas import TelaFichasProdutos
+            self.tela_prod_ficha = TelaFichasProdutos()
+            self.tela_prod_ficha.show()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

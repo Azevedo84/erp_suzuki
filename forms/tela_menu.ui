@@ -216,6 +216,7 @@
      <addaction name="actionAlterar_Produto"/>
      <addaction name="action_Consultar_Produto"/>
      <addaction name="actionPesquisar_Produto"/>
+     <addaction name="actionImprimir_Fichas"/>
     </widget>
     <widget class="QMenu" name="menuProduto_Preliminar">
      <property name="title">
@@ -726,6 +727,11 @@
   <action name="actionCadastrar_Vers_o">
    <property name="text">
     <string>Cadastrar Versão</string>
+   </property>
+  </action>
+  <action name="actionImprimir_Fichas">
+   <property name="text">
+    <string>Imprimir Fichas</string>
    </property>
   </action>
  </widget>

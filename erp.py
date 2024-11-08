@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.05.006"
-        self.data_versao = f"06/11/2024"
+        self.versao = f"Versão 2.06.000"
+        self.data_versao = f"08/11/2024"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -32,10 +32,13 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         self.pre_incluir = []
         self.pre_status = []
+
         self.prod_incluir = []
         self.prod_alterar = []
         self.prod_pesquisar = []
         self.prod_consultar = []
+        self.prod_ficha = []
+
         self.cad_cliente = []
         self.cad_fornecedor = []
         self.cad_conjunto = []
@@ -159,10 +162,13 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         try:
             self.action_Pre_Incluir_2.triggered.connect(self.definir_tela_action)
             self.action_Pre_Status_2.triggered.connect(self.definir_tela_action)
+
             self.action_Prod_Incluir.triggered.connect(self.definir_tela_action)
             self.actionAlterar_Produto.triggered.connect(self.definir_tela_action)
             self.actionPesquisar_Produto.triggered.connect(self.definir_tela_action)
             self.action_Consultar_Produto.triggered.connect(self.definir_tela_action)
+            self.actionImprimir_Fichas.triggered.connect(self.definir_tela_action)
+
             self.actionCliente.triggered.connect(self.definir_tela_action)
             self.actionFornecedor.triggered.connect(self.definir_tela_action)
             self.actionFuncionario.triggered.connect(self.definir_tela_action)
@@ -242,6 +248,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_cadastros.prod_consulta import TelaProdutoConsultar
                 self.prod_consultar = TelaProdutoConsultar()
                 self.prod_consultar.show()
+
+            elif sender == self.actionImprimir_Fichas:
+                from menu_cadastros.prod_fichas import TelaFichasProdutos
+                self.prod_ficha = TelaFichasProdutos()
+                self.prod_ficha.show()
 
             elif sender == self.actionCliente:
                 from menu_cadastros.cad_cliente import TelaCadastroCliente
