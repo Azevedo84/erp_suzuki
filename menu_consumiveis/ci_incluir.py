@@ -964,13 +964,21 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 acumula -= qtids_float
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, codigo, quantidade FROM produto where codigo = '{codis}';")
+                cursor.execute(f"SELECT prod.id, prod.codigo, saldo.saldo, loc.negativo, prod.quantidade "
+                               f"FROM produto as prod "
+                               f"INNER JOIN SALDO_ESTOQUE saldo ON prod.id = saldo.produto_id "
+                               f"INNER JOIN LOCALESTOQUE loc ON saldo.local_estoque = loc.id "
+                               f"where prod.codigo = '{codis}' and loc.nome = '{locis}';")
                 dados_produto = cursor.fetchall()
-                id_prod, codigo, saldo_total = dados_produto[0]
+                id_prod, codigo, saldo_local, negativo, saldo_total = dados_produto[0]
 
+                saldo_local_float = valores_para_float(saldo_local)
                 saldo_total_float = valores_para_float(saldo_total)
 
-                acumula += saldo_total_float
+                if negativo == "S":
+                    acumula += saldo_total_float
+                else:
+                    acumula += saldo_local_float
 
                 if codigo in soma_qtde_dict1:
                     soma_qtde_dict1[codigo] += acumula
@@ -1044,9 +1052,6 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
 
     def salvar_consumo_interno(self, lista_com_saldo, lista_sem_saldo):
         try:
-            obss = self.line_Obs.text()
-            print(obss)
-
             if lista_sem_saldo:
                 msg = "Não foi possível salvar esta movimentação pois temos produtos sem saldo na lista:\n\n"
                 for nao_tem in lista_sem_saldo:

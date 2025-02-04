@@ -174,7 +174,7 @@ class TelaFichasProdutos(QMainWindow, Ui_MainWindow):
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.DESCRICAOCOMPLEMENTAR, ''), "
                                f"COALESCE(prod.obs, ''), "
-                               f"COALESCE(prod.ncm, '') as ncm, conj.conjunto, prod.localizacao, "
+                               f"COALESCE(prod.ncm, '') as ncm, conj.conjunto, COALESCE(prod.localizacao, ''), "
                                f"prod.unidade, prod.quantidade "
                                f"FROM produto as prod "
                                f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
@@ -362,7 +362,7 @@ class TelaFichasProdutos(QMainWindow, Ui_MainWindow):
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.DESCRICAOCOMPLEMENTAR, ''), "
                                    f"COALESCE(prod.obs, ''), "
-                                   f"COALESCE(prod.ncm, '') as ncm, conj.conjunto, prod.localizacao, "
+                                   f"COALESCE(prod.ncm, '') as ncm, conj.conjunto, COALESCE(prod.localizacao, ''), "
                                    f"prod.unidade, prod.quantidade "
                                    f"FROM produto as prod "
                                    f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "

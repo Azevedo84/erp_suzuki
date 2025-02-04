@@ -380,17 +380,25 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                 ides_mat, id_estrutura, qtde = i
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, ''), prod.unidade, "
-                               f"COALESCE(prod.obs2, '') "
-                               f"from estrutura as est "
-                               f"INNER JOIN produto prod ON est.id_produto = prod.id "
-                               f"where est.id = {id_estrutura};")
-                select_prod = cursor.fetchall()
+                cursor.execute(f"SELECT id, codigo "
+                               f"from produto "
+                               f" where id_versao = {id_estrutura};")
+                produto_pai = cursor.fetchall()
+                if produto_pai:
+                    cod_produto = produto_pai[0][1]
 
-                if select_prod:
-                    cod, descr, ref, um, obs = select_prod[0]
-                    dados = (cod, descr, ref, um, qtde)
-                    planilha_nova.append(dados)
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, ''), prod.unidade, "
+                                   f"COALESCE(prod.obs2, '') "
+                                   f"from estrutura as est "
+                                   f"INNER JOIN produto prod ON est.id_produto = prod.id "
+                                   f"where prod.codigo = {cod_produto};")
+                    select_prod = cursor.fetchall()
+
+                    if select_prod:
+                        cod, descr, ref, um, obs = select_prod[0]
+                        dados = (cod, descr, ref, um, qtde)
+                        planilha_nova.append(dados)
 
             if planilha_nova:
                 planilha_nova_ordenada = sorted(planilha_nova, key=lambda x: x[1])
@@ -750,7 +758,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                                f"from ordemservico as ordser "
                                f"INNER JOIN produto prod ON ordser.produto = prod.id "
                                f"where ordser.status = 'A' "
-                               f"and prod.id = {id_produto} "
+                               f"and prod.id = {id_produto} and prod.id_versao = {id_estrutura} "
                                f"order by ordser.numero;")
                 op_abertas = cursor.fetchall()
                 if op_abertas:

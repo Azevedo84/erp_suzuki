@@ -640,8 +640,10 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
                 for i in tab_ordenada:
                     niv, codi, descr, ref, um, qtdi, conj, temp, terc, unit, estrut = i
+                    if codi == "75694":
+                        print(i)
 
-                    if conj == 'PRODUTOS ACABADOS':
+                    if conj == 10:
                         if temp or terc:
                             pass
                         else:
@@ -657,13 +659,9 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                             dados = (codi, descr, ref, um, qtdi, estru_rs, total_rs, conj)
                             tabela_nova.append(dados)
                     else:
-                        if unit:
-                            pass
-                        else:
-                            if unit:
-                                unit_float = float(unit)
-                            else:
-                                unit_float = 0
+                        if not unit:
+                            print("entrei", i)
+                            unit_float = 0
 
                             total = float(qtdi) * float(unit_float)
 
@@ -699,32 +697,41 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
     def verifica_estrutura_problema(self, nivel, codigo, qtde):
         try:
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, conj.conjunto, "
-                           f"prod.tempo, prod.terceirizado, prod.custounitario, prod.custoestrutura "
+            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, "
+                           f"prod.conjunto, prod.tempo, prod.terceirizado, prod.custounitario, "
+                           f"prod.custoestrutura, prod.id_versao "
                            f"FROM produto as prod "
                            f"LEFT JOIN tipomaterial as tip ON prod.tipomaterial = tip.id "
                            f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
                            f"where prod.codigo = {codigo};")
             detalhes_pai = cursor.fetchall()
-            id_pai, c_pai, des_pai, ref_pai, um_pai, conj_pai, temp_pai, terc_pai, unit_pai, est_pai = detalhes_pai[0]
+            (id_pai, c_pai, des_pai, ref_pai, um_pai, conj_pai, temp_pai, terc_pai, unit_pai, est_pai,
+             id_estrut) = detalhes_pai[0]
 
             filhos = [(nivel, codigo, des_pai, ref_pai, um_pai, qtde, conj_pai, temp_pai, terc_pai, unit_pai, est_pai)]
 
             nivel_plus = nivel + 1
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
-                           f"(mat.quantidade * {qtde}) as qtde "
-                           f"FROM materiaprima as mat "
-                           f"INNER JOIN produto prod ON mat.produto = prod.id "
-                           f"where mestre = {id_pai};")
-            dados_estrutura = cursor.fetchall()
+            if id_estrut:
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
+                               f"(estprod.quantidade * {qtde}) as qtde "
+                               f"FROM estrutura_produto as estprod "
+                               f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                               f"WHERE estprod.id_estrutura = {id_estrut};")
+                dados_estrutura = cursor.fetchall()
 
-            if dados_estrutura:
-                for prod in dados_estrutura:
-                    cod_f, descr_f, ref_f, um_f, qtde_f = prod
+                if dados_estrutura:
+                    for prod in dados_estrutura:
+                        if c_pai == "20864":
+                            print(c_pai, prod)
 
-                    filhos.extend(self.verifica_estrutura_problema(nivel_plus, cod_f, qtde_f))
+                        cod_f, descr_f, ref_f, um_f, qtde_f = prod
+
+                        if cod_f == "75694":
+                            print("detalhes pai", detalhes_pai[0], prod)
+
+                        filhos.extend(self.verifica_estrutura_problema(nivel_plus, cod_f, qtde_f))
 
             return filhos
 

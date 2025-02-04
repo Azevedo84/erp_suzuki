@@ -195,7 +195,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             destino_arquivo = os.path.join(caminho_pasta, arquivo)
 
             try:
-                shutil.copy2(origem_arquivo, destino_arquivo)
+                shutil.copy2(str(origem_arquivo), str(destino_arquivo))
             except FileNotFoundError:
                 self.mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
             except shutil.Error as e:

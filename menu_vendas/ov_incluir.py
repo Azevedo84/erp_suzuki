@@ -273,32 +273,35 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
     def verifica_estrutura_problema(self, nivel, codigo, qtde):
         try:
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, prod.conjunto, "
-                           f"prod.tempo, prod.terceirizado, prod.custounitario, prod.custoestrutura "
+            cursor.execute(f"SELECT prod.id, prod.codigo, prod.descricao, prod.obs, prod.unidade, "
+                           f"prod.conjunto, prod.tempo, prod.terceirizado, prod.custounitario, "
+                           f"prod.custoestrutura, prod.id_versao "
                            f"FROM produto as prod "
                            f"LEFT JOIN tipomaterial as tip ON prod.tipomaterial = tip.id "
                            f"INNER JOIN conjuntos conj ON prod.conjunto = conj.id "
                            f"where prod.codigo = {codigo};")
             detalhes_pai = cursor.fetchall()
-            id_pai, c_pai, des_pai, ref_pai, um_pai, conj_pai, temp_pai, terc_pai, unit_pai, est_pai = detalhes_pai[0]
+            (id_pai, c_pai, des_pai, ref_pai, um_pai, conj_pai, temp_pai, terc_pai, unit_pai, est_pai,
+             id_estrut) = detalhes_pai[0]
 
             filhos = [(nivel, codigo, des_pai, ref_pai, um_pai, qtde, conj_pai, temp_pai, terc_pai, unit_pai, est_pai)]
 
             nivel_plus = nivel + 1
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
-                           f"(mat.quantidade * {qtde}) as qtde "
-                           f"FROM materiaprima as mat "
-                           f"INNER JOIN produto prod ON mat.produto = prod.id "
-                           f"where mestre = {id_pai};")
-            dados_estrutura = cursor.fetchall()
+            if id_estrut:
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prod.codigo, prod.descricao, COALESCE(prod.obs, '') as obs, prod.unidade, "
+                               f"(estprod.quantidade * {qtde}) as qtde "
+                               f"FROM estrutura_produto as estprod "
+                               f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                               f"WHERE estprod.id_estrutura = {id_estrut};")
+                dados_estrutura = cursor.fetchall()
 
-            if dados_estrutura:
-                for prod in dados_estrutura:
-                    cod_f, descr_f, ref_f, um_f, qtde_f = prod
+                if dados_estrutura:
+                    for prod in dados_estrutura:
+                        cod_f, descr_f, ref_f, um_f, qtde_f = prod
 
-                    filhos.extend(self.verifica_estrutura_problema(nivel_plus, cod_f, qtde_f))
+                        filhos.extend(self.verifica_estrutura_problema(nivel_plus, cod_f, qtde_f))
 
             return filhos
 
@@ -683,19 +686,27 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                     else:
                         qtdezinha_float = valores_para_float(qtde)
 
-                    dados = (cod, desc, ref, um, qtdezinha_float, unit_1_final, ipi_final, total_1_final,
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prod.id, COALESCE(prod.NCM, ''), conj.conjunto "
+                                   f"FROM produto as prod "
+                                   f"INNER JOIN conjuntos as conj ON conj.id = prod.conjunto "
+                                   f"where codigo = {cod};")
+                    dados_prodis = cursor.fetchall()
+                    idis, ncm, conj = dados_prodis[0]
+
+                    dados = (cod, desc, ref, ncm, conj, um, qtdezinha_float, unit_1_final, ipi_final, total_1_final,
                              entr, obs)
                     d_um.append(dados)
 
-                df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'UM', 'Qtde', 'unit', 'Ipi %',
-                                                 'total', 'Data', 'Destino'])
+                df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'NCM', 'Classificação',
+                                                 'UM', 'Qtde', 'unit', 'Ipi %', 'total', 'Data', 'Destino'])
 
                 codigo_int = {'Código': int}
                 df = df.astype(codigo_int)
                 qtde_float = {'Qtde': float}
                 df = df.astype(qtde_float)
 
-                camino = os.path.join('..', 'arquivos', 'modelo excel', 'ov_incluir.xlsx')
+                camino = os.path.join('..', 'arquivos', 'modelo excel', 'ov_Copia.xlsx')
                 caminho_arquivo = definir_caminho_arquivo(camino)
 
                 book = load_workbook(caminho_arquivo)
@@ -763,7 +774,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 c.font = Font(size=14, bold=True)
                 top_left_cell.value = 'Emissão:  ' + data_certa
 
-                ws.merge_cells(f'A{linhas_certas}:G{linhas_certas}')
+                ws.merge_cells(f'A{linhas_certas}:I{linhas_certas}')
                 top_left_cell = ws[f'A{linhas_certas}']
                 c = ws[f'A{linhas_certas}']
                 c.alignment = Alignment(horizontal='center',
@@ -786,13 +797,15 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 ws[f'H{linhas_certas}'].fill = estilo_total
                 ws[f'I{linhas_certas}'].fill = estilo_total
                 ws[f'J{linhas_certas}'].fill = estilo_total
+                ws[f'K{linhas_certas}'].fill = estilo_total
+                ws[f'L{linhas_certas}'].fill = estilo_total
 
                 decimais = frac(total_float)
                 if decimais == 0:
                     if total_float == 0.00:
-                        ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
-                        top_left_cell = ws[f'H{linhas_certas}']
-                        c = ws[f'H{linhas_certas}']
+                        ws.merge_cells(f'J{linhas_certas}:J{linhas_certas}')
+                        top_left_cell = ws[f'J{linhas_certas}']
+                        c = ws[f'J{linhas_certas}']
                         c.alignment = Alignment(horizontal='center',
                                                 vertical='center',
                                                 text_rotation=0,
@@ -803,9 +816,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                         c.number_format = 'R$ 0.00;[Red]-R$ 0.00'
                         top_left_cell.value = total_float
                     else:
-                        ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
-                        top_left_cell = ws[f'H{linhas_certas}']
-                        c = ws[f'H{linhas_certas}']
+                        ws.merge_cells(f'J{linhas_certas}:J{linhas_certas}')
+                        top_left_cell = ws[f'J{linhas_certas}']
+                        c = ws[f'J{linhas_certas}']
                         c.alignment = Alignment(horizontal='center',
                                                 vertical='center',
                                                 text_rotation=0,
@@ -816,9 +829,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                         c.number_format = 'R$ #.##00;[Red]-R$ #.##00'
                         top_left_cell.value = total_float
                 else:
-                    ws.merge_cells(f'H{linhas_certas}:H{linhas_certas}')
-                    top_left_cell = ws[f'H{linhas_certas}']
-                    c = ws[f'H{linhas_certas}']
+                    ws.merge_cells(f'J{linhas_certas}:J{linhas_certas}')
+                    top_left_cell = ws[f'J{linhas_certas}']
+                    c = ws[f'J{linhas_certas}']
                     c.alignment = Alignment(horizontal='center',
                                             vertical='center',
                                             text_rotation=0,
@@ -853,9 +866,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 c.font = Font(size=12, bold=False)
                 top_left_cell.value = observacao
 
-                ws.merge_cells(f'I{linhas_certas + 2}:I{linhas_certas + 2}')
-                top_left_cell = ws[f'I{linhas_certas + 2}']
-                c = ws[f'I{linhas_certas + 2}']
+                ws.merge_cells(f'K{linhas_certas + 2}:K{linhas_certas + 2}')
+                top_left_cell = ws[f'K{linhas_certas + 2}']
+                c = ws[f'K{linhas_certas + 2}']
                 c.alignment = Alignment(horizontal='right',
                                         vertical='center',
                                         text_rotation=0,
@@ -865,9 +878,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 c.font = Font(size=12, bold=True)
                 top_left_cell.value = "Cliente:  "
 
-                ws.merge_cells(f'J{linhas_certas + 2}:J{linhas_certas + 2}')
-                top_left_cell = ws[f'J{linhas_certas + 2}']
-                c = ws[f'J{linhas_certas + 2}']
+                ws.merge_cells(f'L{linhas_certas + 2}:L{linhas_certas + 2}')
+                top_left_cell = ws[f'L{linhas_certas + 2}']
+                c = ws[f'L{linhas_certas + 2}']
                 c.alignment = Alignment(horizontal='left',
                                         vertical='center',
                                         text_rotation=0,
