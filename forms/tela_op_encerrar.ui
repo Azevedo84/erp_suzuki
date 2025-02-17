@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>720</height>
+    <width>702</width>
+    <height>456</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1174,25 +1174,25 @@
         <number>1</number>
        </property>
        <item>
-        <widget class="QWidget" name="widget_24" native="true">
+        <widget class="QWidget" name="widget_25" native="true">
          <property name="styleSheet">
           <string notr="true"/>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_23">
+         <layout class="QHBoxLayout" name="horizontalLayout_24">
           <property name="spacing">
-           <number>5</number>
+           <number>6</number>
           </property>
           <property name="leftMargin">
-           <number>15</number>
+           <number>6</number>
           </property>
           <property name="topMargin">
-           <number>12</number>
+           <number>6</number>
           </property>
           <property name="rightMargin">
-           <number>15</number>
+           <number>6</number>
           </property>
           <property name="bottomMargin">
-           <number>12</number>
+           <number>6</number>
           </property>
           <item>
            <widget class="QLabel" name="label_28">
@@ -1210,13 +1210,13 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>101</width>
+              <width>85</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="font">
              <font>
-              <pointsize>11</pointsize>
+              <pointsize>10</pointsize>
               <weight>75</weight>
               <bold>true</bold>
              </font>
@@ -1236,6 +1236,12 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>25</height>
+             </size>
             </property>
             <property name="font">
              <font>
@@ -1268,32 +1274,8 @@
             </property>
            </widget>
           </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="widget_25" native="true">
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_24">
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <property name="leftMargin">
-           <number>15</number>
-          </property>
-          <property name="topMargin">
-           <number>6</number>
-          </property>
-          <property name="rightMargin">
-           <number>15</number>
-          </property>
-          <property name="bottomMargin">
-           <number>6</number>
-          </property>
           <item>
-           <widget class="QLabel" name="label_17">
+           <widget class="QLabel" name="label_20">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -1302,7 +1284,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>95</width>
+              <width>50</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1314,10 +1296,91 @@
              </font>
             </property>
             <property name="text">
-             <string>Data Encerra:</string>
+             <string>Local:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="line_Local">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>25</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
+            <property name="cursor">
+             <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color: rgb(255, 255, 255);</string>
+            </property>
+            <property name="inputMask">
+             <string/>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="maxLength">
+             <number>110</number>
+            </property>
+            <property name="frame">
+             <bool>true</bool>
+            </property>
+            <property name="echoMode">
+             <enum>QLineEdit::Normal</enum>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_17">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>65</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Data
+Encerra:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -1329,10 +1392,16 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
-              <width>101</width>
-              <height>24</height>
+              <width>100</width>
+              <height>25</height>
              </size>
             </property>
             <property name="font">
@@ -1343,10 +1412,25 @@
             <property name="styleSheet">
              <string notr="true">background-color: rgb(255, 255, 255);</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_40">
+           <widget class="QLabel" name="label_4">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string/>
             </property>
@@ -1365,7 +1449,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>101</width>
+              <width>70</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1377,7 +1461,8 @@
              </font>
             </property>
             <property name="text">
-             <string>Salvar Excel</string>
+             <string>Salvar
+Excel</string>
             </property>
             <property name="checkable">
              <bool>true</bool>

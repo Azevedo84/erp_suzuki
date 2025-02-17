@@ -970,20 +970,39 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                                f"INNER JOIN LOCALESTOQUE loc ON saldo.local_estoque = loc.id "
                                f"where prod.codigo = '{codis}' and loc.nome = '{locis}';")
                 dados_produto = cursor.fetchall()
-                id_prod, codigo, saldo_local, negativo, saldo_total = dados_produto[0]
+                if dados_produto:
+                    id_prod, codigo, saldo_local, negativo, saldo_total = dados_produto[0]
 
-                saldo_local_float = valores_para_float(saldo_local)
-                saldo_total_float = valores_para_float(saldo_total)
+                    saldo_local_float = valores_para_float(saldo_local)
+                    saldo_total_float = valores_para_float(saldo_total)
 
-                if negativo == "S":
-                    acumula += saldo_total_float
+                    if negativo == "S":
+                        acumula += saldo_total_float
+                    else:
+                        acumula += saldo_local_float
+
+                    if codigo in soma_qtde_dict1:
+                        soma_qtde_dict1[codigo] += acumula
+                    else:
+                        soma_qtde_dict1[codigo] = acumula
+
                 else:
-                    acumula += saldo_local_float
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prod.id, prod.codigo, prod.quantidade "
+                                   f"FROM produto as prod "
+                                   f"where prod.codigo = '{codis}';")
+                    dados_produto = cursor.fetchall()
+                    if dados_produto:
+                        id_prod, codigo, saldo_total = dados_produto[0]
 
-                if codigo in soma_qtde_dict1:
-                    soma_qtde_dict1[codigo] += acumula
-                else:
-                    soma_qtde_dict1[codigo] = acumula
+                        saldo_total_float = valores_para_float(saldo_total)
+
+                        acumula += saldo_total_float
+
+                        if codigo in soma_qtde_dict1:
+                            soma_qtde_dict1[codigo] += acumula
+                        else:
+                            soma_qtde_dict1[codigo] = acumula
 
             nova_lista1 = [(codigo1, qtde_somada1) for (codigo1), qtde_somada1 in
                            soma_qtde_dict1.items()]

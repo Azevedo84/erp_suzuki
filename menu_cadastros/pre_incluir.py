@@ -415,10 +415,13 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
                     qtdezinha_float = 0.00
 
                 cursor = conecta.cursor()
-                cursor.execute(f"Insert into PRODUTOPRELIMINAR (ID, REGISTRO, OBS, DESCRICAO, DESCR_COMPL, "
-                               f"REFERENCIA, UM, NCM, KG_MT, FORNECEDOR) "
-                               f"values (GEN_ID(GEN_PRODUTOPRELIMINAR_ID,1), {registro}, '{obs}', '{descr}', "
-                               f"'{decr_compl}', '{ref}', '{um}', '{ncm}', {qtdezinha_float}, '{fornecedor}');")
+                sql = """
+                INSERT INTO PRODUTOPRELIMINAR (ID, REGISTRO, OBS, DESCRICAO, DESCR_COMPL, 
+                REFERENCIA, UM, NCM, KG_MT, FORNECEDOR) 
+                VALUES (GEN_ID(GEN_PRODUTOPRELIMINAR_ID,1), ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """
+
+                cursor.execute(sql, (registro, obs, descr, decr_compl, ref, um, ncm, qtdezinha_float, fornecedor))
 
             conecta.commit()
 

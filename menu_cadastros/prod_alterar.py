@@ -115,6 +115,11 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             try:
                 self.processando = True
 
+                self.lanca_combo_conjunto()
+                self.lanca_combo_tipo()
+                self.lanca_combo_projeto()
+                self.data_emissao()
+
                 codigo_produto = self.line_Codigo.text()
 
                 if codigo_produto:
@@ -778,8 +783,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     campos_update = ", ".join(campos_atualizados)
 
                     cod_produto = self.line_Codigo.text()
-
-                    print(campos_update)
 
                     cursor = conecta.cursor()
                     cursor.execute(f"UPDATE produto SET {campos_update} "

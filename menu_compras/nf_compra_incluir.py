@@ -197,6 +197,12 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             try:
                 self.processando = True
 
+                self.limpa_dados_produtos()
+                self.limpa_dados_valores_obs()
+
+                self.table_Produtos_NF.setRowCount(0)
+                self.table_OC_Abertas.setRowCount(0)
+
                 cod_fornecedor = self.line_CodForn.text()
                 if not cod_fornecedor:
                     self.mensagem_alerta('O campo "Cód. For.:" não pode estar vazio')
@@ -234,7 +240,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_NomeForn.setText(nom_fornecedor)
                 self.line_Codigo.setFocus()
 
-            self.oc_total_aberto_por_fornec(cod_fornecedor)
+                self.oc_total_aberto_por_fornec(cod_fornecedor)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -669,6 +675,9 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             unit = self.line_Unit.text()
             unit_float = valores_para_float(unit)
 
+            ipi = self.line_Ipi.text()
+            ipi_float = valores_para_float(ipi)
+
             cursor = conecta.cursor()
             cursor.execute(
                 f"SELECT oc.numero, prodoc.item, prodoc.codigo, "
@@ -694,6 +703,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
 
                 qtde_bc_float = valores_para_float(qtde_bc)
                 unit_bc_float = valores_para_float(unit_bc)
+                ipi_bc_float = valores_para_float(ipi_bc)
 
                 ncm_bc_sem_espaco = ncm_bc.strip()
                 ncm_bc_num = ncm_bc_sem_espaco.replace(".", "").replace("-", "")
@@ -703,6 +713,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                     self.mensagem_alerta("A quantidade da NF não está de acordo com o saldo da Ordem de Compra!")
                 elif unit_float != unit_bc_float:
                     self.mensagem_alerta("O valor unitário não está de acordo com a Ordem de Compra!")
+                elif ipi_float != ipi_bc_float:
+                    self.mensagem_alerta("O IPI não está de acordo com a Ordem de Compra!")
                 elif ncm_4_digitos != ncm_bc_4_digitos:
                     self.mensagem_alerta("A NCM não está de acordo com o cadastro do produto!")
                 else:

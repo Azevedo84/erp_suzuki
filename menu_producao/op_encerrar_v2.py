@@ -866,54 +866,59 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
         try:
             num_op = self.line_Num_OP.text()
 
-            estrutura = extrair_tabela(self.table_Estrutura)
-            consumo_os = extrair_tabela(self.table_ConsumoOS)
+            local = self.line_Local.text()
 
-            linhas_est = len(estrutura)
-            diferentes = 0
-            sem_saldo = 0
-            prod_sem_saldo = []
-
-            for linha_est in range(linhas_est):
-                id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os = consumo_os[linha_est]
-                if not cod_os:
-                    diferentes = diferentes + 1
-                else:
-                    cursor = conecta.cursor()
-                    cursor.execute(f"SELECT id, codigo, quantidade FROM produto where codigo = {cod_os};")
-                    dados_produto = cursor.fetchall()
-                    id_produto, codigo, quantidade = dados_produto[0]
-
-                    quantidade_str = str(quantidade)
-
-                    if quantidade < 0:
-                        sem_saldo = sem_saldo + 1
-                        dados = (cod_os, descr_os, quantidade_str)
-                        prod_sem_saldo.append(dados)
-
-            if diferentes > 0:
-                self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
-            elif sem_saldo > 0:
-                texto_composto = ""
-                if len(prod_sem_saldo) > 1:
-                    for titi in prod_sem_saldo:
-                        cod_os, descr_os, quantidade = titi
-                        texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                        texto_composto = texto_composto + "\n" + texto
-
-                    self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
-                                         f'encerrar a\n'
-                                         f'Ordem de Produção Nº {num_op}\n'
-                                         f'{texto_composto}!')
-                else:
-                    cod_os, descr_os, quantidade = prod_sem_saldo[0]
-                    texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                    self.mensagem_alerta(f'O produto abaixo está sem saldo para '
-                                         f'encerrar a\n'
-                                         f'Ordem de Produção Nº {num_op}\n'
-                                         f'{texto}!')
+            if not local:
+                self.mensagem_alerta(f'Favor defina a localização antes de encerrar a OP!')
             else:
-                self.salvar_lista()
+                estrutura = extrair_tabela(self.table_Estrutura)
+                consumo_os = extrair_tabela(self.table_ConsumoOS)
+
+                linhas_est = len(estrutura)
+                diferentes = 0
+                sem_saldo = 0
+                prod_sem_saldo = []
+
+                for linha_est in range(linhas_est):
+                    id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os = consumo_os[linha_est]
+                    if not cod_os:
+                        diferentes = diferentes + 1
+                    else:
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT id, codigo, quantidade FROM produto where codigo = {cod_os};")
+                        dados_produto = cursor.fetchall()
+                        id_produto, codigo, quantidade = dados_produto[0]
+
+                        quantidade_str = str(quantidade)
+
+                        if quantidade < 0:
+                            sem_saldo = sem_saldo + 1
+                            dados = (cod_os, descr_os, quantidade_str)
+                            prod_sem_saldo.append(dados)
+
+                if diferentes > 0:
+                    self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
+                elif sem_saldo > 0:
+                    texto_composto = ""
+                    if len(prod_sem_saldo) > 1:
+                        for titi in prod_sem_saldo:
+                            cod_os, descr_os, quantidade = titi
+                            texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
+                            texto_composto = texto_composto + "\n" + texto
+
+                        self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
+                                             f'encerrar a\n'
+                                             f'Ordem de Produção Nº {num_op}\n'
+                                             f'{texto_composto}!')
+                    else:
+                        cod_os, descr_os, quantidade = prod_sem_saldo[0]
+                        texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
+                        self.mensagem_alerta(f'O produto abaixo está sem saldo para '
+                                             f'encerrar a\n'
+                                             f'Ordem de Produção Nº {num_op}\n'
+                                             f'{texto}!')
+                else:
+                    self.salvar_lista()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -936,7 +941,19 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
             qtde_op = self.line_Qtde.text()
             qtde_op_float = float(qtde_op)
 
-            obs_op = self.line_Obs.text()
+            obs = self.line_Obs.text()
+            if not obs:
+                obs_maiusculo = ""
+            else:
+                obs_sem_quebra = obs.replace('\n', ' ')
+                obs_maiusculo = obs_sem_quebra.upper()
+
+            local = self.line_Local.text()
+            if not local:
+                local_maiusculo = ""
+            else:
+                local_sem_quebra = local.replace('\n', ' ')
+                local_maiusculo = local_sem_quebra.upper()
 
             estrutura = extrair_tabela(self.table_Estrutura)
             consumo_os = extrair_tabela(self.table_ConsumoOS)
@@ -993,8 +1010,12 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"UPDATE ordemservico SET "
                            f"movimentacao = {id_mov_ultimo}, status = 'B', datafinal = '{encerra_certo}', "
-                           f"obs = '{obs_op}' "
+                           f"obs = '{obs_maiusculo}' "
                            f"where numero = {num_op_int};")
+
+            cursor = conecta.cursor()
+            cursor.execute(f"UPDATE produto SET "
+                           f"localizacao = '{local_maiusculo}' where id = {id_produto};")
 
             conecta.commit()
 
