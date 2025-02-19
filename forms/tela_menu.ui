@@ -259,9 +259,16 @@
      <addaction name="action_OC_Incluir"/>
      <addaction name="action_OC_Alterar"/>
     </widget>
+    <widget class="QMenu" name="menuNF_de_Compra">
+     <property name="title">
+      <string>NF de Compra</string>
+     </property>
+     <addaction name="actionIncluir_NF"/>
+    </widget>
     <addaction name="menu_Solicitacao"/>
     <addaction name="menu_Requisicao"/>
     <addaction name="menu_OC"/>
+    <addaction name="menuNF_de_Compra"/>
     <addaction name="action_Compras_Status"/>
    </widget>
    <widget class="QMenu" name="menu_Plano">
@@ -732,6 +739,11 @@
   <action name="actionImprimir_Fichas">
    <property name="text">
     <string>Imprimir Fichas</string>
+   </property>
+  </action>
+  <action name="actionIncluir_NF">
+   <property name="text">
+    <string>Incluir NF</string>
    </property>
   </action>
  </widget>

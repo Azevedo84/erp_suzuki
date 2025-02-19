@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.06.002"
-        self.data_versao = f"14/02/2025"
+        self.versao = f"Versão 2.07.000"
+        self.data_versao = f"18/02/2025"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -52,6 +52,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.req_incluir = []
         self.oc_incluir = []
         self.oc_alterar = []
+        self.nf_compra_incluir = []
         self.compras_status = []
 
         self.ci_incluir = []
@@ -182,6 +183,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OC_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OC_Alterar.triggered.connect(self.definir_tela_action)
+            self.actionIncluir_NF.triggered.connect(self.definir_tela_action)
             self.action_Compras_Status.triggered.connect(self.definir_tela_action)
 
             self.action_CI_Incluir.triggered.connect(self.definir_tela_action)
@@ -313,6 +315,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_compras.oc_alterar import TelaOcAlterar
                 self.oc_alterar = TelaOcAlterar()
                 self.oc_alterar.show()
+
+            elif sender == self.actionIncluir_NF:
+                from menu_compras.nf_compra_incluir import TelaNFCompraIncluir
+                self.nf_compra_incluir = TelaNFCompraIncluir()
+                self.nf_compra_incluir.show()
 
             elif sender == self.action_Compras_Status:
                 from menu_compras.compras_status import TelaComprasStatus

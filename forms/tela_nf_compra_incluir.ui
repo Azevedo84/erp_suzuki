@@ -1167,7 +1167,7 @@
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>75</width>
+                    <width>16777215</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1184,6 +1184,13 @@
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label">
+                  <property name="text">
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1226,13 +1233,13 @@
                   </property>
                   <property name="minimumSize">
                    <size>
-                    <width>45</width>
+                    <width>50</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>45</width>
+                    <width>16777215</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1249,17 +1256,53 @@
                   </property>
                  </widget>
                 </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="widget_31" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_29">
+                <property name="spacing">
+                 <number>5</number>
+                </property>
+                <property name="leftMargin">
+                 <number>5</number>
+                </property>
+                <property name="topMargin">
+                 <number>3</number>
+                </property>
+                <property name="rightMargin">
+                 <number>5</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>3</number>
+                </property>
                 <item>
                  <widget class="QLabel" name="label_41">
                   <property name="minimumSize">
                    <size>
-                    <width>35</width>
+                    <width>60</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>35</width>
+                    <width>60</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1330,13 +1373,13 @@
                  <widget class="QLabel" name="label_65">
                   <property name="minimumSize">
                    <size>
-                    <width>30</width>
+                    <width>0</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>30</width>
+                    <width>40</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1371,7 +1414,7 @@
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>55</width>
+                    <width>16777215</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1383,42 +1426,6 @@
                   </property>
                  </widget>
                 </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QWidget" name="widget_31" native="true">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_29">
-                <property name="spacing">
-                 <number>5</number>
-                </property>
-                <property name="leftMargin">
-                 <number>5</number>
-                </property>
-                <property name="topMargin">
-                 <number>3</number>
-                </property>
-                <property name="rightMargin">
-                 <number>5</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>3</number>
-                </property>
                 <item>
                  <widget class="QLabel" name="label_42">
                   <property name="minimumSize">
@@ -1458,13 +1465,13 @@
                   </property>
                   <property name="minimumSize">
                    <size>
-                    <width>110</width>
+                    <width>120</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>110</width>
+                    <width>16777215</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1499,17 +1506,53 @@
                   </property>
                  </widget>
                 </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="widget_32" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_30">
+                <property name="spacing">
+                 <number>5</number>
+                </property>
+                <property name="leftMargin">
+                 <number>5</number>
+                </property>
+                <property name="topMargin">
+                 <number>3</number>
+                </property>
+                <property name="rightMargin">
+                 <number>5</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>3</number>
+                </property>
                 <item>
                  <widget class="QLabel" name="label_66">
                   <property name="minimumSize">
                    <size>
-                    <width>70</width>
+                    <width>0</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>70</width>
+                    <width>60</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -1555,6 +1598,86 @@
                   </property>
                   <property name="styleSheet">
                    <string notr="true">background-color: rgb(255, 255, 255);</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_44">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>9</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>Local:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="line_Local">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>140</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>9</pointsize>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>IBeamCursor</cursorShape>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-color: rgb(255, 255, 255);</string>
+                  </property>
+                  <property name="inputMask">
+                   <string/>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="maxLength">
+                   <number>30</number>
+                  </property>
+                  <property name="frame">
+                   <bool>true</bool>
+                  </property>
+                  <property name="echoMode">
+                   <enum>QLineEdit::Normal</enum>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -1848,6 +1971,11 @@
          <column>
           <property name="text">
            <string>R$</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>LOCAL</string>
           </property>
          </column>
         </widget>
@@ -2637,13 +2765,9 @@
   <tabstop>line_CodForn</tabstop>
   <tabstop>line_Codigo</tabstop>
   <tabstop>line_NCM</tabstop>
-  <tabstop>combo_Local_Estoque</tabstop>
   <tabstop>line_Num_OC</tabstop>
   <tabstop>line_Item_OC</tabstop>
-  <tabstop>line_Qtde</tabstop>
-  <tabstop>line_Ipi</tabstop>
   <tabstop>line_Unit</tabstop>
-  <tabstop>btn_AdicionarProd</tabstop>
   <tabstop>btn_Salvar</tabstop>
   <tabstop>line_Total_Ipi</tabstop>
   <tabstop>line_Total_Merc</tabstop>
@@ -2651,7 +2775,6 @@
   <tabstop>line_Obs</tabstop>
   <tabstop>btn_Limpar</tabstop>
   <tabstop>table_OC_Abertas</tabstop>
-  <tabstop>line_ValorTotal</tabstop>
   <tabstop>line_NomeForn</tabstop>
   <tabstop>line_Descricao</tabstop>
   <tabstop>line_Desconto</tabstop>

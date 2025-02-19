@@ -225,14 +225,15 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
         try:
             id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.dados_os()
             cur = conecta.cursor()
-            cur.execute("SELECT codigo, descricao, COALESCE(obs, ' ') as obs, unidade "
+            cur.execute("SELECT codigo, descricao, COALESCE(obs, '') as obs, unidade, COALESCE(localizacao, '') "
                         "FROM produto where id = '{}';".format(produto_os))
             detalhes_produtos = cur.fetchall()
-            codigo_id, descricao_id, referencia_id, unidade_id = detalhes_produtos[0]
-            self.line_Codigo.setText(codigo_id)
-            self.line_Descricao.setText(descricao_id)
-            self.line_Referencia.setText(referencia_id)
-            self.line_UM.setText(unidade_id)
+            codigo, descricao, ref, um, local = detalhes_produtos[0]
+            self.line_Codigo.setText(codigo)
+            self.line_Descricao.setText(descricao)
+            self.line_Referencia.setText(ref)
+            self.line_UM.setText(um)
+            self.line_Local.setText(local)
             numero = str(qtde_os).replace('.', ',')
             self.line_Qtde.setText(numero)
             if not obs:
@@ -638,6 +639,8 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
             self.table_ConsumoOS.clearContents()
             self.line_Num_OP.setFocus()
 
+            self.line_Local.clear()
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
@@ -949,11 +952,8 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
                 obs_maiusculo = obs_sem_quebra.upper()
 
             local = self.line_Local.text()
-            if not local:
-                local_maiusculo = ""
-            else:
-                local_sem_quebra = local.replace('\n', ' ')
-                local_maiusculo = local_sem_quebra.upper()
+            local_sem_quebra = local.replace('\n', ' ')
+            local_maiusculo = local_sem_quebra.upper()
 
             estrutura = extrair_tabela(self.table_Estrutura)
             consumo_os = extrair_tabela(self.table_ConsumoOS)

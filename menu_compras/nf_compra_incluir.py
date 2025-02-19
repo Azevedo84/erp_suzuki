@@ -12,6 +12,9 @@ import os
 import traceback
 from datetime import datetime, date
 
+import socket
+import getpass
+
 
 class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
@@ -22,6 +25,9 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
+
+        self.nome_computador = socket.gethostname()
+        self.username = getpass.getuser()
 
         icone(self, "menu_compra_sol.png")
         tamanho_aplicacao(self)
@@ -37,7 +43,9 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
         self.line_Ipi.editingFinished.connect(self.atualiza_mascara_ipi)
 
         self.line_Unit.editingFinished.connect(self.verifica_line_unit)
-        self.btn_AdicionarProd.clicked.connect(self.verifica_line_unit)
+
+        self.line_Local.editingFinished.connect(self.pulando_da_localizacao)
+        self.btn_AdicionarProd.clicked.connect(self.pulando_da_localizacao)
 
         self.line_Frete.editingFinished.connect(self.atualiza_mascara_frete)
         self.line_Desconto.editingFinished.connect(self.atualiza_mascara_desconto)
@@ -335,6 +343,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_Ipi.clear()
                 self.line_ValorTotal.clear()
 
+                self.line_Local.clear()
+
                 if cod_produto:
                     if int(cod_produto) == 0:
                         self.mensagem_alerta('O campo "Código:" não pode ser "0"')
@@ -395,6 +405,11 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             elif len(itens_encontrados) > 1:
                 num_ocs, item_ocs, cods, descrs, refs, ums, qtdes = itens_encontrados[0]
 
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, localizacao FROM produto where codigo = {cods};")
+                dados_produto = cursor.fetchall()
+                id_prod, local = dados_produto[0]
+
                 self.mensagem_alerta('Indique o Item da sequência da Ordem de Compra!')
 
                 self.line_Codigo.setText(cods)
@@ -403,10 +418,17 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_UM.setText(ums)
                 self.line_Num_OC.setText(num_ocs)
 
+                self.line_Local.setText(local)
+
                 self.line_Item_OC.setFocus()
 
             else:
                 num_ocs, item_ocs, cods, descrs, refs, ums, qtdes = itens_encontrados[0]
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, localizacao FROM produto where codigo = {cods};")
+                dados_produto = cursor.fetchall()
+                id_prod, local = dados_produto[0]
 
                 self.line_Codigo.setText(cods)
                 self.line_Descricao.setText(descrs)
@@ -414,6 +436,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_UM.setText(ums)
                 self.line_Num_OC.setText(num_ocs)
                 self.line_Item_OC.setText(item_ocs)
+
+                self.line_Local.setText(local)
 
                 self.line_NCM.setFocus()
 
@@ -437,6 +461,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             self.line_Unit.clear()
             self.line_Ipi.clear()
             self.line_ValorTotal.clear()
+
+            self.line_Local.clear()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -545,7 +571,6 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
 
     def atualiza_mascara_unit(self):
         try:
-            print("passei")
             unit = self.line_Unit.text()
 
             unit_float = valores_para_float(unit)
@@ -589,27 +614,50 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
         try:
             self.verifica_line_unit()
 
-            data_entrega_str = self.date_Entrega.text()
-            try:
-                data_entrega = datetime.strptime(data_entrega_str, '%d/%m/%Y')
-
-                data_atual = datetime.combine(date.today(), datetime.min.time())
-
-                if data_entrega < data_atual:
-                    msg = f'Tem certeza que deseja lançar a Nota Fiscal com a data {data_entrega}?'
-
-                    if self.pergunta_confirmacao(msg):
-                        self.verifica_dados_completos()
-                else:
-                    self.verifica_dados_completos()
-            except ValueError:
-                self.mensagem_alerta(f'A data de entrega não está no formato correto '
-                                     f'(dd/mm/aaaa)!')
+            self.line_Local.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def pulando_da_localizacao(self):
+        if not self.processando:
+            try:
+                self.processando = True
+
+                data_entrega_str = self.date_Entrega.text()
+                local = self.line_Local.text()
+
+                if local:
+                    try:
+                        data_entrega = datetime.strptime(data_entrega_str, '%d/%m/%Y')
+
+                        data_atual = datetime.combine(date.today(), datetime.min.time())
+
+                        if data_entrega < data_atual:
+                            data_formatada = data_entrega.strftime('%d/%m/%Y')
+
+                            msg = f'Tem certeza que deseja lançar a Nota Fiscal com a data {data_formatada}?'
+
+                            if self.pergunta_confirmacao(msg):
+                                self.verifica_dados_completos()
+                        else:
+                            self.verifica_dados_completos()
+                    except ValueError:
+                        self.mensagem_alerta(f'A data de entrega não está no formato correto '
+                                             f'(dd/mm/aaaa)!')
+
+                else:
+                    self.mensagem_alerta(f'Favor defina a localização antes de adicionar o produto!')
+
+            except Exception as e:
+                nome_funcao = inspect.currentframe().f_code.co_name
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+            finally:
+                self.processando = False
 
     def verifica_dados_completos(self):
         try:
@@ -705,20 +753,23 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 unit_bc_float = valores_para_float(unit_bc)
                 ipi_bc_float = valores_para_float(ipi_bc)
 
-                ncm_bc_sem_espaco = ncm_bc.strip()
-                ncm_bc_num = ncm_bc_sem_espaco.replace(".", "").replace("-", "")
-                ncm_bc_4_digitos = ncm_bc_num[:4]
-
-                if qtde_float > qtde_bc_float:
-                    self.mensagem_alerta("A quantidade da NF não está de acordo com o saldo da Ordem de Compra!")
-                elif unit_float != unit_bc_float:
-                    self.mensagem_alerta("O valor unitário não está de acordo com a Ordem de Compra!")
-                elif ipi_float != ipi_bc_float:
-                    self.mensagem_alerta("O IPI não está de acordo com a Ordem de Compra!")
-                elif ncm_4_digitos != ncm_bc_4_digitos:
-                    self.mensagem_alerta("A NCM não está de acordo com o cadastro do produto!")
+                if not ncm_bc:
+                    self.mensagem_alerta("No cadastro do produto não consta NCM vinculado!")
                 else:
-                    self.verifica_dados_ordem()
+                    ncm_bc_sem_espaco = ncm_bc.strip()
+                    ncm_bc_num = ncm_bc_sem_espaco.replace(".", "").replace("-", "")
+                    ncm_bc_4_digitos = ncm_bc_num[:4]
+
+                    if qtde_float > qtde_bc_float:
+                        self.mensagem_alerta("A quantidade da NF não está de acordo com o saldo da Ordem de Compra!")
+                    elif unit_float != unit_bc_float:
+                        self.mensagem_alerta("O valor unitário não está de acordo com a Ordem de Compra!")
+                    elif ipi_float != ipi_bc_float:
+                        self.mensagem_alerta("O IPI não está de acordo com a Ordem de Compra!")
+                    elif ncm_4_digitos != ncm_bc_4_digitos:
+                        self.mensagem_alerta("A NCM não está de acordo com o cadastro do produto!")
+                    else:
+                        self.verifica_dados_ordem()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -742,16 +793,19 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             ipi = self.line_Ipi.text()
             total = self.line_ValorTotal.text()
 
+            local = self.line_Local.text()
+
             item_encontrado = self.verifica_item_oc(num_oc, item_oc)
 
             if item_encontrado:
-                dados = [num_oc, item_oc, est, cod, descr, ref, um, ncm, qtde, unit, ipi, total]
+                dados = [num_oc, item_oc, est, cod, descr, ref, um, ncm, qtde, unit, ipi, total, local]
 
                 extrai_produtos = extrair_tabela(self.table_Produtos_NF)
 
                 ja_existe = False
                 for i in extrai_produtos:
-                    num_oc_e, item_oc_e, est_e, cod_e, descr_e, ref_e, um_e, ncm_e, qtde_e, unit_e, ipi_e, total_e = i
+                    (num_oc_e, item_oc_e, est_e, cod_e, descr_e, ref_e, um_e, ncm_e, qtde_e, unit_e, ipi_e,
+                     total_e, local_e) = i
 
                     if num_oc_e == num_oc and item_oc_e == item_oc:
                         ja_existe = True
@@ -815,7 +869,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
 
             if extrai_produtos:
                 for i in extrai_produtos:
-                    num_oc, item_oc, est, cod_produto, descr, ref, um, ncm, qtde, unit, ipi, total = i
+                    num_oc, item_oc, est, cod_produto, descr, ref, um, ncm, qtde, unit, ipi, total, local = i
 
                     qtde_float = valores_para_float(qtde)
 
@@ -1054,6 +1108,11 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
 
     def verifica_salvamento(self):
         try:
+            entrega_nf = self.date_Entrega.date()
+            data_ent = entrega_nf.toString("yyyy-MM-dd")
+
+            num_nf = self.line_Num_NF.text()
+
             cod_fornecedor = self.line_CodForn.text()
             nome_fornecedor = self.line_NomeForn.text()
 
@@ -1061,16 +1120,82 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             cursor.execute(f"SELECT id, razao FROM fornecedores where registro = {cod_fornecedor};")
             dados_fornecedor = cursor.fetchall()
 
+            id_forn = dados_fornecedor[0][0]
+
             dados_tabela = extrair_tabela(self.table_Produtos_NF)
 
-            if not dados_fornecedor:
+            if not num_nf:
+                self.mensagem_alerta(f'O campo "Nº NF" não pode estar vazio!')
+            elif not dados_fornecedor:
                 self.mensagem_alerta(f'O Fornecedor {nome_fornecedor} não está cadastrado!')
             elif not dados_tabela:
                 self.mensagem_alerta(f'A tabela "Produtos Nota Fiscal" não pode estar vazia!')
-
             else:
                 for i in dados_tabela:
-                    num_oc, item_oc, est, cod_produto, descr, ref, um, ncm, qtde, unit, ipi, total = i
+                    num_oc, item_oc, local_est, cod_produto, descr, ref, um, ncm, qtde, unit, ipi, total, local = i
+
+                    local_esttete = local_est.find(" - ")
+                    id_local_est = local_est[:local_esttete]
+
+                    qtde_float = valores_para_float(qtde)
+
+                    obs_mov = f"NOTA {num_nf}"
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT id, codigo FROM produto where codigo = '{cod_produto}';")
+                    dados_produto = cursor.fetchall()
+
+                    id_prod = dados_produto[0][0]
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT id, numero FROM ordemcompra "
+                                   f"where numero = {num_oc} "
+                                   f"and entradasaida = 'E';")
+                    dados_ordem = cursor.fetchall()
+
+                    id_oc = dados_ordem[0][0]
+
+                    cur = conecta.cursor()
+                    cur.execute(f"SELECT funcionario_id, descricao, nome_usuario FROM ENVIA_PC "
+                                f"where descricao = '{self.nome_computador}' "
+                                f"and nome_usuario = '{self.username}';")
+                    dados_usuario = cur.fetchall()
+
+                    if dados_usuario:
+                        id_func = dados_usuario[0][0]
+                    else:
+                        id_func = 11
+
+                    cursor = conecta.cursor()
+                    cursor.execute("select GEN_ID(GEN_MOVIMENTACAO_ID,0) from rdb$database;")
+                    ultimo_oc0 = cursor.fetchall()
+                    ultimo_oc1 = ultimo_oc0[0]
+                    ultimo_mov = int(ultimo_oc1[0]) + 1
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"Insert into MOVIMENTACAO (ID, PRODUTO, OBS, TIPO, QUANTIDADE, "
+                                   f"DATA, CODIGO, FUNCIONARIO, LOCALESTOQUE) values "
+                                   f"(GEN_ID(GEN_MOVIMENTACAO_ID,1), {id_prod}, '{obs_mov}', '130', "
+                                   f"{qtde_float}, '{data_ent}', {cod_produto}, {id_func}, {id_local_est});")
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"Insert into ENTRADAPROD (ID, PRODUTO, QUANTIDADE, MOVIMENTACAO, "
+                                   f"FORNECEDOR, NOTA, NATUREZA, ORDEMCOMPRA, CODIGO) values "
+                                   f"(GEN_ID(GEN_ENTRADAPROD_ID,1), {id_prod}, '{qtde_float}', "
+                                   f"{ultimo_mov}, {id_forn}, {num_nf}, 4, {id_oc}, '{cod_produto}');")
+
+                    local_sem_quebra = local.replace('\n', ' ')
+                    local_maiusculo = local_sem_quebra.upper()
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"UPDATE produto SET "
+                                   f"localizacao = '{local_maiusculo}' where id = {id_prod};")
+
+                conecta.commit()
+                print("salvado")
+
+                self.mensagem_alerta(f'A NF {num_nf} foi lançada com sucesso!')
+                self.limpar_tudo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
