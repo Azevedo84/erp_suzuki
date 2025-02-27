@@ -415,173 +415,118 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             tabela_nova = []
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT FIRST 35 mov.id, mov.data, mov.codigo, mov.tipo, mov.quantidade, "
-                           f"COALESCE(func.funcionario, '') as fuck, loc.nome "
-                           f"FROM movimentacao AS mov "
-                           f"LEFT JOIN funcionarios AS func ON mov.funcionario = func.id "
-                           f"INNER JOIN localestoque AS loc ON mov.localestoque = loc.id "
-                           f"WHERE mov.produto = {id_prod} "
-                           f"ORDER BY mov.data DESC, mov.id DESC;")
-            dados_mov = cursor.fetchall()
+            cursor.execute(f"SELECT FIRST 35 m.data, "
+                           f"CASE WHEN m.tipo < 200 THEN m.quantidade END AS Qtde_Entrada, "
+                           f"CASE WHEN m.tipo > 200 THEN m.quantidade END AS Qtde_Saida, "
+                           f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo<200 and localestoque=m.localestoque)-(select case when sum(quantidade) "
+                           f"is null then 0 else sum(quantidade) end "
+                           f"from movimentacao where produto=m.produto "
+                           f"and tipo>200 and localestoque=m.localestoque)+(case when ((select sum(m2.quantidade) "
+                           f"from movimentacao m2 where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or ((m2.data=m.data) and (m2.id>m.id)))) "
+                           f"or(m.tipo>200 and m2.data>m.data)) and m2.tipo<200)*-1) is null then 0 else "
+                           f"((select sum(m2.quantidade) from movimentacao m2 where m2.localestoque=m.localestoque "
+                           f"and m2.produto=m.produto and "
+                           f"(((m.tipo<200) and ((m2.data>m.data) or((m2.data=m.data) and (m2.id>m.id)))) "
+                           f"or(m.tipo>200 and m2.data>m.data)) and m2.tipo<200)*-1) end) + "
+                           f"(case when (select sum(m2.quantidade) from movimentacao m2 "
+                           f"where m2.localestoque=m.localestoque and m2.produto=m.produto and "
+                           f"((m2.data=m.data and (m2.id>m.id  or (m.tipo<200)) )or(m2.data>m.data)) "
+                           f"and m2.tipo>200) is null then 0 else (select sum(m2.quantidade) "
+                           f"from movimentacao m2 where m2.localestoque=m.localestoque and m2.produto=m.produto "
+                           f"and ((m2.data=m.data and (m2.id>m.id or (m.tipo<200)) )or(m2.data>m.data)) "
+                           f"and m2.tipo>200) end) "
+                           f"as saldo, "
+                           f"CASE WHEN m.tipo = 210 THEN ('OP '|| produtoos.numero) "
+                           f"WHEN m.tipo = 110 THEN ('OP '|| ordemservico.numero) "
+                           f"WHEN m.tipo = 111 THEN ('DEV. OP '|| produtoos.numero) "
+                           f"WHEN m.tipo = 130 THEN ('NF '|| entradaprod.nota) "
+                           f"WHEN m.tipo = 140 THEN ('INVENTÁRIO') "
+                           f"WHEN m.tipo = 240 THEN ('INVENTÁRIO') "
+                           f"WHEN m.tipo = 230 THEN ('NF '|| saidaprod.numero) "
+                           f"WHEN m.tipo = 250 THEN ('Devol. OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 112 THEN ('OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 220 THEN 'CI' "
+                           f"END AS OS_NF_CI, "
+                           f"natop.descricao as CFOP, localestoque.nome, "
+                           f"COALESCE(m.obs, ''), m.tipo, "
+                           f"CASE WHEN m.tipo = 130 THEN ('OC '|| occ.numero) "
+                           f"WHEN m.tipo = 230 THEN ('OV '|| ocs.numero) "
+                           f"END as op_ov, "
+                           f"CASE WHEN m.tipo = 210 THEN (funcop.funcionario) "
+                           f"WHEN m.tipo = 110 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 111 THEN (funcop.funcionario) "
+                           f"WHEN m.tipo = 130 THEN (fornecedores.razao) "
+                           f"WHEN m.tipo = 140 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 230 THEN (clientes.razao) "
+                           f"WHEN m.tipo = 250 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 112 THEN (funcos.funcionario) "
+                           f"WHEN m.tipo = 220 THEN (funcionarios.funcionario) "
+                           f"END AS empresa_func "
+                           f"FROM movimentacao m "
+                           f"INNER JOIN produto ON (m.codigo = produto.codigo) "
+                           f"INNER JOIN localestoque ON (m.localestoque = localestoque.id) "
+                           f"LEFT JOIN funcionarios ON (m.funcionario = funcionarios.id) "
+                           f"LEFT JOIN saidaprod ON (m.id = saidaprod.movimentacao) "
+                           f"LEFT JOIN entradaprod ON (m.id = entradaprod.movimentacao) "
+                           f"LEFT JOIN produtoservico ON (m.id = produtoservico.movimentacao) "
+                           f"LEFT JOIN ordemservico ON (m.id = ordemservico.movimentacao) "
+                           f"LEFT JOIN produtoos ON (m.id = produtoos.movimentacao) "
+                           f"LEFT JOIN funcionarios as funcop ON (produtoos.funcionarios = funcop.id) "
+                           f"LEFT JOIN funcionarios as funcos ON (produtoservico.funcionarios = funcos.id) "
+                           f"LEFT JOIN ORDEMCOMPRA ocs ON saidaprod.ordemcompra = ocs.id "
+                           f"LEFT JOIN ORDEMCOMPRA occ ON entradaprod.ordemcompra = occ.id "
+                           f"LEFT JOIN fornecedores ON (entradaprod.fornecedor = fornecedores.id) "
+                           f"LEFT JOIN clientes ON (saidaprod.cliente = clientes.id) "
+                           f"LEFT JOIN natop ON (( COALESCE( saidaprod.natureza, 0 ) + "
+                           f"COALESCE( entradaprod.natureza, 0 ) ) = natop.ID) "
+                           f"WHERE m.data >= '2014-01-01' "
+                           f"and m.produto = '{id_prod}' "
+                           f"order by m.data, (case when m.tipo >= 200 then 2 else 1 end), m.id;")
+            results = cursor.fetchall()
+            if results:
+                for i in results:
+                    data, entrada, saida, saldo, registro, cfop, local_est, obs, tipo, op_ov, empresa_func = i
 
-            if dados_mov:
-                for i in dados_mov:
-                    id_mov, emissao, codigo, tipo, qtde, funcionario, loc_est = i
+                    data_final = f'{data.day}/{data.month}/{data.year}'
 
-                    op_oc_ci_e = ''
-                    operacao_e = ''
-                    op_oc_ci_s = ''
-                    operacao_s = ''
-                    solicitante = ''
-
-                    if tipo < 200:
-                        qtde_entrada = str(qtde)
-                        qtde_saida = ""
+                    if entrada:
+                        ent = entrada
                     else:
-                        qtde_saida = str(qtde)
-                        qtde_entrada = ""
+                        ent = ""
 
-                    if tipo == 210:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT id, numero "
-                                       f"from PRODUTOOS "
-                                       f"where movimentacao = {id_mov};")
-                        dados_produtoos = cursor.fetchall()
-                        if dados_produtoos:
-                            for prodos in dados_produtoos:
-                                id_prodos, con_op = prodos
-                                operacao_s = 'CONSUMO'
-                                op_oc_ci_s = f'OP {con_op}'
-                                solicitante = funcionario
-
-                    elif tipo == 110:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT id, numero "
-                                       f"from ordemservico "
-                                       f"where movimentacao = {id_mov};")
-                        dados_ordemservico = cursor.fetchall()
-                        if dados_ordemservico:
-                            for ordser in dados_ordemservico:
-                                id_prodos, prod_op = ordser
-                                operacao_e = 'PRODUÇÃO'
-                                op_oc_ci_e = f'OP {prod_op}'
-                                solicitante = funcionario
-
-                    elif tipo == 130:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT ent.id, ent.nota, oc.numero, ent.natureza, nat.descricao, forn.razao "
-                                       f"from ENTRADAPROD as ent "
-                                       f"LEFT JOIN ORDEMCOMPRA oc ON ent.ordemcompra = oc.id "
-                                       f"LEFT JOIN NATOP nat ON ent.natureza = nat.id "
-                                       f"INNER JOIN FORNECEDORES forn ON ent.fornecedor = forn.id "
-                                       f"where ent.movimentacao = {id_mov};")
-                        dados_entrada = cursor.fetchall()
-                        if dados_entrada:
-                            for ent_prod in dados_entrada:
-                                id_ent, nota_ent, oc_ent, id_nat_e, nat_ent, fornec = ent_prod
-
-                                if id_nat_e == 4:
-                                    operacao_e = "COMPRA"
-                                    op_oc_ci_e = f"OC {oc_ent}"
-                                elif id_nat_e == 6:
-                                    operacao_e = "INDUSTR."
-                                    op_oc_ci_e = f"OC {oc_ent}"
-                                else:
-                                    if nota_ent:
-                                        operacao_e = f"NF ENTRADA"
-                                        op_oc_ci_e = f"NF {nota_ent}"
-                                    else:
-                                        operacao_e = f"NF ENTRADA"
-
-                                solicitante = fornec
-
-                    elif tipo == 230:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT sai.id, sai.numero, oc.numero, sai.natureza, nat.descricao, clin.razao "
-                                       f"from SAIDAPROD as sai "
-                                       f"LEFT JOIN ORDEMCOMPRA oc ON sai.ordemcompra = oc.id "
-                                       f"LEFT JOIN NATOP nat ON sai.natureza = nat.id "
-                                       f"INNER JOIN CLIENTES clin ON sai.cliente = clin.id "
-                                       f"where sai.movimentacao = {id_mov};")
-                        dados_saida = cursor.fetchall()
-                        if dados_saida:
-                            for sai_prod in dados_saida:
-                                id_sai, nota_sai, ov_sai, id_nat_s, nat_sai, cliente = sai_prod
-
-                                if id_nat_s == 5 or id_nat_s == 11 or id_nat_s == 9 or id_nat_s == 12:
-                                    operacao_s = "VENDA"
-                                    op_oc_ci_s = f"OV {ov_sai}"
-                                elif id_nat_s == 6 or id_nat_s == 49:
-                                    operacao_s = "INDUSTR."
-                                    op_oc_ci_s = f"OV {ov_sai}"
-                                else:
-                                    if nota_sai:
-                                        operacao_s = f"NF SAÍDA"
-                                        op_oc_ci_s = f"NF{nota_sai}"
-                                    else:
-                                        operacao_s = f"NF SAÍDA"
-
-                                solicitante = cliente
-
-                    elif tipo == 250:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT prodser.id, prodser.numero "
-                                       f"from PRODUTOSERVICO as prodser "
-                                       f"where prodser.movimentacao = {id_mov};")
-                        dados_dev_os = cursor.fetchall()
-                        if dados_dev_os:
-                            for dev_os in dados_dev_os:
-                                id_dev_os, dev_num = dev_os
-                                operacao_s = f'DEVOLUÇÃO OS '
-                                op_oc_ci_s = f'OS {dev_num}'
-                                solicitante = funcionario
-
-                    elif tipo == 112:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT prodser.id, prodser.numero "
-                                       f"from PRODUTOSERVICO as prodser "
-                                       f"where prodser.movimentacao = {id_mov};")
-                        dados_con_os = cursor.fetchall()
-                        if dados_con_os:
-                            for con_os in dados_con_os:
-                                id_con_os, os_num = con_os
-                                operacao_e = f'CONSUMO OS'
-                                op_oc_ci_e = f'OS {os_num}'
-                                solicitante = funcionario
-
-                    elif tipo == 220:
-                        operacao_s = f'CONSUMO INTERNO'
-                        op_oc_ci_s = 'CI'
-                        solicitante = funcionario
-
-                    elif tipo == 140:
-                        operacao_e = f'INVENTÁRIO'
-                        op_oc_ci_e = 'SCIV'
-                        solicitante = funcionario
-
-                    elif tipo == 240:
-                        operacao_s = f'INVENTÁRIO'
-                        op_oc_ci_s = 'SCIV'
-                        solicitante = funcionario
-
+                    if saida:
+                        sai = saida
                     else:
-                        print("AINDA NÃO FOI DEFINIDO TIPO", i)
+                        sai = ""
 
-                    dados = (id_mov, emissao, operacao_e, op_oc_ci_e, qtde_entrada,
-                             operacao_s, op_oc_ci_s, qtde_saida, solicitante, loc_est)
+                    if registro:
+                        reg = registro
+                    else:
+                        reg = ""
+
+                    if cfop:
+                        natur = cfop
+                    else:
+                        natur = ""
+
+                    if empresa_func:
+                        empresa = empresa_func
+                    else:
+                        empresa = ""
+                    if op_ov:
+                        ordens = op_ov
+                    else:
+                        ordens = ""
+
+                    dados = (data_final, local_est, ent, sai, saldo, reg, ordens, natur, empresa, obs)
                     tabela_nova.append(dados)
 
             if tabela_nova:
-                tabela_nova2 = []
-                lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: (x[1], x[0]))
+                lanca_tabela(self.table_Mov, tabela_nova)
 
-                for teste in lista_de_listas_ordenada:
-                    id_muv, emis, oper_e, op_e, qtde_e, oper_s, op_s, qtde_s, soli, loc_ = teste
-
-                    data = f'{emis.day}/{emis.month}/{emis.year}'
-                    didis = (data, oper_e, op_e, qtde_e, oper_s, op_s, qtde_s, soli, loc_)
-                    tabela_nova2.append(didis)
-                lanca_tabela(self.table_Mov, tabela_nova2)
                 self.table_Mov.scrollToBottom()
 
         except Exception as e:

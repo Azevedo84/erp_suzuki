@@ -2104,9 +2104,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>9</pointsize>
-                 <weight>50</weight>
-                 <bold>false</bold>
+                 <pointsize>8</pointsize>
                 </font>
                </property>
                <property name="styleSheet">
@@ -2114,12 +2112,12 @@
                </property>
                <column>
                 <property name="text">
-                 <string>EMISSÃO</string>
+                 <string>DATA</string>
                 </property>
                </column>
                <column>
                 <property name="text">
-                 <string>OPERAÇÃO</string>
+                 <string>L. ESTOQUE</string>
                 </property>
                </column>
                <column>
@@ -2129,22 +2127,27 @@
                </column>
                <column>
                 <property name="text">
-                 <string>QTDE</string>
-                </property>
-               </column>
-               <column>
-                <property name="text">
-                 <string>OPERAÇÃO</string>
-                </property>
-               </column>
-               <column>
-                <property name="text">
                  <string>SAÍDA</string>
                 </property>
                </column>
                <column>
                 <property name="text">
-                 <string>QTDE</string>
+                 <string>SALDO</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>REGISTRO</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>OC/OV</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>CFOP</string>
                 </property>
                </column>
                <column>
@@ -2154,12 +2157,7 @@
                </column>
                <column>
                 <property name="text">
-                 <string>ESTOQUE</string>
-                </property>
-               </column>
-               <column>
-                <property name="text">
-                 <string>CFOP</string>
+                 <string>OBS</string>
                 </property>
                </column>
               </widget>

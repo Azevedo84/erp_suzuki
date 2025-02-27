@@ -606,17 +606,17 @@ class TelaPcpPrevisaoV2(QMainWindow, Ui_MainWindow):
                 lanca_saldo = (cod_pai, novo_saldo)
                 lista_saldos.append(lanca_saldo)
 
-            if cod_pai == "10499":
+            if cod_pai == "21578":
                 print("num_pi:", num_pi, "cod_or:", cod_or, "descr_or:", descr_or, "qtdei:", qtdei, novo_saldo, qtde_flt_c_oc)
 
-            if novo_saldo < 0 and qtde_flt_c_oc > 0:
+            if novo_saldo < 0 < qtde_flt_c_oc:
                 coco = novo_saldo + qtde_flt_c_oc
                 if coco > 0:
                     nova_qtde = novo_saldo * -1
                 else:
                     nova_qtde = qtde_flt_c_oc
 
-                if cod_pai == "10499":
+                if cod_pai == "21578":
                     print("entrei", nova_qtde)
 
                 dadoss = (pontos, nivel, cod_pai, descr_pai, ref_pai, um_pai, nova_qtde, cod_or, descr_or,

@@ -1441,6 +1441,8 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
 
                 produtos_tabela = extrair_tabela(self.table_Produtos_OC)
 
+                item_oc = 0
+
                 for i in produtos_tabela:
                     num_req_t, item_t, cod_t, desc_t, ref_t, um_t, qtde_t, unit_t, ipi_t, tot_t, entr_t, qtde_nf_t = i
 
@@ -1478,7 +1480,7 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
                         f"SELECT ocprod.id, reqprod.numero, reqprod.item, prod.codigo, prod.descricao, "
                         f"COALESCE(prod.obs, ''), prod.unidade, ocprod.quantidade, ocprod.unitario, "
                         f"ocprod.ipi, ocprod.dataentrega, "
-                        f"ocprod.produzido "
+                        f"ocprod.produzido, ocprod.item "
                         f"FROM produtoordemcompra as ocprod "
                         f"INNER JOIN produtoordemrequisicao as reqprod ON ocprod.id_prod_req = reqprod.id "
                         f"INNER JOIN produto as prod ON ocprod.produto = prod.ID "
@@ -1490,7 +1492,9 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
 
                     if prod_banco:
                         id_oc_pord, n_req_b, item_b, cod_b, desc_b, ref_b, um_b, qtde_b, unit_b, ipi_b, \
-                        entr_b, nf_b = prod_banco[0]
+                        entr_b, nf_b, item_oc_b = prod_banco[0]
+
+                        item_oc = item_oc_b
 
                         qtde_b_float = valores_para_float(qtde_b)
                         unit_b_float = valores_para_float(unit_b)
@@ -1513,15 +1517,19 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
                             cursor = conecta.cursor()
                             cursor.execute(f"UPDATE produtoordemcompra SET {campos_update} "
                                            f"WHERE id = {id_oc_pord};")
-
                             conecta.commit()
 
                             alteracao = True
                     else:
+                        if item_oc:
+                            item_oc_m = int(item_oc) + 1
+                        else:
+                            item_oc_m = 1
+
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into produtoordemcompra (ID, MESTRE, PRODUTO, QUANTIDADE, "
+                        cursor.execute(f"Insert into produtoordemcompra (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"UNITARIO, IPI, DATAENTREGA, NUMERO, CODIGO, PRODUZIDO, ID_PROD_REQ) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMCOMPRA_ID,1), {id_oc}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMCOMPRA_ID,1), {id_oc}, {item_oc_m}, "
                                        f"{id_prod}, {qtde_t_float}, {unit_t_float}, {ipi_t_float}, "
                                        f"'{entr_t_dt}', {numero_oc}, '{int(cod_t)}', 0.0, {id_req});")
 

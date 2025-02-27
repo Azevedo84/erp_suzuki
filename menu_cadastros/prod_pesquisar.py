@@ -245,7 +245,7 @@ class TelaProdutoPesquisar(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"SELECT codigo, descricao, COALESCE(descricaocomplementar, ''), COALESCE(obs, ''), "
                            f"unidade, COALESCE(quantidade, ''), "
-                           f"COALESCE(prod.localizacao, ''), COALESCE(prod.ncm, '') "
+                           f"COALESCE(localizacao, ''), COALESCE(ncm, '') "
                            f"FROM produto "
                            f"WHERE quantidade > 0 "
                            f"order by descricao;")

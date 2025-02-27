@@ -378,6 +378,25 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
         definir_data_atual(self.date_Emissao)
         self.line_Obs.setFocus()
 
+    def remover_espaco_branco_ini_fim(self, string):
+        try:
+            if string.endswith(' '):
+                string_final = string.rstrip()
+            else:
+                string_final = string
+
+            if string_final.startswith(' '):
+                string_final1 = string_final.lstrip()
+            else:
+                string_final1 = string_final.lstrip()
+
+            return string_final1
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def salvar_verifica_salvamento(self):
         try:
             extrai_pedido = extrair_tabela(self.table_Produto)
@@ -404,6 +423,14 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
             for itens in extrai_produtos:
                 descr, decr_compl, ref, um, ncm, kg_mt, fornecedor = itens
+
+                descr = self.remover_espaco_branco_ini_fim(descr)
+
+                if decr_compl:
+                    decr_compl = self.remover_espaco_branco_ini_fim(decr_compl)
+
+                if ref:
+                    ref = self.remover_espaco_branco_ini_fim(ref)
 
                 if kg_mt:
                     if "," in kg_mt:
