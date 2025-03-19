@@ -266,6 +266,7 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
     def manipula_versao_escolhida(self):
         try:
             self.limpa_tabelas()
+            self.limpa_dados_mao_de_obra_servico()
 
             codigo_produto = self.line_Codigo_Estrut.text()
             versao = self.combo_Versao.currentText()

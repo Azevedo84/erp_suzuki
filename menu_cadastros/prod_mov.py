@@ -1,14 +1,16 @@
 import sys
 from banco_dados.conexao import conecta
+from comandos.conversores import valores_para_float, string_pra_data, data_pra_data_brasileiro
 from forms.tela_prod_mov import *
 from banco_dados.controle_erros import grava_erro_banco
-from comandos.tabelas import lanca_tabela, layout_cabec_tab
+from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
 from comandos.telas import tamanho_aplicacao, icone
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
 import traceback
 from threading import Thread
+from datetime import datetime
 
 
 class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
@@ -19,8 +21,12 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
-        if produto:
-            self.verifica_codigo(produto)
+        self.btn_Excluir.clicked.connect(self.check_exclude)
+
+        self.produto = "11981"
+
+        if self.produto:
+            self.verifica_codigo(self.produto)
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
@@ -65,6 +71,30 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def pergunta_confirmacao(self, mensagem):
+        try:
+            confirmacao = QMessageBox()
+            confirmacao.setIcon(QMessageBox.Question)
+            confirmacao.setText(mensagem)
+            confirmacao.setWindowTitle("Confirmação")
+
+            sim_button = confirmacao.addButton("Sim", QMessageBox.YesRole)
+            nao_button = confirmacao.addButton("Não", QMessageBox.NoRole)
+
+            confirmacao.setDefaultButton(nao_button)
+
+            confirmacao.exec_()
+
+            if confirmacao.clickedButton() == sim_button:
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def definir_line_bloqueados(self):
         try:
             self.line_Codigo.setReadOnly(True)
@@ -81,6 +111,8 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
 
     def verifica_codigo(self, codigo_produto):
         try:
+            self.table_Mov.setRowCount(0)
+
             cur = conecta.cursor()
             cur.execute(f"SELECT prod.descricao, COALESCE(prod.descricaocomplementar, ''), "
                         f"COALESCE(prod.obs, ''), prod.unidade, COALESCE(prod.localizacao, ''), conj.conjunto, "
@@ -138,13 +170,13 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
                            f"as saldo, "
                            f"CASE WHEN m.tipo = 210 THEN ('OP '|| produtoos.numero) "
                            f"WHEN m.tipo = 110 THEN ('OP '|| ordemservico.numero) "
-                           f"WHEN m.tipo = 111 THEN ('DEV. OP '|| produtoos.numero) "
+                           f"WHEN m.tipo = 111 THEN ('DEVOL. OP '|| produtoos.numero) "
                            f"WHEN m.tipo = 130 THEN ('NF '|| entradaprod.nota) "
                            f"WHEN m.tipo = 140 THEN ('INVENTÁRIO') "
                            f"WHEN m.tipo = 240 THEN ('INVENTÁRIO') "
                            f"WHEN m.tipo = 230 THEN ('NF '|| saidaprod.numero) "
-                           f"WHEN m.tipo = 250 THEN ('Devol. OS '|| produtoservico.numero) "
-                           f"WHEN m.tipo = 112 THEN ('OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 250 THEN ('OS '|| produtoservico.numero) "
+                           f"WHEN m.tipo = 112 THEN ('DEVOL. OS '|| produtoservico.numero) "
                            f"WHEN m.tipo = 220 THEN 'CI' "
                            f"END AS OS_NF_CI, "
                            f"natop.descricao as CFOP, localestoque.nome, "
@@ -225,6 +257,249 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
                 lanca_tabela(self.table_Mov, tabela_nova)
 
                 self.table_Mov.scrollToBottom()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_exclude(self):
+        try:
+            codigo = self.line_Codigo.text()
+
+            nome_tabela = self.table_Mov
+
+            extrai_dados = extrair_tabela(nome_tabela)
+            if not extrai_dados:
+                self.mensagem_alerta(f'A tabela "Lista Solicitação" está vazia!')
+            else:
+                linha_selecao = nome_tabela.currentRow()
+                if linha_selecao >= 0:
+                    item = nome_tabela.currentItem()
+
+                    item_selecionado = extrai_dados[item.row()]
+                    data_mov = item_selecionado[0]
+
+                    data_movimentacao = string_pra_data(data_mov)
+
+                    cursor = conecta.cursor()
+                    cursor.execute("SELECT data FROM DATALIMITE;")
+                    data_lim = cursor.fetchone()
+                    data_limite = (data_lim[0])
+
+                    if data_movimentacao >= data_limite:
+                        qtde_ent = item_selecionado[2]
+                        qtde_sai = item_selecionado[3]
+                        registro = item_selecionado[5]
+
+                        data_formatada = datetime.strptime(data_mov, '%d/%m/%Y').strftime('%Y-%m-%d')
+
+                        qtde_ent_float = valores_para_float(qtde_ent)
+                        qtde_sai_float = valores_para_float(qtde_sai)
+
+                        qtde_total = qtde_ent_float + qtde_sai_float
+
+                        tipo = 0
+
+                        if qtde_ent_float:
+                            if "OP" in registro:
+                                tipo = 110
+                            elif "NF" in registro:
+                                tipo = 130
+                            elif "INVENTÁRIO" in registro:
+                                tipo = 140
+                        elif qtde_sai_float:
+                            if "OP" in registro:
+                                tipo = 210
+                            elif "NF" in registro:
+                                tipo = 230
+                            elif "INVENTÁRIO" in registro:
+                                tipo = 240
+                            elif "CI" in registro:
+                                tipo = 220
+                            elif "OS" in registro:
+                                tipo = 250
+
+                        if tipo:
+                            cur = conecta.cursor()
+                            cur.execute(f"SELECT id, data, codigo, tipo, quantidade, localestoque "
+                                        f"from movimentacao "
+                                        f"where data = '{data_formatada}'"
+                                        f"and quantidade = '{qtde_total}' "
+                                        f"and codigo = '{codigo}' "
+                                        f"and tipo = {tipo};")
+                            detalhes_mov = cur.fetchall()
+                            if detalhes_mov:
+                                if len(detalhes_mov) == 1:
+                                    id_mov, data, cod_prod, tipo, qtde, local = detalhes_mov[0]
+
+                                    data_mov_br = data_pra_data_brasileiro(data)
+
+                                    if tipo == 210:
+                                        self.check_delete_op_consumo(id_mov, cod_prod, data_mov_br)
+                                    elif tipo == 110:
+                                        self.check_delete_op_entrada(id_mov, cod_prod, data_mov_br)
+                                    elif tipo == 130:
+                                        self.check_delete_nf_entrada(id_mov, cod_prod, data_mov_br)
+                                    elif tipo == 140:
+                                        self.check_delete_inventario_entrada(id_mov, cod_prod, data_mov_br)
+                                    elif tipo == 230:
+                                        self.check_delete_nf_saida(id_mov, cod_prod, data_mov_br)
+                                    else:
+                                        print("sdkfhsd")
+                                else:
+                                    self.mensagem_alerta("Existem registros duplicados com esta data!")
+                        else:
+                            self.mensagem_alerta("Não conseguimos definir o tipo de movimento deste produto!")
+
+                    else:
+                        data_exibe = data_pra_data_brasileiro(data_limite)
+                        self.mensagem_alerta(f"Este movimento não pode ser excluído pois a data limite é {data_exibe}")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def exclude_movement(self, id_mov):
+        try:
+            cursor = conecta.cursor()
+            cursor.execute(f"DELETE FROM movimentacao WHERE id = {id_mov};")
+            print("removido mov")
+
+            conecta.commit()
+
+            self.mensagem_alerta("Movimentação do produto excluída com sucesso!")
+
+            if self.produto:
+                self.verifica_codigo(self.produto)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_delete_op_entrada(self, id_mov, cod_prod, data_mov_br):
+        try:
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, produto, numero, status from ordemservico where movimentacao = {id_mov};")
+            dados_op = cur.fetchall()
+            if dados_op:
+                id_op, id_produto, num_op, status = dados_op[0]
+
+                msg = (f'Tem certeza que deseja excluir a movimentação do produto {cod_prod} '
+                       f'com data de {data_mov_br}?')
+                if self.pergunta_confirmacao(msg):
+                    cursor = conecta.cursor()
+                    cursor.execute(f"UPDATE ordemservico SET movimentacao = NULL, status = 'A' "
+                                   f"WHERE id = {id_op};")
+                    print("atualizado OP de entrada")
+
+                    conecta.commit()
+
+                    self.exclude_movement(id_mov)
+
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_delete_nf_entrada(self, id_mov, cod_prod, data_mov_br):
+        try:
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, movimentacao from entradaprod where movimentacao = {id_mov};")
+            entrada_prod = cur.fetchall()
+            if entrada_prod:
+                id_antradaprod, movimento = entrada_prod[0]
+
+                msg = (f'Tem certeza que deseja excluir a movimentação do produto {cod_prod} '
+                       f'com data de {data_mov_br}?')
+                if self.pergunta_confirmacao(msg):
+                    cursor = conecta.cursor()
+                    cursor.execute(f"DELETE FROM entradaprod WHERE id = {id_antradaprod};")
+                    print("removido NF de entrada")
+
+                    conecta.commit()
+
+                    self.exclude_movement(id_mov)
+
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_delete_op_consumo(self, id_mov, cod_prod, data_mov_br):
+        try:
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, mestre from produtoos where movimentacao = {id_mov};")
+            produto_os = cur.fetchall()
+            if produto_os:
+                for i in produto_os:
+                    id_produto_os, id_op = i
+                    print("produtoos", i)
+
+                    cur = conecta.cursor()
+                    cur.execute(
+                        f"SELECT id, produto, numero, status, movimentacao from ordemservico where id = {id_op};")
+                    dados_op = cur.fetchall()
+                    id_op, id_produto, num_op, status, id_mov_op = dados_op[0]
+
+                    if status == "B":
+                        self.mensagem_alerta(f"A Ordem de Produção Nº {num_op} está encerrada! Se deseja excluir o "
+                                             f"movimento de consumo, primeiro deve excluir o registro de "
+                                             f"entrada de produção desta OP do código {id_produto}")
+
+                    else:
+                        msg = (f'Tem certeza que deseja excluir a movimentação do produto {cod_prod} '
+                               f'com data de {data_mov_br}?')
+                        if self.pergunta_confirmacao(msg):
+                            cursor = conecta.cursor()
+                            cursor.execute(f"DELETE FROM produtoos WHERE id = {id_produto_os};")
+                            print("removido produto os")
+
+                            conecta.commit()
+
+                            self.exclude_movement(id_mov)
+
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_delete_inventario_entrada(self, id_mov, cod_prod, data_mov_br):
+        try:
+            msg = (f'Tem certeza que deseja excluir a movimentação do produto {cod_prod} '
+                   f'com data de {data_mov_br}?')
+            if self.pergunta_confirmacao(msg):
+                self.exclude_movement(id_mov)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def check_delete_nf_saida(self, id_mov, cod_prod, data_mov_br):
+        try:
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, movimentacao from saidaprod where movimentacao = {id_mov};")
+            entrada_prod = cur.fetchall()
+            if entrada_prod:
+                id_antradaprod, movimento = entrada_prod[0]
+
+                msg = (f'Tem certeza que deseja excluir a movimentação do produto {cod_prod} '
+                       f'com data de {data_mov_br}?')
+                if self.pergunta_confirmacao(msg):
+                    cursor = conecta.cursor()
+                    cursor.execute(f"DELETE FROM saidaprod WHERE id = {id_antradaprod};")
+                    print("removido NF de saida")
+
+                    conecta.commit()
+
+                    self.exclude_movement(id_mov)
+
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

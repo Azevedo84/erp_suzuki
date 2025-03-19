@@ -1772,6 +1772,11 @@
                      </column>
                      <column>
                       <property name="text">
+                       <string>Nº EXP</string>
+                      </property>
+                     </column>
+                     <column>
+                      <property name="text">
                        <string>EMISSÃO</string>
                       </property>
                      </column>

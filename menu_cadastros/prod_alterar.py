@@ -611,6 +611,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
     def verifica_salvamento(self):
         try:
+            print("entrei")
             cod_produto = self.line_Codigo.text()
             cod_barras = self.line_Barras.text()
             descr = self.line_Descricao.text()
@@ -644,6 +645,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     status = True
 
                 if status:
+                    print("entrei 1")
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
                     lista_completa = cursor.fetchall()
@@ -653,8 +655,10 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                             if not kg_mt:
                                 self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
                             else:
+                                print("entrei 2")
                                 self.salvar_alteracao()
                         else:
+                            print("entrei 3")
                             self.salvar_alteracao()
 
         except Exception as e:
@@ -665,6 +669,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
     def salvar_alteracao(self):
         try:
             if self.dados_produto:
+                print("entrei 4")
                 codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
                 tipo, projeto, qtde_mini, ncm, obs = self.dados_produto
 
@@ -680,6 +685,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 local_a = self.line_Local.text()
                 obs_plain = self.plain_Obs.toPlainText()
                 obs_a = obs_plain.upper()
+
+                print("entrei 5")
 
                 conjunt = self.combo_Conjunto.currentText()
                 if conjunt:
@@ -715,6 +722,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 qtde_mini_float_a = valores_para_float(qtde_mini_a)
 
                 campos_atualizados = []
+
+                print("entrei 6")
 
                 if descr != descr_a:
                     campos_atualizados.append(f"DESCRICAO = '{descr_a}'")
@@ -784,11 +793,16 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
                     cod_produto = self.line_Codigo.text()
 
+                    print("entrei 7")
+                    print(campos_update)
+
                     cursor = conecta.cursor()
                     cursor.execute(f"UPDATE produto SET {campos_update} "
                                    f"WHERE codigo = '{cod_produto}';")
 
                     conecta.commit()
+
+                    print("entrei 8")
 
                     self.mensagem_alerta(f"Cadastro do produto {cod_produto} atualizado com Sucesso!")
 
@@ -800,6 +814,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     else:
                         self.limpa_tudo()
                         self.line_Codigo.setFocus()
+
+                    print("entrei 9")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

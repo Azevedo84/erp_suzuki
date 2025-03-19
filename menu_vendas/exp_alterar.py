@@ -1,16 +1,15 @@
 import sys
 from banco_dados.conexao import conecta
+from forms.tela_exp_alterar import *
 from arquivos.chamar_arquivos import definir_caminho_arquivo
-from comandos.comando_notificacao import mensagem_alerta, tratar_notificar_erros
-from comandos.comando_lines import validador_decimal, validador_inteiro
-from comandos.comando_tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab, limpa_tabela, excluir_item_tab
-from comandos.comando_telas import tamanho_aplicacao, icone, cor_widget, cor_widget_cab, cor_fonte, cor_btn
-from comandos.comando_telas import cor_fundo_tela
-from comandos.comando_conversoes import valores_para_float, float_para_moeda_reais, moeda_reais_para_float
-from comandos.comando_excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao, edita_fonte, \
+from banco_dados.controle_erros import grava_erro_banco
+from comandos.lines import validador_decimal, validador_so_numeros
+from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
+from comandos.telas import tamanho_aplicacao, icone, cor_fundo_tela
+from comandos.conversores import valores_para_float, float_para_moeda_reais, moeda_reais_para_float
+from comandos.excel import edita_alinhamento, edita_bordas, linhas_colunas_p_edicao, edita_fonte, \
     edita_preenchimento
-from forms.tela_exp_incluir import *
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import date, datetime
 import inspect
 import os
@@ -21,8 +20,14 @@ from openpyxl import load_workbook
 from pathlib import Path
 from openpyxl.styles import Font, Border, Side, Alignment
 
+import traceback
 
-class TelaExpIncluir(QMainWindow, Ui_MainWindow):
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+
+
+class TelaExpAlterar(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -37,10 +42,12 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
         tamanho_aplicacao(self)
         self.layout_tabela_ov(self.table_OV)
         self.layout_tabela_exp(self.table_Exp)
-        self.layout_proprio()
+
+        self.processando = False
 
         self.table_OV.viewport().installEventFilter(self)
-        self.combo_Cliente.activated.connect(self.dados_ov_aberto_com_cliente)
+
+        self.line_Num_Exp.editingFinished.connect(self.verifica_line_num_exp)
 
         self.radio_Maquinas.toggled.connect(self.abre_widget_maquinas_logistica)
         self.radio_Logistica.toggled.connect(self.abre_widget_maquinas_logistica)
@@ -48,77 +55,63 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
         self.btn_Adicionar_Item.clicked.connect(self.adicionar_um_item)
         self.btn_Adicionar_Todos.clicked.connect(self.lanca_todos_produtos_ov)
 
-        self.btn_ExcluirItem.clicked.connect(self.acionamento_btn_excluir_item)
+        self.btn_ExcluirItem.clicked.connect(self.excluir_item_tab)
         self.btn_ExcluirTudo.clicked.connect(self.acionamento_btn_excluir_tudo)
 
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
         self.btn_Limpar.clicked.connect(self.limpa_tudo)
 
+        self.btn_Separar.clicked.connect (self.manipula_comeco)
+
+        validador_so_numeros(self.line_Num_Exp)
+
         validador_decimal(self.line_Peso_Liquido, 9999999.000)
         validador_decimal(self.line_Peso_Bruto, 9999999.000)
-        validador_inteiro(self.line_Volume, 123456)
+        validador_so_numeros(self.line_Volume)
 
-        self.lanca_combo_cliente()
+        self.definir_combo_funcionario()
+        self.definir_combo_veiculo()
         self.definir_emissao()
-        self.definir_num_ped()
 
         self.widget_Maquinas.setHidden(True)
         self.widget_Logistica.setHidden(True)
 
-    def layout_proprio(self):
+    def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
-            cor_widget_cab(self.widget_cabecalho)
+            tb = traceback.extract_tb(excecao)
+            num_linha_erro = tb[-1][1]
 
-            cor_widget(self.widget_Cor1)
-            cor_widget(self.widget_Cor2)
-            cor_widget(self.widget_Cor3)
-            cor_widget(self.widget_Cor4)
-            cor_widget(self.widget_Cor5)
-            cor_widget(self.widget_Cor6)
-            cor_widget(self.widget_Cor7)
-            cor_widget(self.widget_Cor8)
+            traceback.print_exc()
+            print(f'Houve um problema no arquivo: {arquivo} na função: "{nome_funcao}"\n{mensagem} {num_linha_erro}')
+            self.mensagem_alerta(f'Houve um problema no arquivo:\n\n{arquivo}\n\n'
+                                 f'Comunique o desenvolvedor sobre o problema descrito abaixo:\n\n'
+                                 f'{nome_funcao}: {mensagem}')
 
-            cor_fonte(self.label_13)
-            cor_fonte(self.label_2)
-            cor_fonte(self.label_3)
-            cor_fonte(self.label_34)
-            cor_fonte(self.label_39)
-            cor_fonte(self.label_40)
-            cor_fonte(self.label_41)
-            cor_fonte(self.label_Titulo)
-            cor_fonte(self.label_11)
-            cor_fonte(self.label_44)
-            cor_fonte(self.label_49)
-            cor_fonte(self.label_46)
-            cor_fonte(self.label_43)
-            cor_fonte(self.label_45)
-            cor_fonte(self.label_47)
-            cor_fonte(self.label_48)
-            cor_fonte(self.label_50)
-            cor_fonte(self.label_51)
-            cor_fonte(self.label_52)
-            cor_fonte(self.label_53)
-            cor_fonte(self.label_58)
-            cor_fonte(self.label_6)
-            cor_fonte(self.label_7)
-            cor_fonte(self.label_9)
+            grava_erro_banco(nome_funcao, mensagem, arquivo, num_linha_erro)
 
-            cor_fonte(self.check_Excel)
+        except Exception as e:
+            nome_funcao_trat = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            tb = traceback.extract_tb(exc_traceback)
+            num_linha_erro = tb[-1][1]
+            print(f'Houve um problema no arquivo: {self.nome_arquivo} na função: "{nome_funcao_trat}"\n'
+                  f'{e} {num_linha_erro}')
+            grava_erro_banco(nome_funcao_trat, e, self.nome_arquivo, num_linha_erro)
 
-            cor_fonte(self.radio_Maquinas)
-            cor_fonte(self.radio_Logistica)
-
-            cor_btn(self.btn_Salvar)
-            cor_btn(self.btn_Limpar)
-            cor_btn(self.btn_ExcluirTudo)
-            cor_btn(self.btn_ExcluirItem)
-            cor_btn(self.btn_Adicionar_Item)
-            cor_btn(self.btn_Adicionar_Todos)
+    def mensagem_alerta(self, mensagem):
+        try:
+            alert = QMessageBox()
+            alert.setIcon(QMessageBox.Warning)
+            alert.setText(mensagem)
+            alert.setWindowTitle("Atenção")
+            alert.setStandardButtons(QMessageBox.Ok)
+            alert.exec_()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def layout_tabela_ov(self, nome_tabela):
         try:
@@ -126,7 +119,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def layout_tabela_exp(self, nome_tabela):
         try:
@@ -134,22 +128,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def definir_num_ped(self):
-        try:
-            cursor = conecta.cursor()
-            cursor.execute("select GEN_ID(GEN_ORDEMEXPEDICAO_ID,0) from rdb$database;")
-            ultimo_id_req0 = cursor.fetchall()
-            ultimo_id_req1 = ultimo_id_req0[0]
-            ultimo_id_req2 = int(ultimo_id_req1[0]) + 1
-            ultimo_id_req = str(ultimo_id_req2)
-            self.line_Num_Exp.setText(ultimo_id_req)
-            self.line_Num_Exp.setReadOnly(True)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def definir_emissao(self):
         try:
@@ -159,48 +139,101 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def lanca_combo_cliente(self):
+    def definir_combo_funcionario(self):
         try:
-            self.combo_Cliente.clear()
+            tabela = []
 
-            nova_lista = [""]
+            self.combo_Motorista.clear()
+            tabela.append("")
+
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, funcionario FROM funcionarios where ativo = 'S' order by funcionario;")
+            detalhes_func = cur.fetchall()
+
+            for dadus in detalhes_func:
+                ides, func = dadus
+                tabela.append(func)
+
+            self.combo_Motorista.addItems(tabela)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def definir_combo_veiculo(self):
+        try:
+            tabela = []
+
+            self.combo_Veiculo.clear()
+            tabela.append("")
+
+            cur = conecta.cursor()
+            cur.execute(f"SELECT id, descricao FROM PLACA_VEICULO order by descricao;")
+            detalhes_func = cur.fetchall()
+
+            for dadus in detalhes_func:
+                ides, veiculo = dadus
+                tabela.append(veiculo)
+
+            self.combo_Veiculo.addItems(tabela)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def verifica_line_num_exp(self):
+        if not self.processando:
+            try:
+                self.processando = True
+
+                self.table_OV.setRowCount(0)
+                self.table_Exp.setRowCount(0)
+
+                num_exp = self.line_Num_Exp.text()
+                if num_exp:
+                    if int(num_exp) == 0:
+                        self.mensagem_alerta('O campo "Código" não pode ser "0"!')
+                        self.line_Num_Exp.clear()
+                    else:
+                        self.verifica_sql_exp()
+
+            except Exception as e:
+                nome_funcao = inspect.currentframe().f_code.co_name
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+            finally:
+                self.processando = False
+
+    def verifica_sql_exp(self):
+        try:
+            num_exp = self.line_Num_Exp.text()
 
             cursor = conecta.cursor()
-            cursor.execute("SELECT id, razao FROM clientes where favorito = 'S' order by razao;")
-            lista_completa = cursor.fetchall()
-            for ides, descr in lista_completa:
-                dd = f"{ides} - {descr}"
-                nova_lista.append(dd)
-
-            self.combo_Cliente.addItems(nova_lista)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
-
-    def abre_widget_maquinas_logistica(self):
-        try:
-            if self.radio_Maquinas.isChecked():
-                self.widget_Maquinas.setHidden(False)
-                self.widget_Logistica.setHidden(True)
-                self.line_Transportador.setFocus()
+            cursor.execute(f"SELECT * FROM ordemexpedicao where id = {num_exp};")
+            detalhes = cursor.fetchall()
+            if not detalhes:
+                self.mensagem_alerta('Este número da Ordem Expedição não existe!')
+                self.line_Num_Exp.clear()
             else:
-                self.widget_Maquinas.setHidden(True)
-                self.widget_Logistica.setHidden(False)
-                self.line_Altura.setFocus()
+                self.lanca_dados_exp()
+                self.lanca_produtos_exp()
+                self.dados_ov_aberto_com_cliente()
+                self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def dados_ov_aberto_com_cliente(self):
         try:
-            limpa_tabela(self.table_Exp)
-            limpa_tabela(self.table_OV)
-
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             if cliente:
                 clientetete = cliente.find(" - ")
                 id_cliente = cliente[:clientetete]
@@ -244,7 +277,152 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_dados_exp(self):
+        try:
+            num_exp = self.line_Num_Exp.text()
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT exp.emissao, exp.id_cliente, cli.razao, exp.status, exp.peso_bruto, "
+                           f"exp.peso_liquido, exp.volume, exp.id_veiculo, exp.id_funcionario, "
+                           f"exp.altura, exp.largura, exp.comprimento "
+                           f"from ordemexpedicao as exp "
+                           f"INNER JOIN clientes as cli ON exp.id_cliente = cli.id "
+                           f"where exp.id = {num_exp};")
+            dados_interno = cursor.fetchall()
+
+            (emissao, id_cliente, nome_cliente, status, bruto, liquido, volume, id_veiculo, id_func, altura, largura,
+             compr) = dados_interno[0]
+
+            self.date_Emissao.setDate(emissao)
+
+            if status == "A":
+                self.label_Status.setText("ABERTO")
+                self.liberar_campos_exp()
+            elif status == "B":
+                self.label_Status.setText("BAIXADO")
+                self.bloquear_campos_exp()
+            else:
+                self.label_Status.setText(status)
+
+            texto_cliente = f"{id_cliente} - {nome_cliente}"
+
+            self.line_Cliente.setText(texto_cliente)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_produtos_exp(self):
+        try:
+            lista_final = []
+
+            num_exp = self.line_Num_Exp.text()
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT oc.numero, prod.codigo, prod.descricao, "
+                           f"COALESCE(prod.obs, '') as obs, "
+                           f"prod.unidade, prodoc.quantidade, prodoc.unitario, COALESCE(prodoc.ipi, '') as ipi "
+                           f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                           f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                           f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                           f"where prodoc.id_expedicao = {num_exp};")
+            dados_produtos = cursor.fetchall()
+
+            if dados_produtos:
+                for i in dados_produtos:
+                    num_ov_exp, cod_exp, descr_exp, ref_exp, um_exp, qtde, unit_exp, ipi_exp = i
+
+                    if ipi_exp:
+                        if float(ipi_exp) == 0:
+                            ipi_str = ""
+                        else:
+                            ipi_str = ipi_exp
+                    else:
+                        ipi_str = ""
+
+                    qtde_float = valores_para_float(qtde)
+                    unit_float = valores_para_float(unit_exp)
+
+                    if ipi_exp:
+                        ipi_float = valores_para_float(ipi_exp)
+                        if ipi_float > 0:
+                            total_certo = qtde_float * ((unit_float * (ipi_float / 100)) + unit_float)
+                        else:
+                            total_certo = qtde_float * unit_float
+                    else:
+                        total_certo = qtde_float * unit_float
+
+                    total_dois = ("%.2f" % total_certo)
+
+                    unit_moeda = float_para_moeda_reais(unit_exp)
+                    total_moeda = float_para_moeda_reais(total_dois)
+
+                    dados = (num_ov_exp, cod_exp, descr_exp, um_exp, qtde_float, unit_moeda, ipi_str, total_moeda)
+                    lista_final.append(dados)
+
+            if lista_final:
+                lanca_tabela(self.table_Exp, lista_final)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def bloquear_campos_exp(self):
+        try:
+            self.line_Cliente.setReadOnly(True)
+            self.line_Peso_Bruto.setReadOnly(True)
+            self.line_Peso_Liquido.setReadOnly(True)
+            self.line_Volume.setReadOnly(True)
+
+            self.radio_Maquinas.setEnabled(False)
+            self.radio_Logistica.setEnabled(False)
+
+            self.combo_Motorista.setEnabled(False)
+            self.combo_Veiculo.setEnabled(False)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def liberar_campos_exp(self):
+        try:
+            self.line_Cliente.setReadOnly(False)
+            self.line_Peso_Bruto.setReadOnly(False)
+            self.line_Peso_Liquido.setReadOnly(False)
+            self.line_Volume.setReadOnly(False)
+
+            self.radio_Maquinas.setEnabled(True)
+            self.radio_Logistica.setEnabled(True)
+
+            self.combo_Motorista.setEnabled(True)
+            self.combo_Veiculo.setEnabled(True)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abre_widget_maquinas_logistica(self):
+        try:
+            if self.radio_Maquinas.isChecked():
+                self.widget_Maquinas.setHidden(False)
+                self.widget_Logistica.setHidden(True)
+                self.combo_Motorista.setFocus()
+            else:
+                self.widget_Maquinas.setHidden(True)
+                self.widget_Logistica.setHidden(False)
+                self.line_Altura.setFocus()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def eventFilter(self, source, event):
         try:
@@ -254,23 +432,26 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
                     source is qwidget_table.viewport()):
                 item = qwidget_table.currentItem()
 
+                linha_selecao = self.table_OV.currentRow()
+
                 extrai_recomendados = extrair_tabela(qwidget_table)
                 item_selecionado = extrai_recomendados[item.row()]
                 num_ov, cod, desc, um, falta, local, saldo = item_selecionado
 
-                self.manipula_produtos_exp(num_ov, cod, falta, saldo)
+                self.manipula_produtos_exp(num_ov, cod, falta, saldo, linha_selecao)
 
             return super(QMainWindow, self).eventFilter(source, event)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def adicionar_um_item(self):
         try:
             extrai_recomendados = extrair_tabela(self.table_OV)
             if not extrai_recomendados:
-                mensagem_alerta(f'A tabela "Lista de Produtos" está vazia!')
+                self.mensagem_alerta(f'A tabela "Lista de Produtos" está vazia!')
             else:
                 linha_selecao = self.table_OV.currentRow()
 
@@ -283,13 +464,14 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
                 if dados_linha:
                     num_ov, cod, desc, um, falta, local, saldo = dados_linha
 
-                    self.manipula_produtos_exp(num_ov, cod, falta, saldo)
+                    self.manipula_produtos_exp(num_ov, cod, falta, saldo, linha_selecao)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def manipula_produtos_exp(self, num_ov, cod, qtde, saldo):
+    def manipula_produtos_exp(self, num_ov, cod, qtde, saldo, linha_excluir):
         try:
             qtde_float = float(qtde)
             saldo_float = float(saldo)
@@ -299,7 +481,7 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
             else:
                 qtde_ajustada = qtde
 
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             clientetete = cliente.find(" - ")
             id_cliente = cliente[:clientetete]
 
@@ -311,7 +493,6 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
                            f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
                            f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
                            f"where oc.status = 'A' "
-                           f"and (prodoc.id_expedicao IS NULL or prodoc.id_expedicao = 0) "
                            f"and oc.entradasaida = 'S'"
                            f"and oc.numero = {num_ov} "
                            f"and oc.cliente = {id_cliente} "
@@ -364,15 +545,17 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
             if extrai_produtos:
                 lanca_tabela(self.table_Exp, extrai_produtos)
 
+            self.table_OV.removeRow(linha_excluir)
             self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_todos_produtos_ov(self):
         try:
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             clientetete = cliente.find(" - ")
             id_cliente = cliente[:clientetete]
 
@@ -399,7 +582,6 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
                                    f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
                                    f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
                                    f"where oc.status = 'A' "
-                                   f"and (prodoc.id_expedicao IS NULL or prodoc.id_expedicao = 0) "
                                    f"and oc.entradasaida = 'S'"
                                    f"and oc.numero = {num_ov} "
                                    f"and oc.cliente = {id_cliente} "
@@ -449,30 +631,177 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
             if extrai_produtos:
                 lanca_tabela(self.table_Exp, extrai_produtos)
 
+            self.table_OV.setRowCount(0)
             self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def acionamento_btn_excluir_item(self):
+    def excluir_item_tab(self):
         try:
-            msg = f'A tabela "Produtos Expedição" está vazia!'
-            excluir_item_tab(self.table_Exp, msg)
+            dados_linha = []
+
+            nome_tabela = self.table_Exp
+
+            dados_tab = extrair_tabela(nome_tabela)
+            if not dados_tab:
+                self.mensagem_alerta(f'A tabela "Produtos Expedição" está vazia!')
+            else:
+                linha = nome_tabela.currentRow()
+                if linha >= 0:
+                    dados_linha = []
+                    for coluna in range(self.table_Exp.columnCount()):
+                        item = self.table_Exp.item(linha, coluna)
+                        if item is not None:
+                            dados_linha.append(item.text())
+
+                    nome_tabela.removeRow(linha)
+
+            if dados_linha:
+                self.devolve_item_tabela_exp(dados_linha)
+
             self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def devolve_item_tabela_exp(self, dados_linha):
+        try:
+            num_ov, cod, desc, um, qtde, unit, ipi, total = dados_linha
+
+            extrai_estrutura = extrair_tabela(self.table_OV)
+
+            ja_existe = False
+            for itens in extrai_estrutura:
+                num_ov_con = itens[0]
+                cod_con = itens[1]
+                if cod_con == cod and num_ov_con == num_ov:
+                    ja_existe = True
+                    break
+
+            if not ja_existe:
+                cliente = self.line_Cliente.text()
+                if cliente:
+                    clientetete = cliente.find(" - ")
+                    id_cliente = cliente[:clientetete]
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT oc.numero, prod.codigo, prod.descricao, "
+                                   f"prod.unidade, prodoc.quantidade, "
+                                   f"prodoc.produzido, prod.quantidade, prod.localizacao "
+                                   f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                                   f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                                   f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                                   f"INNER JOIN clientes as cli ON oc.cliente = cli.id "
+                                   f"LEFT JOIN pedidointerno as ped ON prodoc.id_pedido = ped.id "
+                                   f"where oc.status = 'A' "
+                                   f"and oc.entradasaida = 'S'"
+                                   f"and oc.cliente = {id_cliente} "
+                                   f"and oc.numero = {num_ov} "
+                                   f"and prod.codigo = {cod};")
+                    dados_interno = cursor.fetchall()
+
+                    if dados_interno:
+                        for i in dados_interno:
+                            num_ov, cod, descr, um, qtde_total, qtde_entr, saldo, local = i
+
+                            total_float = float(qtde_total)
+                            entregue_float = float(qtde_entr)
+                            saldo_float = float(saldo)
+
+                            falta_ent = total_float - entregue_float
+                            falta_arr = round(valores_para_float(falta_ent), 2)
+
+                            desc_tot = f"{descr} ({total_float})"
+
+                            if saldo_float >= falta_ent:
+                                dados = (num_ov, cod, desc_tot, um, falta_arr, local, saldo_float)
+                                extrai_estrutura.append(dados)
+                    if extrai_estrutura:
+                        lista_de_listas_ordenada = sorted(extrai_estrutura, key=lambda x: x[1])
+                        lanca_tabela(self.table_OV, lista_de_listas_ordenada)
+
+            else:
+                self.mensagem_alerta("Este produto já foi adicionado!")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def acionamento_btn_excluir_tudo(self):
         try:
-            limpa_tabela(self.table_Exp)
+            tabela_nova = extrair_tabela(self.table_OV)
+
+            extrai_pedido = extrair_tabela(self.table_Exp)
+
+            if extrai_pedido:
+                for itens in extrai_pedido:
+                    num_ov, cod, descr, um, qtde, unit, ipi, total = itens
+
+                    extrai_estrutura = extrair_tabela(self.table_OV)
+
+                    ja_existe = False
+                    for itenss in extrai_estrutura:
+                        num_ov_con = itenss[0]
+                        cod_con = itenss[1]
+                        if cod_con == cod and num_ov_con == num_ov:
+                            ja_existe = True
+                            break
+
+                    if not ja_existe:
+                        cliente = self.line_Cliente.text()
+                        if cliente:
+                            clientetete = cliente.find(" - ")
+                            id_cliente = cliente[:clientetete]
+
+                            cursor = conecta.cursor()
+                            cursor.execute(f"SELECT oc.numero, prod.codigo, prod.descricao, "
+                                           f"prod.unidade, prodoc.quantidade, "
+                                           f"prodoc.produzido, prod.quantidade, prod.localizacao "
+                                           f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                                           f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                                           f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                                           f"INNER JOIN clientes as cli ON oc.cliente = cli.id "
+                                           f"LEFT JOIN pedidointerno as ped ON prodoc.id_pedido = ped.id "
+                                           f"where oc.status = 'A' "
+                                           f"and oc.entradasaida = 'S'"
+                                           f"and oc.cliente = {id_cliente} "
+                                           f"and oc.numero = {num_ov} "
+                                           f"and prod.codigo = {cod};")
+                            dados_interno = cursor.fetchall()
+                            if dados_interno:
+                                for i in dados_interno:
+                                    num_ov, cod, descr, um, qtde_total, qtde_entr, saldo, local = i
+
+                                    total_float = float(qtde_total)
+                                    entregue_float = float(qtde_entr)
+                                    saldo_float = float(saldo)
+
+                                    falta_ent = total_float - entregue_float
+                                    falta_arr = round(valores_para_float(falta_ent), 2)
+
+                                    desc_tot = f"{descr} ({total_float})"
+
+                                    if saldo_float >= falta_ent:
+                                        dados = (num_ov, cod, desc_tot, um, falta_arr, local, saldo_float)
+                                        tabela_nova.append(dados)
+
+            if tabela_nova:
+                lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
+                lanca_tabela(self.table_OV, lista_de_listas_ordenada)
+
+            self.table_Exp.setRowCount(0)
             self.soma_totais()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def soma_totais(self):
         try:
@@ -492,22 +821,22 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def limpa_tudo(self):
-        self.combo_Cliente.setCurrentText("")
+        self.line_Cliente.clear()
 
-        limpa_tabela(self.table_OV)
-        limpa_tabela(self.table_Exp)
+        self.label_separa.setText("")
+
+        self.table_OV.setRowCount(0)
+        self.table_Exp.setRowCount(0)
 
         self.line_Total_Geral.clear()
 
         self.line_Peso_Bruto.clear()
         self.line_Peso_Liquido.clear()
         self.line_Volume.clear()
-
-        self.line_Transportador.clear()
-        self.line_Placa.clear()
 
         self.line_Largura.clear()
         self.line_Altura.clear()
@@ -519,56 +848,192 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
         self.widget_Logistica.setHidden(True)
 
         self.definir_emissao()
-        self.definir_num_ped()
+        self.definir_combo_funcionario()
+        self.definir_combo_veiculo()
+
+    def manipula_comeco(self):
+        try:
+            lista_email = []
+
+            cliente = self.line_Cliente.text()
+
+            extrai_pedido = extrair_tabela(self.table_Exp)
+
+            if extrai_pedido and cliente:
+                clientetete = cliente.find(" - ")
+                id_cliente = cliente[:clientetete]
+
+                for itens in extrai_pedido:
+                    num_ov, codigo, descr, um, qtde, unit, ipi, total = itens
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT prodoc.id, prod.codigo, prod.descricao, "
+                                   f"COALESCE(prod.obs, ''), COALESCE(prod.localizacao, ''), prod.quantidade, "
+                                   f"prod.unidade, prodoc.unitario, COALESCE(prodoc.ipi, ''), prodoc.produzido "
+                                   f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                                   f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                                   f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                                   f"where oc.status = 'A' "
+                                   f"and oc.entradasaida = 'S'"
+                                   f"and oc.numero = {num_ov} "
+                                   f"and oc.cliente = {id_cliente} "
+                                   f"and prod.codigo = {codigo};")
+                    dados_produtos = cursor.fetchall()
+                    ref = dados_produtos[0][3]
+                    local = dados_produtos[0][4]
+                    saldo = dados_produtos[0][5]
+                    produzido = dados_produtos[0][9]
+
+                    falta = "%.3f" % (float(qtde) - float(produzido))
+
+                    dadus = (codigo, descr, ref, um, falta, local, saldo)
+                    lista_email.append(dadus)
+
+            if lista_email:
+
+                caminho = fr'C:\Users\Anderson\Desktop\Listagem - OV.pdf'
+
+                self.gerar_pdf_listagem_separar(caminho, lista_email)
+
+                self.label_separa.setText("PDF criado com sucesso!")
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def adicionar_tabelas_listagem(self, dados, cabecalho):
+        try:
+            elements = []
+
+            style_lista = TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+                                      ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                      ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                      ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                      ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                                      ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                                      ('FONTSIZE', (0, 0), (-1, 0), 10),
+                                      ('FONTSIZE', (0, 1), (-1, -1), 8)])
+
+            table = Table([cabecalho] + dados)
+            table.setStyle(style_lista)
+            elements.append(table)
+
+            return elements
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def gerar_pdf_listagem_separar(self, caminho_listagem, produtos_ov):
+        try:
+            margem_esquerda = 0
+            margem_direita = 5
+            margem_superior = 25
+            margem_inferior = 5
+
+            data_hoje = date.today()
+
+            cliente = self.line_Cliente.text()
+
+            dados_cliente = [(data_hoje, cliente)]
+
+            doc = SimpleDocTemplate(caminho_listagem, pagesize=A4,
+                                    leftMargin=margem_esquerda,
+                                    rightMargin=margem_direita,
+                                    topMargin=margem_superior,
+                                    bottomMargin=margem_inferior)
+
+            cabecalho_op = ['DATA', 'CLIENTE']
+            elem_op = self.adicionar_tabelas_listagem(dados_cliente, cabecalho_op)
+
+            cabecalho_lista = ['CÓDIGO', 'DESCRIÇÃO', 'REFERÊNCIA', 'UM', 'QTDE', 'LOCALIZAÇÃO', 'SALDO']
+            elem_lista = self.adicionar_tabelas_listagem(produtos_ov, cabecalho_lista)
+
+            cabecalho_transp = ['', 'TRANSPORTE']
+            dados_transp = [('PESO LÍQUIDO', ''), ('PESO BRUTO', ''), ('VOLUME', '')]
+            elem_transp = self.adicionar_tabelas_listagem(dados_transp, cabecalho_transp)
+
+            cabecalho_medida = ['MEDIDAS', '            ']
+            dados_medida = [('ALTURA (MM)', ''), ('LARGURA (MM)', ''), ('COMPRIMENTO (MM)', '')]
+            elem_medida = self.adicionar_tabelas_listagem(dados_medida, cabecalho_medida)
+
+            cabecalho_motorista = ['DAMDFE', 'MOTORISTA']
+            dados_motorista = [('PLACA', ''), ('NOME', ''), ('CPF', '')]
+            elem_motorista = self.adicionar_tabelas_listagem(dados_motorista, cabecalho_motorista)
+
+            espaco_em_branco = Table([[None]], style=[('SIZE', (0, 0), (0, 0), 20)])
+
+            # Criar tabela para colocar medidas e motorista lado a lado
+            tabela_medida_motorista = Table([[elem_transp, elem_medida, elem_motorista]],
+                                            colWidths=[170, 170])  # Ajuste as larguras conforme necessário
+
+            elementos = (elem_op + [espaco_em_branco] +
+                         elem_lista + [espaco_em_branco] +
+                         [tabela_medida_motorista])  # Adiciona a tabela com medidas e motorista lado a lado
+
+            doc.build(elementos)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def verifica_salvamento(self):
         try:
             extrai_pedido = extrair_tabela(self.table_Exp)
             num_exp = self.line_Num_Exp.text()
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             peso_bruto = self.line_Peso_Bruto.text()
             peso_liquido = self.line_Peso_Liquido.text()
             volume = self.line_Volume.text()
 
+            motorista = self.combo_Motorista.currentText()
+            veiculo = self.combo_Veiculo.currentText()
+
             if not extrai_pedido:
-                mensagem_alerta(f'A tabela "Produtos Expedição" está vazia!')
+                self.mensagem_alerta(f'A tabela "Produtos Expedição" está vazia!')
             elif not num_exp:
-                mensagem_alerta(f'O campo "Nº EXP" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Nº EXP" não pode estar vazio!')
             elif not cliente:
-                mensagem_alerta(f'O campo "Cliente" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Cliente" não pode estar vazio!')
             elif not peso_bruto:
-                mensagem_alerta(f'O campo "Peso Bruto" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Peso Bruto" não pode estar vazio!')
             elif not peso_liquido:
-                mensagem_alerta(f'O campo "Peso Líq." não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Peso Líq." não pode estar vazio!')
             elif not volume:
-                mensagem_alerta(f'O campo "Volume" não pode estar vazio!')
+                self.mensagem_alerta(f'O campo "Volume" não pode estar vazio!')
             elif not self.radio_Maquinas.isChecked() and not self.radio_Logistica.isChecked():
-                mensagem_alerta(f'Defina o responsável pela definição do transporte!.')
+                self.mensagem_alerta(f'Defina o responsável pela definição do transporte!.')
             else:
                 if self.radio_Maquinas.isChecked():
-                    if not self.line_Placa.text():
-                        mensagem_alerta(f'O campo "Placa" não pode estar vazio!')
+                    if not veiculo:
+                        self.mensagem_alerta(f'O campo "Veículo" não pode estar vazio!')
+                    elif not motorista:
+                        self.mensagem_alerta(f'O campo "Motorista" não pode estar vazio!')
                     else:
-                        self.salvar_expedicao()
+                        self.salvar_expedicao_maq()
 
                 elif self.radio_Logistica.isChecked():
                     if not self.line_Altura.text():
-                        mensagem_alerta(f'O campo "Altura" não pode estar vazio!')
+                        self.mensagem_alerta(f'O campo "Altura" não pode estar vazio!')
                     elif not self.line_Largura.text():
-                        mensagem_alerta(f'O campo "Largura" não pode estar vazio!')
+                        self.mensagem_alerta(f'O campo "Largura" não pode estar vazio!')
                     elif not self.line_Comprimento.text():
-                        mensagem_alerta(f'O campo "Comprimento" não pode estar vazio!')
+                        self.mensagem_alerta(f'O campo "Comprimento" não pode estar vazio!')
                     else:
-                        self.salvar_expedicao()
+                        self.salvar_expedicao_log()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def salvar_expedicao(self):
+    def salvar_expedicao_log(self):
         try:
             print("salvar")
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             clientetete = cliente.find(" - ")
             id_cliente = cliente[:clientetete]
 
@@ -582,9 +1047,6 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
             volume = self.line_Volume.text()
 
-            placa = self.line_Placa.text()
-            placa_upper = placa.upper()
-
             altura = self.line_Altura.text()
             largura = self.line_Largura.text()
             compr = self.line_Comprimento.text()
@@ -594,11 +1056,11 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
             data_mov_certa = str(date_mov)
 
             cursor = conecta.cursor()
-            cursor.execute(f"Insert into ORDEMEXPEDICAO (ID, DATA, ID_CLIENTE, PESO_BRUTO, PESO_LIQUIDO, "
-                           f"VOLUME, PLACA, ALTURA, LARGURA, COMPRIMENTO, NOME_PC) "
+            cursor.execute(f"Insert into ORDEMEXPEDICAO (ID, EMISSAO, ID_CLIENTE, PESO_BRUTO, PESO_LIQUIDO, "
+                           f"VOLUME, ALTURA, LARGURA, COMPRIMENTO, NOME_PC, STATUS) "
                            f"values (GEN_ID(GEN_ORDEMEXPEDICAO_ID,1), '{data_mov_certa}', "
-                           f"'{id_cliente}', '{peso_bruto_float}', '{peso_liquido_float}', {volume}, '{placa_upper}', "
-                           f"'{altura}', '{largura}', '{compr}', '{self.nome_computador}');")
+                           f"'{id_cliente}', '{peso_bruto_float}', '{peso_liquido_float}', {volume}, '{altura}', "
+                           f"'{largura}', '{compr}',  '{self.nome_computador}', 'A');")
 
             extrai_pedido = extrair_tabela(self.table_Exp)
 
@@ -633,14 +1095,91 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def salvar_expedicao_maq(self):
+        try:
+            print("salvar")
+            cliente = self.line_Cliente.text()
+            clientetete = cliente.find(" - ")
+            id_cliente = cliente[:clientetete]
+
+            num_exp = self.line_Num_Exp.text()
+
+            peso_bruto = self.line_Peso_Bruto.text()
+            peso_bruto_float = valores_para_float(peso_bruto)
+
+            peso_liquido = self.line_Peso_Liquido.text()
+            peso_liquido_float = valores_para_float(peso_liquido)
+
+            volume = self.line_Volume.text()
+
+            motorista = self.combo_Motorista.currentText()
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, funcionario FROM FUNCIONARIOS where funcionario = '{motorista}';")
+            dados_funcionario = cursor.fetchall()
+            id_funcionario = dados_funcionario[0][0]
+
+            veiculo = self.combo_Veiculo.currentText()
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, placa FROM PLACA_VEICULO where descricao = '{veiculo}';")
+            dados_veiculo = cursor.fetchall()
+            id_veiculo = dados_veiculo[0][0]
+
+            datamov = self.date_Emissao.text()
+            date_mov = datetime.strptime(datamov, '%d/%m/%Y').date()
+            data_mov_certa = str(date_mov)
+
+            cursor = conecta.cursor()
+            cursor.execute(f"Insert into ORDEMEXPEDICAO (ID, EMISSAO, ID_CLIENTE, PESO_BRUTO, PESO_LIQUIDO, "
+                           f"VOLUME, ID_VEICULO, ID_FUNCIONARIO, NOME_PC) "
+                           f"values (GEN_ID(GEN_ORDEMEXPEDICAO_ID,1), '{data_mov_certa}', "
+                           f"'{id_cliente}', '{peso_bruto_float}', '{peso_liquido_float}', {volume}, {id_veiculo}, "
+                           f"{id_funcionario}, '{self.nome_computador}');")
+
+            extrai_pedido = extrair_tabela(self.table_Exp)
+
+            for itens in extrai_pedido:
+                num_ov = itens[0]
+                cod = itens[1]
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prodoc.id, prod.codigo, prod.descricao, "
+                               f"COALESCE(prod.obs, '') as obs, "
+                               f"prod.unidade, prodoc.unitario, COALESCE(prodoc.ipi, '') as ipi "
+                               f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                               f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                               f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                               f"where oc.status = 'A' "
+                               f"and oc.entradasaida = 'S'"
+                               f"and oc.numero = {num_ov} "
+                               f"and oc.cliente = {id_cliente} "
+                               f"and prod.codigo = {cod};")
+                dados_produtos = cursor.fetchall()
+                id_prodoc = dados_produtos[0][0]
+
+                cursor = conecta.cursor()
+                cursor.execute(f"UPDATE PRODUTOORDEMCOMPRA SET id_expedicao = {num_exp} "
+                               f"WHERE id = {id_prodoc};")
+
+            conecta.commit()
+
+            print("salvado")
+
+            self.gera_excel()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def gera_excel(self):
         try:
             tem_s = 0
             tem_n = 0
 
-            cliente = self.combo_Cliente.currentText()
+            cliente = self.line_Cliente.text()
             clientetete = cliente.find(" - ")
             id_cliente = cliente[:clientetete]
 
@@ -662,25 +1201,23 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
             volume = self.line_Volume.text()
 
             if self.radio_Maquinas.isChecked():
-                placa = self.line_Placa.text()
-                placa_upper = placa.upper()
+                veiculo = self.combo_Veiculo.currentText()
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, placa FROM PLACA_VEICULO where descricao = '{veiculo}';")
+                dados_veiculo = cursor.fetchall()
 
-                transportador = self.line_Transportador.text()
-                if transportador:
-                    transp_upper = transportador.upper()
+                placa = dados_veiculo[0][1]
 
-                    txt_transp = f"{transp_upper} - PLACA: {placa_upper}"
-                else:
-                    txt_transp = f"PROPRIO - PLACA: {placa_upper}"
+                txt_transp = f"PLACA: {placa}"
             else:
                 altura = self.line_Altura.text()
                 largura = self.line_Largura.text()
                 compr = self.line_Comprimento.text()
 
                 txt_transp = f"CFE. LOGÍSTICA " \
-                             f"(ALTURA: {altura} MTS / " \
-                             f"LARGURA: {largura} MTS / " \
-                             f"COMPRIMENTO: {compr} MTS)"
+                             f"(ALTURA: {altura} MM / " \
+                             f"LARGURA: {largura} MM / " \
+                             f"COMPRIMENTO: {compr} MM)"
 
             dados_tabela1 = []
             dados_tabela = extrair_tabela(self.table_Exp)
@@ -957,12 +1494,13 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
             writer.save()
 
-            mensagem_alerta(f'Num {num_exp} criada e excel gerado com sucesso!')
+            self.mensagem_alerta(f'Num {num_exp} criada e excel gerado com sucesso!')
             self.limpa_tudo()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_mesclado(self, bloco_book, mesclado, celula, informacao, fonte_alinhamento):
         try:
@@ -978,7 +1516,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def lanca_dados_coluna(self, bloco_book, celula, informacao, fonte_alinhamento):
         try:
@@ -993,7 +1532,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def mesclar_descricao(self, ws, desc_produtos, ini_prod):
         try:
@@ -1018,7 +1558,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_do_cod_e_qtde(self, writer, inicio_produtos, dados_tab):
         try:
@@ -1032,7 +1573,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_descricao(self, ws, writer, inicio_produtos, dados_tab):
         try:
@@ -1067,7 +1609,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_da_um_ate_unid(self, writer, inicio_produtos, dados_tab):
         try:
@@ -1076,7 +1619,8 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def manipula_total(self, writer, inicio_produtos, dados_tab):
         try:
@@ -1086,11 +1630,12 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
-            tratar_notificar_erros(e, nome_funcao, self.nome_arquivo)
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaExpIncluir()
+    tela = TelaExpAlterar()
     tela.show()
     qt.exec_()

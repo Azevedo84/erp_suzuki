@@ -1737,14 +1737,14 @@ class TelaOpConsumirV2(QMainWindow, Ui_MainWindow):
                                        f"values (GEN_ID(GEN_MOVIMENTACAO_ID,1), "
                                        f"{id_produto}, '{numero_os_str}', 210, {qtde_os_red}, '{data_certa}', "
                                        f"{codigo}, "
-                                       f"6, 3);")
+                                       f"11, 3);")
 
                         cursor = conecta.cursor()
                         cursor.execute(f"Insert into produtoos (ID, DATA, PRODUTO, QUANTIDADE, MESTRE, "
                                        f"funcionarios,  movimentacao,  NUMERO, CODIGO, ID_ESTRUT_PROD, "
                                        f"QTDE_ESTRUT_PROD, DATA_CONSUMO) "
                                        f"values (GEN_ID(GEN_PRODUTOOS_ID,1), '{data_certa}', "
-                                       f"{id_produto}, {qtde_os_red}, {id_os}, 6, {ultimo_id}, "
+                                       f"{id_produto}, {qtde_os_red}, {id_os}, 11, {ultimo_id}, "
                                        f"{numero_os}, {codigo}, {id_mat_int}, {qtde_red}, '{data_certa}');")
 
                 somando_negativos = 0

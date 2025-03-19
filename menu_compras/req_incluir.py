@@ -1125,7 +1125,21 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
             dados_tabela = extrair_tabela(self.table_Requisicao)
 
-            for indice, tabi in enumerate(dados_tabela, start=1):
+            if num_req == "1":
+                cursor = conecta.cursor()
+                cursor.execute("SELECT MAX(item) FROM produtoordemrequisicao WHERE numero = 1;")
+                maior_item = cursor.fetchone()[0]
+                if maior_item is not None:
+                    proximo_num = maior_item + 1
+                else:
+                    proximo_num = 1
+            else:
+                proximo_num = 1
+
+            for indice, tabi in enumerate(dados_tabela):
+
+                indice_final = indice + proximo_num
+
                 num_sol, item_sol, cod, desc, ref, um, qtde, unit, ipi, total_dois, data_pr, fornc, destino, \
                 solic = tabi
 
@@ -1159,7 +1173,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                         cursor = conecta.cursor()
                         cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, REFERENCIA, ID_PROD_SOL, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice_final}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', '{ref}', "
                                        f"{id_prodsol}, '{destino}', {num_req});")
 
@@ -1167,7 +1181,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                         cursor = conecta.cursor()
                         cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, ID_PROD_SOL, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice_final}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', {id_prodsol}, "
                                        f"'{destino}', {num_req});")
 
@@ -1176,7 +1190,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                         cursor = conecta.cursor()
                         cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, REFERENCIA, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice_final}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', '{ref}', "
                                        f"'{destino}', {num_req});")
 
@@ -1184,7 +1198,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                         cursor = conecta.cursor()
                         cursor.execute(f"Insert into produtoordemrequisicao (ID, MESTRE, ITEM, PRODUTO, QUANTIDADE, "
                                        f"DATA, STATUS, DESTINO, NUMERO) "
-                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice}, "
+                                       f"values (GEN_ID(GEN_PRODUTOORDEMREQUISICAO_ID,1), {ultimo_req}, {indice_final}, "
                                        f"{id_produto}, '{qtdezinha_float}', '{data_mov_certa}', 'A', "
                                        f"'{destino}', {num_req});")
 

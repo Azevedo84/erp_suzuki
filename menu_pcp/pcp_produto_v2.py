@@ -484,9 +484,10 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                            f"COALESCE( entradaprod.natureza, 0 ) ) = natop.ID) "
                            f"WHERE m.data >= '2014-01-01' "
                            f"and m.produto = '{id_prod}' "
-                           f"order by m.data, (case when m.tipo >= 200 then 2 else 1 end), m.id;")
+                           f"order by m.data DESC, (case when m.tipo >= 200 then 2 else 1 end) DESC, m.id DESC;")
             results = cursor.fetchall()
             if results:
+                results.sort(key=lambda x: x[0])
                 for i in results:
                     data, entrada, saida, saldo, registro, cfop, local_est, obs, tipo, op_ov, empresa_func = i
 
@@ -559,7 +560,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT oc.data, oc.numero, cli.razao, prodoc.quantidade, prodoc.dataentrega, "
-                           f"COALESCE(prodoc.id_pedido, '') as pedi "
+                           f"COALESCE(prodoc.id_pedido, ''), COALESCE(prodoc.id_expedicao, '') "
                            f"FROM PRODUTOORDEMCOMPRA as prodoc "
                            f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
                            f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
@@ -572,12 +573,12 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             dados_ov = cursor.fetchall()
             if dados_ov:
                 for i_ov in dados_ov:
-                    emissao_ov, num_ov, clie_ov, qtde_ov, entrega_ov, num_pi_ov = i_ov
+                    emissao_ov, num_ov, clie_ov, qtde_ov, entrega_ov, num_pi_ov, num_exp = i_ov
 
                     emi_ov = f'{emissao_ov.day}/{emissao_ov.month}/{emissao_ov.year}'
                     entreg_ov = f'{entrega_ov.day}/{entrega_ov.month}/{entrega_ov.year}'
 
-                    dados = (num_pi_ov, num_ov, emi_ov, clie_ov, qtde_ov, entreg_ov)
+                    dados = (num_pi_ov, num_ov, num_exp, emi_ov, clie_ov, qtde_ov, entreg_ov)
                     tabela_nova.append(dados)
 
             if tabela_nova:
@@ -622,8 +623,8 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                            f"FROM produtoordemrequisicao as prodreq "
                            f"INNER JOIN produto as prod ON prodreq.produto = prod.ID "
                            f"INNER JOIN ordemrequisicao as req ON prodreq.mestre = req.id "
-                           f"INNER JOIN produtoordemsolicitacao as prodsol ON prodreq.id_prod_sol = prodsol.id "
-                           f"INNER JOIN ordemsolicitacao as sol ON prodsol.mestre = sol.idsolicitacao "
+                           f"LEFT JOIN produtoordemsolicitacao as prodsol ON prodreq.id_prod_sol = prodsol.id "
+                           f"LEFT JOIN ordemsolicitacao as sol ON prodsol.mestre = sol.idsolicitacao "
                            f"where prodreq.status = 'A' "
                            f"and prod.codigo = {cod_prod};")
             dados_req = cursor.fetchall()
@@ -643,11 +644,11 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                 f"prodoc.quantidade, prodoc.produzido, prodoc.dataentrega "
                 f"FROM ordemcompra as oc "
                 f"INNER JOIN produtoordemcompra as prodoc ON oc.id = prodoc.mestre "
-                f"INNER JOIN produtoordemrequisicao as prodreq ON prodoc.id_prod_req = prodreq.id "
+                f"LEFT JOIN produtoordemrequisicao as prodreq ON prodoc.id_prod_req = prodreq.id "
                 f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
                 f"INNER JOIN fornecedores as forn ON oc.fornecedor = forn.id "
-                f"INNER JOIN produtoordemsolicitacao as prodsol ON prodreq.id_prod_sol = prodsol.id "
-                f"INNER JOIN ordemsolicitacao as sol ON prodsol.mestre = sol.idsolicitacao "
+                f"LEFT JOIN produtoordemsolicitacao as prodsol ON prodreq.id_prod_sol = prodsol.id "
+                f"LEFT JOIN ordemsolicitacao as sol ON prodsol.mestre = sol.idsolicitacao "
                 f"where oc.entradasaida = 'E' "
                 f"AND oc.STATUS = 'A' "
                 f"AND prodoc.produzido < prodoc.quantidade "

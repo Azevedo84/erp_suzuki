@@ -171,7 +171,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Incluir Expedição de Produtos</string>
+          <string>Alterar Expedição de Produtos</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -348,7 +348,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="combo_Cliente">
+              <widget class="QLineEdit" name="line_Cliente">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -370,10 +370,18 @@
                <property name="font">
                 <font>
                  <pointsize>9</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
                 </font>
                </property>
                <property name="styleSheet">
                 <string notr="true">background-color: rgb(255, 255, 255);</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
                </property>
               </widget>
              </item>
@@ -720,6 +728,60 @@ Todos</string>
               <height>30</height>
              </size>
             </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_20">
+             <item>
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="minimumSize">
+                <size>
+                 <width>50</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>9</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Status:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_Status">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>100</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
           <item>

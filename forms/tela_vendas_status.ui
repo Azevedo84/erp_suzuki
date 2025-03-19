@@ -111,13 +111,25 @@
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
         <string>Pedido Interno (PI)</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QWidget" name="widget_2" native="true">
           <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -720,6 +732,18 @@
         <string>Ordem de Venda (OV)</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_7">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QWidget" name="widget_6" native="true">
           <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -1290,6 +1314,167 @@
                 <column>
                  <property name="text">
                   <string>NUM_REQ</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>OBS</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Expedição (EXP)</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_10">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QWidget" name="widget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_13">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QWidget" name="widget_Cor4_2" native="true">
+             <property name="styleSheet">
+              <string notr="true">background-color: rgb(182, 182, 182);</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_12">
+              <property name="leftMargin">
+               <number>6</number>
+              </property>
+              <property name="topMargin">
+               <number>6</number>
+              </property>
+              <property name="rightMargin">
+               <number>6</number>
+              </property>
+              <property name="bottomMargin">
+               <number>6</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_16">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>300</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>25</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>11</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>Lista de Ordens de Expedição (OE)</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTableWidget" name="table_EXP">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>9</pointsize>
+                 </font>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>EMISSAO</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Nº EXP</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>CLIENTE</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>CÓDIGO</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>DESCRIÇÃO</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>REFERÊNCIA</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>UM</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>QTDE</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Nº OV</string>
                  </property>
                 </column>
                 <column>

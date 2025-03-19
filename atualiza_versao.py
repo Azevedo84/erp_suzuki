@@ -76,14 +76,12 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(19/02/25) INCLUIR NF DE COMPRA - CORRIGIDO ERRO DE INCLUSÃO',
-                  '(20/02/25) PESQUISAR PRODUTO - CORRIGIDO ERRO DE CONSULTA POR LOCALIZAÇÃO',
-                  '(21/02/25) PCP PRODUTO - ALTERADO LAYOUT DA MOVIMENTAÇÃO',
-                  '(25/02/25) FICHA PRODUTO - CORRIGIDO ERRO DE LOCALIZAÇÃO NULL',
-                  '(25/02/25) PRODUTO PRELIMINAR - REMOVIDO ESPAÇO EM BRANCO INICIO E FIM DO TEXTO',]
+lista_modifica = ['(28/02/25) PCP PRODUTO - ORDENAR MOVIMENTACAO DOS ULTIMOS 35 REGISTROS POR DATA',
+                  '(07/03/25) REQ INCLUIR - AJUSTE INDICE PARA REQUISICAO 1',
+                  '(10/03/25) CUSTO ESTRUTURA - CORRIGDO PROBLEMA RESET CUSTO MAO DE OBRA',]
 
 programa = "ERP SUZUKI"
-versao = "2.07.001"
+versao = "2.07.002"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

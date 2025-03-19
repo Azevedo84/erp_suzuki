@@ -4,6 +4,7 @@ import os
 import inspect
 import locale
 import traceback
+from datetime import datetime, date
 
 nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
 nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
@@ -169,6 +170,28 @@ def timestamp_brasileiro(data_e_tempo):
             data_formatada = data_e_tempo.strftime("%d/%m/%Y %H:%M:%S")
         else:
             data_formatada = ""
+
+        return data_formatada
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+def string_pra_data(data_string):
+    try:
+        data_formatada = datetime.strptime(data_string, "%d/%m/%Y").date()
+
+        return data_formatada
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+def data_pra_data_brasileiro(data_string):
+    try:
+        data_formatada = data_string.strftime('%d/%m/%Y')
 
         return data_formatada
 

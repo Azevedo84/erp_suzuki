@@ -28,6 +28,8 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
         self.btn_Consultar_OV.clicked.connect(self.verifica_filtro_ov)
         self.dados_ov_aberto()
 
+        self.dados_exp_aberto()
+
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
             tb = traceback.extract_tb(excecao)
@@ -438,6 +440,45 @@ class TelaVendasStatus(QMainWindow, Ui_MainWindow):
             if tabela_nova:
                 lista_de_listas_ordenada = sorted(tabela_nova, key=lambda x: x[1])
                 lanca_tabela(self.table_OV, lista_de_listas_ordenada)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def dados_exp_aberto(self):
+        try:
+            tabela_nova = []
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT exp.emissao, prodoc.id_expedicao, oc.numero, cli.razao, prod.codigo, "
+                           f"prod.descricao, "
+                           f"COALESCE(prod.obs, '') as ref, prod.unidade, prodoc.quantidade, "
+                           f"prodoc.produzido, COALESCE(prodoc.id_pedido, '') as pedi, "
+                           f"COALESCE(ped.num_req_cliente, '') as req, "
+                           f"COALESCE(oc.obs, '') as obs "
+                           f"FROM PRODUTOORDEMCOMPRA as prodoc "
+                           f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
+                           f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "
+                           f"INNER JOIN clientes as cli ON oc.cliente = cli.id "
+                           f"INNER JOIN ordemexpedicao as exp ON prodoc.id_expedicao = exp.id "
+                           f"LEFT JOIN pedidointerno as ped ON prodoc.id_pedido = ped.id "
+                           f"where prodoc.quantidade > prodoc.produzido "
+                           f"and oc.status = 'A' "
+                           f"and oc.entradasaida = 'S' "
+                           f"and id_expedicao is not NULL "
+                           f"and exp.status = 'A';")
+            dados_interno = cursor.fetchall()
+            if dados_interno:
+                for i in dados_interno:
+                    emissao, num_exp, num_ov, clie, cod, descr, ref, um, qtde, qtde_entr, nume_pi, num_req, obs = i
+
+                    emi = f'{emissao.day}/{emissao.month}/{emissao.year}'
+
+                    dados = (emi, num_exp, clie, cod, descr, ref, um, qtde, num_ov, obs)
+                    tabela_nova.append(dados)
+            if tabela_nova:
+                lanca_tabela(self.table_EXP, tabela_nova)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

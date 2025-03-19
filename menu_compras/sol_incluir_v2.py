@@ -1536,6 +1536,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                         mensagem = mensagem + cod + ", "
 
                     self.mensagem_alerta(f'Os itens {mensagem} já estão presentes na tabela "Lista Solicitação".')
+
             self.combo_Consumo.setCurrentText("")
             self.reiniciando_produto_estrutura()
             self.table_Recomendacao.setRowCount(0)

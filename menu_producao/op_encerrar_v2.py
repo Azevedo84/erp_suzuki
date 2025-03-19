@@ -1005,7 +1005,7 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
                            f"(ID, PRODUTO, OBS, TIPO, QUANTIDADE, DATA, CODIGO, funcionario,  localestoque) "
                            f"values (GEN_ID(GEN_MOVIMENTACAO_ID,1), "
                            f"{id_produto}, '{num_op_str}', 110, {qtde_op_float}, '{encerra_certo}', {codigo}, "
-                           f"6, 1);")
+                           f"11, 1);")
 
             cursor = conecta.cursor()
             cursor.execute(f"UPDATE ordemservico SET "
