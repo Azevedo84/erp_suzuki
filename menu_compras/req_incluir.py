@@ -1125,14 +1125,11 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
 
             dados_tabela = extrair_tabela(self.table_Requisicao)
 
-            if num_req == "1":
-                cursor = conecta.cursor()
-                cursor.execute("SELECT MAX(item) FROM produtoordemrequisicao WHERE numero = 1;")
-                maior_item = cursor.fetchone()[0]
-                if maior_item is not None:
-                    proximo_num = maior_item + 1
-                else:
-                    proximo_num = 1
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT MAX(item) FROM produtoordemrequisicao WHERE numero = {num_req};")
+            maior_item = cursor.fetchone()[0]
+            if maior_item is not None:
+                proximo_num = maior_item + 1
             else:
                 proximo_num = 1
 

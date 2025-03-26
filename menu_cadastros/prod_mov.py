@@ -21,9 +21,7 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
-        self.btn_Excluir.clicked.connect(self.check_exclude)
-
-        self.produto = "11981"
+        self.produto = produto
 
         if self.produto:
             self.verifica_codigo(self.produto)

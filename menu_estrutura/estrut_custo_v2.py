@@ -210,6 +210,8 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                     self.widget_Terceiros.setHidden(True)
                     self.widget_Compra.setHidden(True)
 
+                self.limpa_dados_mao_de_obra_servico()
+
                 self.lanca_descricao_tempo_mao_de_obra(codigo_produto)
                 self.lanca_descricao_custo_servico(codigo_produto)
 
@@ -266,7 +268,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
     def manipula_versao_escolhida(self):
         try:
             self.limpa_tabelas()
-            self.limpa_dados_mao_de_obra_servico()
 
             codigo_produto = self.line_Codigo_Estrut.text()
             versao = self.combo_Versao.currentText()
@@ -351,6 +352,7 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
     def limpa_dados_mao_de_obra_servico(self):
         try:
+            print("passei aqui")
             self.label_Descricao_Mao.clear()
             self.label_Tempo_Mao.clear()
 
@@ -444,14 +446,17 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
     def lanca_descricao_tempo_mao_de_obra(self, codigo):
         try:
+            print(codigo)
             cursor = conecta.cursor()
             cursor.execute(f"SELECT etapas, tempo FROM produto WHERE codigo = {codigo};")
             dados_produto = cursor.fetchall()
             if dados_produto:
                 for i in dados_produto:
+                    print(i)
                     etapas, tempo = i
 
                     if etapas:
+                        print("ue")
                         self.label_Descricao_Mao.setText(etapas)
                     if tempo:
                         self.label_Tempo_Mao.setText(str(tempo))
