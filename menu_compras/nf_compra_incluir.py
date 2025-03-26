@@ -499,9 +499,12 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.processando = False
 
     def atualiza_mascara_ipi(self):
+        print("passei aqui")
         if not self.processando:
             try:
                 self.processando = True
+
+                print("passei aqui 1")
 
                 ipi = self.line_Ipi.text()
 
@@ -512,6 +515,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_Ipi.setText(valor_final)
 
                 self.calcular_valor_total_prod()
+
+                print("passei aqui 2")
 
                 self.line_Unit.setFocus()
 

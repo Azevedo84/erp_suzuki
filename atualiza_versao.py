@@ -77,7 +77,8 @@ def envia_email(alteracoes, versao_final):
 
 
 lista_modifica = ['(24/03/25) CUSTO ESTRUTURA: CORRIGDO CUSTO MÃO DE OBRA',
-                  '(25/03/25) REQ INCLUIR: CORRIGDO Nº DO ITEM DA SEQUENCIA',]
+                  '(25/03/25) REQ INCLUIR: CORRIGDO Nº DO ITEM DA SEQUENCIA',
+                  '(26/03/25) NF INCLUIR: CORRIGDO TABULAÇÃO DO IPI',]
 
 programa = "ERP SUZUKI"
 versao = "2.07.004"

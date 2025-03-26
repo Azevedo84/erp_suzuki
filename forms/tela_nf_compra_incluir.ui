@@ -2765,12 +2765,12 @@
   <tabstop>line_CodForn</tabstop>
   <tabstop>line_Codigo</tabstop>
   <tabstop>line_NCM</tabstop>
-  <tabstop>line_Num_OC</tabstop>
-  <tabstop>line_Item_OC</tabstop>
+  <tabstop>combo_Local_Estoque</tabstop>
+  <tabstop>line_Qtde</tabstop>
+  <tabstop>line_Ipi</tabstop>
   <tabstop>line_Unit</tabstop>
-  <tabstop>btn_Salvar</tabstop>
-  <tabstop>line_Total_Ipi</tabstop>
-  <tabstop>line_Total_Merc</tabstop>
+  <tabstop>line_Local</tabstop>
+  <tabstop>btn_AdicionarProd</tabstop>
   <tabstop>line_Total_Geral</tabstop>
   <tabstop>line_Obs</tabstop>
   <tabstop>btn_Limpar</tabstop>
@@ -2784,6 +2784,12 @@
   <tabstop>table_Produtos_NF</tabstop>
   <tabstop>btn_ExcluirItem</tabstop>
   <tabstop>btn_ExcluirTudo</tabstop>
+  <tabstop>line_Num_OC</tabstop>
+  <tabstop>line_Item_OC</tabstop>
+  <tabstop>btn_Salvar</tabstop>
+  <tabstop>line_ValorTotal</tabstop>
+  <tabstop>line_Total_Ipi</tabstop>
+  <tabstop>line_Total_Merc</tabstop>
  </tabstops>
  <resources/>
  <connections/>
