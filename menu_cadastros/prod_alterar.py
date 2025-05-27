@@ -35,6 +35,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
         validador_decimal(self.line_NCM, numero=9999999.000)
 
         self.lanca_combo_conjunto()
+        self.lanca_combo_servico_interno()
         self.lanca_combo_tipo()
         self.lanca_combo_projeto()
         self.data_emissao()
@@ -109,6 +110,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def verifica_line_codigo_manual(self):
         if not self.processando:
@@ -116,6 +118,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 self.processando = True
 
                 self.lanca_combo_conjunto()
+                self.lanca_combo_servico_interno()
                 self.lanca_combo_tipo()
                 self.lanca_combo_projeto()
                 self.data_emissao()
@@ -161,7 +164,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                         f"COALESCE(prod.obs, ''), prod.unidade, COALESCE(prod.localizacao, ''), prod.ncm, "
                         f"prod.quantidade, prod.embalagem, COALESCE(prod.kilosmetro, ''), conj.conjunto, "
                         f"COALESCE(tip.tipomaterial, ''), prod.DATA_CRIACAO, COALESCE(prod.embalagem, ''), "
-                        f"prod.custounitario, prod.quantidademin, proj.projeto, conj.id, prod.obs2 "
+                        f"prod.custounitario, prod.quantidademin, proj.projeto, conj.id, prod.obs2, "
+                        f"COALESCE(prod.ID_SERVICO_INTERNO, '') "
                         f"FROM produto as prod "
                         f"LEFT JOIN conjuntos conj ON prod.conjunto = conj.id "
                         f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
@@ -171,7 +175,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
             if detalhes_produto:
                 id_prod, barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, conjunto, tipo, \
-                data, embalagem, custo, minima, projeto, id_conj, obs = detalhes_produto[0]
+                data, embalagem, custo, minima, projeto, id_conj, obs, id_servico_int = detalhes_produto[0]
 
                 barras_sem_espacos = barras.strip()
 
@@ -209,6 +213,19 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                             conjunto_text = self.combo_Conjunto.itemText(i_conjunto)
                             if conj_certo in conjunto_text:
                                 self.combo_Conjunto.setCurrentText(conjunto_text)
+
+                if id_servico_int:
+                    cursor = conecta.cursor()
+                    cursor.execute("SELECT id, descricao FROM SERVICO_INTERNO where id = ?", (id_servico_int, ))
+                    lista_servico_int = cursor.fetchall()
+                    if lista_servico_int:
+                        id_serv, descr_serv = lista_servico_int[0]
+                        serv_certo = f"{id_serv} - {descr_serv}"
+                        serv_count = self.combo_Servico_Interno.count()
+                        for i_serv in range(serv_count):
+                            serv_text = self.combo_Servico_Interno.itemText(i_serv)
+                            if serv_certo in serv_text:
+                                self.combo_Servico_Interno.setCurrentText(serv_text)
 
                 if tipo:
                     cursor = conecta.cursor()
@@ -252,7 +269,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     self.line_NCM.setStyleSheet("QLineEdit { background-color: white; }")
 
                 dados = (codigo_produto, data, barras_sem_espacos, descr, compl, ref, um, embalagem, kg_mt,
-                         custo, local, conjunto, tipo, projeto, min_str, ncm, obs)
+                         custo, local, conjunto, tipo, projeto, min_str, ncm, obs, id_servico_int)
 
                 self.dados_produto = dados
 
@@ -351,6 +368,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def remover_espaco_branco_ini_fim(self, string):
         try:
@@ -370,6 +388,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def data_emissao(self):
         try:
@@ -395,6 +414,26 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 nova_lista.append(dd)
 
             self.combo_Conjunto.addItems(nova_lista)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_combo_servico_interno(self):
+        try:
+            self.combo_Servico_Interno.clear()
+
+            nova_lista = [""]
+
+            cursor = conecta.cursor()
+            cursor.execute('SELECT id, descricao FROM SERVICO_INTERNO order by descricao;')
+            lista_completa = cursor.fetchall()
+            for ides, descr in lista_completa:
+                dd = f"{ides} - {descr}"
+                nova_lista.append(dd)
+
+            self.combo_Servico_Interno.addItems(nova_lista)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -486,6 +525,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def manipula_descricao_tipo(self, descricao):
         try:
@@ -587,6 +627,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
             self.combo_UM.setCurrentText("")
             self.combo_Conjunto.setCurrentText("")
+            self.combo_Servico_Interno.setCurrentText("")
             self.combo_Tipo.setCurrentText("")
             self.combo_Projeto.setCurrentText("")
 
@@ -601,6 +642,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
         try:
             self.limpa_dados_produto()
             self.lanca_combo_conjunto()
+            self.lanca_combo_servico_interno()
             self.lanca_combo_tipo()
             self.lanca_combo_projeto()
 
@@ -611,7 +653,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
     def verifica_salvamento(self):
         try:
-            print("entrei")
             cod_produto = self.line_Codigo.text()
             cod_barras = self.line_Barras.text()
             descr = self.line_Descricao.text()
@@ -619,6 +660,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             um = self.combo_UM.currentText()
 
             conjunto = self.combo_Conjunto.currentText()
+            servico_interno = self.combo_Servico_Interno.currentText()
             tipo = self.combo_Tipo.currentText()
 
             if not cod_produto:
@@ -645,20 +687,24 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     status = True
 
                 if status:
-                    print("entrei 1")
                     cursor = conecta.cursor()
                     cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
                     lista_completa = cursor.fetchall()
                     if lista_completa:
+                        conjuntotete = conjunto.find(" - ")
+                        id_conjunto = conjunto[:conjuntotete]
+
                         if um == "KG":
                             kg_mt = self.line_kg_mt.text()
                             if not kg_mt:
-                                self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
+                                self.mensagem_alerta(f'Se o material for Aço, verifique o campo "KG/MT"')
+                            self.salvar_alteracao()
+                        elif id_conjunto == "10":
+                            if not servico_interno:
+                                self.mensagem_alerta(f'O Serviço Interno do produto acabado não pode estar vazio!')
                             else:
-                                print("entrei 2")
                                 self.salvar_alteracao()
                         else:
-                            print("entrei 3")
                             self.salvar_alteracao()
 
         except Exception as e:
@@ -669,9 +715,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
     def salvar_alteracao(self):
         try:
             if self.dados_produto:
-                print("entrei 4")
                 codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
-                tipo, projeto, qtde_mini, ncm, obs = self.dados_produto
+                tipo, projeto, qtde_mini, ncm, obs, servico_int = self.dados_produto
 
                 ref_a = self.line_Referencia.text()
                 descr_a = self.line_Descricao.text()
@@ -686,14 +731,19 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 obs_plain = self.plain_Obs.toPlainText()
                 obs_a = obs_plain.upper()
 
-                print("entrei 5")
-
                 conjunt = self.combo_Conjunto.currentText()
                 if conjunt:
                     conjuntotete = conjunt.find(" - ") + 3
                     conjunto_a = conjunt[conjuntotete:]
                 else:
                     conjunto_a = ""
+
+                servico_interno = self.combo_Servico_Interno.currentText()
+                if servico_interno:
+                    servico_internotete = servico_interno.find(" - ")
+                    id_servico_interno = servico_interno[:servico_internotete]
+                else:
+                    id_servico_interno = ""
 
                 tip = self.combo_Tipo.currentText()
                 if tip:
@@ -722,8 +772,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 qtde_mini_float_a = valores_para_float(qtde_mini_a)
 
                 campos_atualizados = []
-
-                print("entrei 6")
 
                 if descr != descr_a:
                     campos_atualizados.append(f"DESCRICAO = '{descr_a}'")
@@ -756,6 +804,11 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     else:
                         id_conj_a = "NULL"
                     campos_atualizados.append(f"CONJUNTO = '{id_conj_a}'")
+
+                if servico_int != id_servico_interno:
+                    if not id_servico_interno:
+                        id_servico_interno = "NULL"
+                    campos_atualizados.append(f"ID_SERVICO_INTERNO = '{id_servico_interno}'")
 
                 if tipo != tipo_a:
                     if tipo_a:
@@ -793,16 +846,11 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
                     cod_produto = self.line_Codigo.text()
 
-                    print("entrei 7")
-                    print(campos_update)
-
                     cursor = conecta.cursor()
                     cursor.execute(f"UPDATE produto SET {campos_update} "
                                    f"WHERE codigo = '{cod_produto}';")
 
                     conecta.commit()
-
-                    print("entrei 8")
 
                     self.mensagem_alerta(f"Cadastro do produto {cod_produto} atualizado com Sucesso!")
 
@@ -814,8 +862,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     else:
                         self.limpa_tudo()
                         self.line_Codigo.setFocus()
-
-                    print("entrei 9")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

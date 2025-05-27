@@ -235,6 +235,7 @@
     <addaction name="actionTipo_de_Material"/>
     <addaction name="actionProjetos"/>
     <addaction name="actionLocais_de_Estoque"/>
+    <addaction name="actionServi_o_Interno"/>
    </widget>
    <widget class="QMenu" name="menu_Compras">
     <property name="title">
@@ -744,6 +745,11 @@
   <action name="actionIncluir_NF">
    <property name="text">
     <string>Incluir NF</string>
+   </property>
+  </action>
+  <action name="actionServi_o_Interno">
+   <property name="text">
+    <string>Serviço Interno</string>
    </property>
   </action>
  </widget>

@@ -1,6 +1,6 @@
 from banco_dados.conexao import conecta
 
-id_mov = 100941
+id_mov = 100927
 
 cur = conecta.cursor()
 cur.execute(f"SELECT data, produto, tipo, quantidade, localestoque from movimentacao where id = {id_mov};")
@@ -10,9 +10,9 @@ if detalhes_mov:
     data, id_prod, tipo, qtde, local_estoque = detalhes_mov[0]
 
     cur = conecta.cursor()
-    cur.execute(f"SELECT descricao, obs, quantidade from produto where id = {id_prod};")
+    cur.execute(f"SELECT codigo, descricao, obs, quantidade from produto where id = {id_prod};")
     dados_produto = cur.fetchall()
-    descr, ref, saldo_total = dados_produto[0]
+    codigo, descr, ref, saldo_total = dados_produto[0]
 
     cur = conecta.cursor()
     cur.execute(f"SELECT nome, negativo, usarestoque from LOCALESTOQUE where id = {local_estoque};")
@@ -26,7 +26,7 @@ if detalhes_mov:
     saldos_produto = cur.fetchall()
     num_saldo_local, saldo_local = saldos_produto[0]
 
-    print(nome_local, descr, ref, saldo_total)
+    print(nome_local, codigo, descr, ref, saldo_total)
 
     cur = conecta.cursor()
     cur.execute(f"SELECT id, movimentacao from entradaprod where movimentacao = {id_mov};")
@@ -51,14 +51,18 @@ if detalhes_mov:
             if status == "B":
                 print("ordem encerrada")
 
+                """
                 cursor = conecta.cursor()
                 cursor.execute(f"DELETE FROM movimentacao WHERE id = {id_mov_op};")
+                """
                 print("removido mov")
 
                 conecta.commit()
 
+            """
             cursor = conecta.cursor()
             cursor.execute(f"DELETE FROM produtoos WHERE id = {id_produto_os};")
+            """
             print("removido produto os")
 
             conecta.commit()
@@ -77,8 +81,10 @@ if detalhes_mov:
         for i in saida_prod:
             print("saidaprod", i)
 
+    """
     cursor = conecta.cursor()
     cursor.execute(f"DELETE FROM movimentacao WHERE id = {id_mov};")
+    """
     print("removido mov")
 
     conecta.commit()

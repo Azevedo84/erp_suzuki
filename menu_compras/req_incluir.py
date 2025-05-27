@@ -567,9 +567,19 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                     for dados in dados_tabela:
                         num_e, item_sol_e, cod_e, des_e, ref_e, um_e, qt_e, uni_e, ipi_e, tot_e, dat_e, for_e, \
                         des_e, soli_e = dados
-                        if cod_e == cod and num_e == num_sol and item_sol_e == item_sol:
+
+                        if num_e:
+                            num_e_int = int(num_e)
+                        else:
+                            num_e_int = 0
+
+                        if item_sol_e:
+                            item_sol_e_int = int(item_sol_e)
+                        else:
+                            item_sol_e_int = 0
+
+                        if cod_e == cod and num_e_int == num_sol and item_sol_e_int == item_sol:
                             ja_existe = True
-                            break
 
                 if not fornc:
                     fornec = ""

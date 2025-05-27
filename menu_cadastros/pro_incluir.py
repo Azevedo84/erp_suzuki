@@ -5,6 +5,7 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.telas import tamanho_aplicacao, icone
 from comandos.lines import validador_decimal
+from comandos.conversores import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
 import os
@@ -37,6 +38,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
         self.inicio_manipula_pre_cadastro()
         self.lanca_combo_conjunto()
+        self.lanca_combo_servico_interno()
         self.lanca_combo_tipo()
         self.lanca_combo_projeto()
         self.data_emissao()
@@ -163,6 +165,26 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 nova_lista.append(dd)
 
             self.combo_Conjunto.addItems(nova_lista)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_combo_servico_interno(self):
+        try:
+            self.combo_Servico_Interno.clear()
+
+            nova_lista = [""]
+
+            cursor = conecta.cursor()
+            cursor.execute('SELECT id, descricao FROM SERVICO_INTERNO order by descricao;')
+            lista_completa = cursor.fetchall()
+            for ides, descr in lista_completa:
+                dd = f"{ides} - {descr}"
+                nova_lista.append(dd)
+
+            self.combo_Servico_Interno.addItems(nova_lista)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -542,6 +564,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             self.limpa_dados_produto()
             self.inicio_manipula_pre_cadastro()
             self.lanca_combo_conjunto()
+            self.lanca_combo_servico_interno()
             self.lanca_combo_tipo()
             self.lanca_combo_projeto()
 
@@ -559,6 +582,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             um = self.combo_UM.currentText()
 
             conjunto = self.combo_Conjunto.currentText()
+            servico_interno = self.combo_Servico_Interno.currentText()
             tipo = self.combo_Tipo.currentText()
 
             if not cod_produto:
@@ -582,10 +606,17 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 if lista_completa:
                     self.mensagem_alerta(f'Este código de produto já foi cadastrado!')
                 else:
+                    conjuntotete = conjunto.find(" - ")
+                    id_conjunto = conjunto[:conjuntotete]
+
                     if um == "KG":
                         kg_mt = self.line_kg_mt.text()
                         if not kg_mt:
-                            self.mensagem_alerta(f'O "KG/MT" do produto não pode estar vazio!')
+                            self.mensagem_alerta(f'Se o material for Aço, verifique o campo "KG/MT"')
+                        self.salvar_produto()
+                    elif id_conjunto == "10":
+                        if not servico_interno:
+                            self.mensagem_alerta(f'O Serviço Interno do produto acabado não pode estar vazio!')
                         else:
                             self.salvar_produto()
                     else:
@@ -632,6 +663,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             embalagem = self.line_Embalagem.text()
             ncm = self.line_NCM.text()
             kg_mt = self.line_kg_mt.text()
+            kg_mt_float = valores_para_float(kg_mt)
             qtde_minima = self.line_Qtde_Mini.text()
             custo_unit = self.line_Custo_Unit.text()
             local = self.line_Local.text()
@@ -642,6 +674,10 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             conjunto = self.combo_Conjunto.currentText()
             conjuntotete = conjunto.find(" - ")
             id_conjunto = conjunto[:conjuntotete]
+
+            servico_interno = self.combo_Servico_Interno.currentText()
+            servico_internotete = servico_interno.find(" - ")
+            id_servico_interno = servico_interno[:servico_internotete]
 
             tipo = self.combo_Tipo.currentText()
             tipotete = tipo.find(" - ")
@@ -657,23 +693,29 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 id_projeto = projeto[:projetotete]
 
                 cursor = conecta.cursor()
-                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, DESCRICAO, "
+                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, ID_SERVICO_INTERNO, "
+                               f"DESCRICAO, "
                                f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
                                f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, PROJETO, OBS2, NCM) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{descr}', '{compl}', '{embalagem}', '{um}', '0', '0', "
-                               f"'{kg_mt}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', '{data_hoje}', "
+                               f"'{id_conjunto}', '{id_servico_interno}', '{descr}', '{compl}', '{embalagem}', "
+                               f"'{um}', '0', '0', "
+                               f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
+                               f"'{data_hoje}', "
                                f"'0', '{id_tipo}', '{id_projeto}', '{obs}', '{ncm}');")
             else:
                 cursor = conecta.cursor()
-                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, DESCRICAO, "
+                cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, ID_SERVICO_INTERNO, "
+                               f"DESCRICAO, "
                                f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
                                f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, OBS2, NCM) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{descr}', '{compl}', '{embalagem}', '{um}', '0', '0', "
-                               f"'{kg_mt}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', '{data_hoje}', "
+                               f"'{id_conjunto}', '{id_servico_interno}', '{descr}', '{compl}', '{embalagem}', "
+                               f"'{um}', '0', '0', "
+                               f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
+                               f"'{data_hoje}', "
                                f"'0', '{id_tipo}', '{obs}', '{ncm}');")
 
                 conecta.commit()

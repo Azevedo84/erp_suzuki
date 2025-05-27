@@ -555,7 +555,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                     emi_pi = f'{emissao_pi.day}/{emissao_pi.month}/{emissao_pi.year}'
                     entreg_pi = f'{entrega_pi.day}/{entrega_pi.month}/{entrega_pi.year}'
 
-                    dados_pi = (num_pi, "", emi_pi, clie_pi, qtde_pi, entreg_pi)
+                    dados_pi = (num_pi, "", "", emi_pi, clie_pi, qtde_pi, entreg_pi)
                     tabela_nova.append(dados_pi)
 
             cursor = conecta.cursor()

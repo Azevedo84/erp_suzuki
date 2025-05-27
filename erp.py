@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.07.004"
-        self.data_versao = f"26/03/2025"
+        self.versao = f"Versão 2.08.000"
+        self.data_versao = f"27/05/2025"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -46,6 +46,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.cad_cfop = []
         self.cad_tipo_material = []
         self.cad_projeto = []
+        self.cad_servico_interno = []
         self.local_estoque = []
 
         self.sol_incluir = []
@@ -178,6 +179,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.actionTipo_de_Material.triggered.connect(self.definir_tela_action)
             self.actionProjetos.triggered.connect(self.definir_tela_action)
             self.actionLocais_de_Estoque.triggered.connect(self.definir_tela_action)
+            self.actionServi_o_Interno.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
@@ -290,6 +292,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_cadastros.cad_projeto import TelaCadastroProjeto
                 self.cad_projeto = TelaCadastroProjeto()
                 self.cad_projeto .show()
+
+            elif sender == self.actionServi_o_Interno:
+                from menu_cadastros.cad_servico_interno import TelaCadastroServicoInterno
+                self.cad_servico_interno = TelaCadastroServicoInterno()
+                self.cad_servico_interno .show()
 
             elif sender == self.actionLocais_de_Estoque:
                 from menu_cadastros.cad_local_estoque import TelaCadastroLocalEstoque
