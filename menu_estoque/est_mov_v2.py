@@ -97,6 +97,8 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             else:
                 dados_tabela = self.define_tabela_total()
 
+            self.table_OP.setRowCount(0)
+
             if dados_tabela:
                 lanca_tabela(self.table_OP, dados_tabela)
 
@@ -184,6 +186,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def select_mov_total(self, data_inicio, data_fim, num_tipo, nome_tipo):
         try:
@@ -264,6 +267,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def define_tabela_almox(self):
         try:
@@ -313,6 +317,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def define_tabela_total(self):
         try:
@@ -362,6 +367,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def select_movimentis_almox(self, data_inicio, data_fim):
         try:
@@ -428,6 +434,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def select_movimentis_total(self, data_inicio, data_fim):
         try:
@@ -494,6 +501,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def tipos_movimentos(self):
         try:
@@ -532,6 +540,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def datas_relatorio(self):
         try:
@@ -581,6 +590,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def tititutu_almox(self, data_inicial, data_final):
         try:
@@ -638,6 +648,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def tititutu_total(self, data_inicial, data_final):
         try:
@@ -695,6 +706,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def select_mistura_op(self, cod, num_op):
         try:
@@ -803,6 +815,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+            return None
 
     def excel_op(self, dados_para_op):
         try:

@@ -715,6 +715,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
     def salvar_alteracao(self):
         try:
             if self.dados_produto:
+                print(len(self.dados_produto))
                 codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
                 tipo, projeto, qtde_mini, ncm, obs, servico_int = self.dados_produto
 
@@ -808,7 +809,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 if servico_int != id_servico_interno:
                     if not id_servico_interno:
                         id_servico_interno = "NULL"
-                    campos_atualizados.append(f"ID_SERVICO_INTERNO = '{id_servico_interno}'")
+                    campos_atualizados.append(f"ID_SERVICO_INTERNO = {id_servico_interno}")
 
                 if tipo != tipo_a:
                     if tipo_a:

@@ -136,7 +136,7 @@ class TelaPiIncluir(QMainWindow, Ui_MainWindow):
     def definir_emissao(self):
         try:
             data_hoje = date.today()
-            data_entrega = date.today() + timedelta(7)
+            data_entrega = date.today() + timedelta(60)
             self.date_Emissao.setDate(data_hoje)
             self.date_Entrega_Manu.setDate(data_entrega)
 

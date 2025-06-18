@@ -326,6 +326,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                                                    f"WHERE prodsol.status = 'A' "
                                                    f"and anex.id_solicitacao = {numero_sol};")
                                     extrair_anex = cursor.fetchall()
+                                    print(numero_sol, extrair_anex)
                                     if extrair_anex:
                                         problemas += 1
                     if problemas:
@@ -410,6 +411,9 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             for dados in extrair_sol:
                 num_sol, produto, ref, qtde, tipo = dados
 
+                if num_sol == 1029:
+                    print(dados)
+
                 if tipo:
                     if tipo == 84 or tipo == 85 or tipo == 116 or tipo == 125:
                         code = int(tipo)
@@ -451,6 +455,7 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             result1 = [(codes, counts) for codes, counts in soma_sol_anex.items()]
 
             for sol, qtde_i_sol in result1:
+                print(sol, qtde_i_sol)
                 tete = (sol, "", "ORÇAMENTO", qtde_i_sol)
                 tipo_material.append(tete)
 

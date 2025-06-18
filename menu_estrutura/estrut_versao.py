@@ -385,7 +385,19 @@ class TelaCadastroVersoes(QMainWindow, Ui_MainWindow):
                                      'se houver.')
                 self.plain_Obs.setFocus()
             else:
-                self.salvar_dados()
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT ord.numero, produto.codigo, produto.descricao, "
+                               f"COALESCE(produto.obs, '') as obs, produto.unidade, ord.quantidade, ord.datainicial "
+                               f"FROM ordemservico as ord "
+                               f"INNER JOIN produto ON ord.produto = produto.id "
+                               f"where produto.codigo = {codigo_produto} and ord.status = 'A';")
+                dados_op = cursor.fetchall()
+
+                if dados_op:
+                    self.mensagem_alerta('Este produto possui Ordem de Produção Aberta e não pode ser '
+                                         'alterada a versão!')
+                else:
+                    self.salvar_dados()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

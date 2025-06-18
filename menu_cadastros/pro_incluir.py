@@ -675,9 +675,12 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             conjuntotete = conjunto.find(" - ")
             id_conjunto = conjunto[:conjuntotete]
 
-            servico_interno = self.combo_Servico_Interno.currentText()
-            servico_internotete = servico_interno.find(" - ")
-            id_servico_interno = servico_interno[:servico_internotete]
+            if id_conjunto == "10":
+                servico_interno = self.combo_Servico_Interno.currentText()
+                servico_internotete = servico_interno.find(" - ")
+                id_servico_interno = servico_interno[:servico_internotete]
+            else:
+                id_servico_interno = "NULL"
 
             tipo = self.combo_Tipo.currentText()
             tipotete = tipo.find(" - ")
@@ -699,7 +702,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
                                f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, PROJETO, OBS2, NCM) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{id_servico_interno}', '{descr}', '{compl}', '{embalagem}', "
+                               f"'{id_conjunto}', {id_servico_interno}, '{descr}', '{compl}', '{embalagem}', "
                                f"'{um}', '0', '0', "
                                f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
                                f"'{data_hoje}', "
@@ -712,7 +715,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
                                f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, OBS2, NCM) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
-                               f"'{id_conjunto}', '{id_servico_interno}', '{descr}', '{compl}', '{embalagem}', "
+                               f"'{id_conjunto}', {id_servico_interno}, '{descr}', '{compl}', '{embalagem}', "
                                f"'{um}', '0', '0', "
                                f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
                                f"'{data_hoje}', "

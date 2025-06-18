@@ -76,15 +76,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(14/05/2025) PRODUTO ALTERAR: CORRIGIDO BLOQUEIO DE ITENS COM KG',
-                  '(14/05/2025) PRODUTO INCLUIR: ADICIONADO "FD" AS UNIDADES DE MEDIDAS',
-                  '(16/05/2025) CADASTRO SERVIÇO INTERNO: ADICIONADO TELA DE CADASTRO DE SERVIÇO',
-                  '(19/05/2025) PRODUTO INCLUIR: ADICIONADO SERVIÇO INTERNO',
-                  '(19/05/2025) PRODUTO ALTERAR: ADICIONADO SERVIÇO INTERNO',
-                  '(26/05/2025) PRODUTO INCLUIR: CORRIGIDO KG/MT VALORES FLOAT',]
+lista_modifica = ['(18/06/2025) VERSÃO ESTRUTURA: NÃO CRIAR VERSÕES DE PRODUTOS COM OP ABERTA',]
 
 programa = "ERP SUZUKI"
-versao = "2.08.000"
+versao = "2.08.003"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()
