@@ -76,7 +76,8 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(10/07/2025) INCLUIR PRODUTO: ADICIONADO REFERENCIA DE FORNECEDORES',]
+lista_modifica = ['(10/07/2025) INCLUIR PRODUTO: ADICIONADO REFERENCIA DE FORNECEDORES',
+                  '(10/07/2025) MOVIMENTACAO: ERRO DE BOTÃO INDEVIDO',]
 
 programa = "ERP SUZUKI"
 versao = "2.08.005"

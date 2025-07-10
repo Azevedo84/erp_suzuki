@@ -36,8 +36,6 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
 
         self.btn_Conultar.clicked.connect(self.consulta)
 
-        self.btn_e.clicked.connect(self.consulta)
-
         self.btn_Salvar.clicked.connect(self.final)
 
         self.widget_Progress.setHidden(True)

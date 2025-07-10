@@ -21,7 +21,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.08.004"
+        self.versao = f"Versão 2.08.005"
         self.data_versao = f"10/07/2025"
 
         self.label_versao.setText(self.versao)
