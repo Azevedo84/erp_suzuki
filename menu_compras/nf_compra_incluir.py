@@ -488,7 +488,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                     qtde_com_virgula = valores_para_virgula(qtde)
 
                     self.line_Qtde.setText(qtde_com_virgula)
-                    self.line_Ipi.setFocus()
+                    self.line_Unit.setFocus()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
@@ -512,8 +512,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                 self.line_Ipi.setText(valor_final)
 
                 self.calcular_valor_total_prod()
-
-                self.line_Unit.setFocus()
+                self.verifica_entrega()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
@@ -580,7 +579,7 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
             self.line_Unit.setText(valor_final)
 
             self.calcular_valor_total_prod()
-            self.verifica_entrega()
+            self.line_Ipi.setFocus()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

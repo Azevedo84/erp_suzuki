@@ -17,7 +17,7 @@ from threading import Thread
 import traceback
 
 
-class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
+class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
@@ -35,6 +35,8 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_ConsultaOP):
         self.date_Final.setDate(data_hoje)
 
         self.btn_Conultar.clicked.connect(self.consulta)
+
+        self.btn_e.clicked.connect(self.consulta)
 
         self.btn_Salvar.clicked.connect(self.final)
 

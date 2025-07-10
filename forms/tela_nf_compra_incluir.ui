@@ -1370,63 +1370,6 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="label_65">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>40</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>9</pointsize>
-                    <weight>75</weight>
-                    <bold>true</bold>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>IPI:</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLineEdit" name="line_Ipi">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>55</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">background-color: rgb(255, 255, 255);</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item>
                  <widget class="QLabel" name="label_42">
                   <property name="minimumSize">
                    <size>
@@ -1500,6 +1443,63 @@
                   </property>
                   <property name="echoMode">
                    <enum>QLineEdit::Normal</enum>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_65">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>9</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>IPI:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="line_Ipi">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>55</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-color: rgb(255, 255, 255);</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -2767,11 +2767,10 @@
   <tabstop>line_NCM</tabstop>
   <tabstop>combo_Local_Estoque</tabstop>
   <tabstop>line_Qtde</tabstop>
-  <tabstop>line_Ipi</tabstop>
   <tabstop>line_Unit</tabstop>
+  <tabstop>line_Ipi</tabstop>
   <tabstop>line_Local</tabstop>
   <tabstop>btn_AdicionarProd</tabstop>
-  <tabstop>line_Total_Geral</tabstop>
   <tabstop>line_Obs</tabstop>
   <tabstop>btn_Limpar</tabstop>
   <tabstop>table_OC_Abertas</tabstop>
@@ -2787,9 +2786,10 @@
   <tabstop>line_Num_OC</tabstop>
   <tabstop>line_Item_OC</tabstop>
   <tabstop>btn_Salvar</tabstop>
-  <tabstop>line_ValorTotal</tabstop>
   <tabstop>line_Total_Ipi</tabstop>
   <tabstop>line_Total_Merc</tabstop>
+  <tabstop>line_Total_Geral</tabstop>
+  <tabstop>line_ValorTotal</tabstop>
  </tabstops>
  <resources/>
  <connections/>

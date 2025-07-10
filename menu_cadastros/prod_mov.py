@@ -21,6 +21,8 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
+        produto = "56391"
+
         self.produto = produto
 
         if self.produto:
@@ -28,6 +30,8 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
+
+        self.btn_Excluir.clicked.connect(self.verifica_exclusao)
 
         layout_cabec_tab(self.table_Mov)
 
@@ -87,6 +91,77 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
                 return True
             else:
                 return False
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def verifica_exclusao(self):
+        try:
+            cod_produto = self.line_Codigo.text()
+            if cod_produto:
+                descr = self.line_Descricao.text()
+                ref = self.line_Referencia.text()
+                um = self.line_UM.text()
+
+                nome_tabela = self.table_Mov
+
+                dados_tab = extrair_tabela(nome_tabela)
+                if dados_tab:
+                    linha = nome_tabela.currentRow()
+                    if linha >= 0:
+                        data, local_est, ent, sai, saldo, registro, oc_ov, cfop, solicitante, obs = dados_tab[linha]
+
+                        entra_ou_sai = ""
+                        qtde = "0"
+
+                        if ent:
+                            qtde = ent
+                            entra_ou_sai = "entrada"
+                        elif sai:
+                            qtde = sai
+                            entra_ou_sai = "saida"
+
+                        print(entra_ou_sai, registro)
+
+                        if registro == "CI":
+                            tipinho = "220 - CONSUMO INTERNO"
+                            print(tipinho)
+                        elif "OP" in registro and entra_ou_sai == "saida":
+                            tipinho = "210 - CONSUMO OP"
+                            print(tipinho)
+                        elif "INVENTÁRIO" in registro and entra_ou_sai == "entrada":
+                            tipinho = "140 - ENTRADA INVENTÁRIO"
+                            print(tipinho)
+                        elif "NF" in registro and entra_ou_sai == "entrada":
+                            tipinho = "130 - ENTRADA NF"
+                            print(tipinho)
+                        elif "OS" in registro and entra_ou_sai == "saida":
+                            tipinho = "250 - CONSUMO OS"
+                            print(tipinho)
+                        elif "OS" in registro and entra_ou_sai == "entrada":
+                            tipinho = "112 - DEVOLUCAO OS"
+                            print(tipinho)
+                        elif "NF" in registro and entra_ou_sai == "saida":
+                            tipinho = "230 - SAIDA NF"
+                            print(tipinho)
+                        elif "OP" in registro and entra_ou_sai == "entrada":
+                            tipinho = "110 - ENTRADA OP"
+                            print(tipinho)
+                        elif "OP" in registro and entra_ou_sai == "entrada":
+                            tipinho = "110 - ENTRADA OP"
+                            print(tipinho)
+
+                        data_final = string_pra_data(data)
+
+                        cur = conecta.cursor()
+                        cur.execute(
+                            f"SELECT id, data, produto, tipo, quantidade, localestoque "
+                            f"from movimentacao "
+                            f"where data = '{data_final}' and codigo = '{cod_produto}' and quantidade = '{qtde}';")
+                        detalhes_mov = cur.fetchall()
+
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

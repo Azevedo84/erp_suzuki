@@ -360,14 +360,48 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                             if "87 - CONJUNTO" in tip_text:
                                 self.combo_Tipo.setCurrentText(tip_text)
 
+                        if tp == 1:
+                            tip_count = self.combo_Servico_Interno.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Servico_Interno.itemText(i_tip)
+                                if "3 - MONTAGEM" in tip_text:
+                                    self.combo_Servico_Interno.setCurrentText(tip_text)
+
+                        if tp == 4:
+                            tip_count = self.combo_Servico_Interno.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Servico_Interno.itemText(i_tip)
+                                if "1 - SOLDA" in tip_text:
+                                    self.combo_Servico_Interno.setCurrentText(tip_text)
+
                     elif conj_peca == "01":
                         if tp == 3 or tp == 5 or tp == 6:
-                            if conj_peca == "01":
-                                tip_count = self.combo_Tipo.count()
-                                for i_tip in range(tip_count):
-                                    tip_text = self.combo_Tipo.itemText(i_tip)
-                                    if "88 - USINAGEM" in tip_text:
-                                        self.combo_Tipo.setCurrentText(tip_text)
+                            tip_count = self.combo_Tipo.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Tipo.itemText(i_tip)
+                                if "88 - USINAGEM" in tip_text:
+                                    self.combo_Tipo.setCurrentText(tip_text)
+
+                        if tp == 3:
+                            tip_count = self.combo_Servico_Interno.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Servico_Interno.itemText(i_tip)
+                                if "2 - CORTE" in tip_text:
+                                    self.combo_Servico_Interno.setCurrentText(tip_text)
+
+                        if tp == 5:
+                            tip_count = self.combo_Servico_Interno.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Servico_Interno.itemText(i_tip)
+                                if "4 - USINAGEM" in tip_text:
+                                    self.combo_Servico_Interno.setCurrentText(tip_text)
+
+                        if tp == 6:
+                            tip_count = self.combo_Servico_Interno.count()
+                            for i_tip in range(tip_count):
+                                tip_text = self.combo_Servico_Interno.itemText(i_tip)
+                                if "5 - FRESA" in tip_text:
+                                    self.combo_Servico_Interno.setCurrentText(tip_text)
 
                     if tp == 7:
                         tip_count = self.combo_Tipo.count()
@@ -524,6 +558,20 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                         if "126 - PWM" in tip_text:
                             self.combo_Tipo.setCurrentText(tip_text)
 
+                if fornecedor == "SIMILAR":
+                    tip_count = self.combo_Tipo.count()
+                    for i_tip in range(tip_count):
+                        tip_text = self.combo_Tipo.itemText(i_tip)
+                        if "90 - SIMILAR" in tip_text:
+                            self.combo_Tipo.setCurrentText(tip_text)
+
+                if fornecedor == "SENSORVILLE":
+                    tip_count = self.combo_Tipo.count()
+                    for i_tip in range(tip_count):
+                        tip_text = self.combo_Tipo.itemText(i_tip)
+                        if "140 - SENSORVILLE" in tip_text:
+                            self.combo_Tipo.setCurrentText(tip_text)
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
@@ -549,6 +597,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             self.combo_Conjunto.setCurrentText("")
             self.combo_Tipo.setCurrentText("")
             self.combo_Projeto.setCurrentText("")
+            self.combo_Servico_Interno.setCurrentText("")
 
             self.label_Maquina_Des.setText("")
 

@@ -76,10 +76,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(18/06/2025) VERSÃO ESTRUTURA: NÃO CRIAR VERSÕES DE PRODUTOS COM OP ABERTA',]
+lista_modifica = ['(10/07/2025) INCLUIR PRODUTO: ADICIONADO REFERENCIA DE FORNECEDORES',]
 
 programa = "ERP SUZUKI"
-versao = "2.08.003"
+versao = "2.08.005"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()
