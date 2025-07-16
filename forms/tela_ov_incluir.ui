@@ -605,6 +605,11 @@
          </column>
          <column>
           <property name="text">
+           <string>NCM</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
            <string>UM</string>
           </property>
          </column>

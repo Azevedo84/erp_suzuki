@@ -215,6 +215,8 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
             self.btn_Adicionar_Chapas.clicked.connect(self.lanca_so_chapas)
 
+            self.btn_Excel.clicked.connect(self.gera_excel)
+
             self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
         except Exception as e:
@@ -2088,143 +2090,151 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
             num_sol = self.line_Num_Sol.text()
             obs_solicitacao = self.line_Obs.text()
 
-            data_hoje = date.today()
-            data_certa = data_hoje.strftime("%d/%m/%Y")
-
-            if not obs_solicitacao:
-                obs_sol = ""
-            else:
-                obs_sol_maiuscula = obs_solicitacao.upper()
-                obs_sol = unidecode(obs_sol_maiuscula)
-
             dados_tabela = extrair_tabela(self.table_Solicitacao)
-            d_um = []
 
-            embalagem_sim_rows = []
+            if num_sol and dados_tabela:
+                data_hoje = date.today()
+                data_certa = data_hoje.strftime("%d/%m/%Y")
 
-            for tabi in dados_tabela:
-                cod_1, desc_1, ref_1, um_1, qtde_1, destino = tabi
-                if "," in qtde_1:
-                    qtdezinha_com_ponto = qtde_1.replace(',', '.')
-                    qtdezinha_float = float(qtdezinha_com_ponto)
+                if not obs_solicitacao:
+                    obs_sol = ""
                 else:
-                    qtdezinha_float = float(qtde_1)
+                    obs_sol_maiuscula = obs_solicitacao.upper()
+                    obs_sol = unidecode(obs_sol_maiuscula)
 
-                cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, codigo, embalagem FROM produto where codigo = '{cod_1}';")
-                dados_produto = cursor.fetchall()
-                if dados_produto:
-                    id_produto, codigo, embalagem = dados_produto[0]
-                    if embalagem == "SIM" or embalagem == "SER":
-                        embalagem_sim_rows.append(len(d_um) - 1)
+                d_um = []
 
-                dados = (cod_1, desc_1, ref_1, um_1, qtdezinha_float, destino)
-                d_um.append(dados)
+                embalagem_sim_rows = []
 
-            df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'UM', 'Qtde', 'Destino'])
+                for tabi in dados_tabela:
+                    cod_1, desc_1, ref_1, um_1, qtde_1, destino = tabi
+                    if "," in qtde_1:
+                        qtdezinha_com_ponto = qtde_1.replace(',', '.')
+                        qtdezinha_float = float(qtdezinha_com_ponto)
+                    else:
+                        qtdezinha_float = float(qtde_1)
 
-            codigo_int = {'Código': int}
-            df = df.astype(codigo_int)
-            qtde_float = {'Qtde': float}
-            df = df.astype(qtde_float)
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT id, codigo, embalagem FROM produto where codigo = '{cod_1}';")
+                    dados_produto = cursor.fetchall()
+                    if dados_produto:
+                        id_produto, codigo, embalagem = dados_produto[0]
+                        if embalagem == "SIM" or embalagem == "SER":
+                            embalagem_sim_rows.append(len(d_um) - 1)
 
-            book = load_workbook('Modelo Solicitação.xlsx')
+                    dados = (cod_1, desc_1, ref_1, um_1, qtdezinha_float, destino)
+                    d_um.append(dados)
 
-            desktop = Path.home() / "Desktop"
-            desk_str = str(desktop)
-            nome_req = f'\Solicitação {num_sol}.xlsx'
-            caminho = (desk_str + nome_req)
+                df = pd.DataFrame(d_um, columns=['Código', 'Descrição', 'Referência', 'UM', 'Qtde', 'Destino'])
 
-            writer = pd.ExcelWriter(caminho, engine='openpyxl')
+                codigo_int = {'Código': int}
+                df = df.astype(codigo_int)
+                qtde_float = {'Qtde': float}
+                df = df.astype(qtde_float)
 
-            writer.book = book
-            writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+                camino = os.path.join('..', 'arquivos', 'modelo excel', 'Modelo.xlsx')
+                caminho_arquivo = definir_caminho_arquivo(camino)
 
-            linhas_frame = df.shape[0]
-            colunas_frame = df.shape[1]
+                book = load_workbook(caminho_arquivo)
 
-            linhas_certas = linhas_frame + 2 + 9
-            colunas_certas = colunas_frame + 1
+                desktop = Path.home() / "Desktop"
+                desk_str = str(desktop)
+                nome_req = f'\Solicitação {num_sol}.xlsx'
+                caminho = (desk_str + nome_req)
 
-            ws = book.active
+                writer = pd.ExcelWriter(caminho, engine='openpyxl')
 
-            inicia = 11
-            rows = range(inicia, inicia + linhas_frame)
-            columns = range(1, colunas_certas)
+                writer.book = book
+                writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
 
-            ws.row_dimensions[linhas_certas + 2].height = 30
-            ws.row_dimensions[linhas_certas + 4].height = 30
+                linhas_frame = df.shape[0]
+                colunas_frame = df.shape[1]
 
-            for row in rows:
-                for col in columns:
-                    ws.cell(row, col).alignment = Alignment(horizontal='center', vertical='center',
-                                                            wrap_text=True)
-                    ws.cell(row, col).border = Border(left=Side(border_style='thin', color='00000000'),
-                                                      right=Side(border_style='thin', color='00000000'),
-                                                      top=Side(border_style='thin', color='00000000'),
-                                                      bottom=Side(border_style='thin', color='00000000'),
-                                                      diagonal=Side(border_style='thick', color='00000000'),
-                                                      diagonal_direction=0,
-                                                      outline=Side(border_style='thin', color='00000000'),
-                                                      vertical=Side(border_style='thin', color='00000000'),
-                                                      horizontal=Side(border_style='thin', color='00000000'))
+                linhas_certas = linhas_frame + 2 + 9
+                colunas_certas = colunas_frame + 1
 
-            ws.merge_cells(f'A8:D8')
-            top_left_cell = ws[f'A8']
-            c = ws[f'A8']
-            c.alignment = Alignment(horizontal='center',
-                                    vertical='center',
-                                    text_rotation=0,
-                                    wrap_text=False,
-                                    shrink_to_fit=False,
-                                    indent=0)
-            c.font = Font(size=14, bold=True)
-            top_left_cell.value = 'Solicitação Nº  ' + num_sol
+                ws = book.active
 
-            ws.merge_cells(f'E8:F8')
-            top_left_cell = ws[f'E8']
-            c = ws[f'E8']
-            c.alignment = Alignment(horizontal='center',
-                                    vertical='center',
-                                    text_rotation=0,
-                                    wrap_text=False,
-                                    shrink_to_fit=False,
-                                    indent=0)
-            c.font = Font(size=14, bold=True)
-            top_left_cell.value = 'Emissão:  ' + data_certa
+                inicia = 11
+                rows = range(inicia, inicia + linhas_frame)
+                columns = range(1, colunas_certas)
 
-            ws.merge_cells(f'B{linhas_certas + 2}:B{linhas_certas + 2}')
-            top_left_cell = ws[f'B{linhas_certas + 2}']
-            c = ws[f'B{linhas_certas + 2}']
-            c.alignment = Alignment(horizontal='right',
-                                    vertical='center',
-                                    text_rotation=0,
-                                    wrap_text=False,
-                                    shrink_to_fit=False,
-                                    indent=0)
-            c.font = Font(size=12, bold=True)
-            top_left_cell.value = "Observação:  "
+                ws.row_dimensions[linhas_certas + 2].height = 30
+                ws.row_dimensions[linhas_certas + 4].height = 30
 
-            ws.merge_cells(f'C{linhas_certas + 2}:H{linhas_certas + 2}')
-            top_left_cell = ws[f'C{linhas_certas + 2}']
-            c = ws[f'C{linhas_certas + 2}']
-            c.alignment = Alignment(horizontal='left',
-                                    vertical='center',
-                                    text_rotation=0,
-                                    wrap_text=False,
-                                    shrink_to_fit=False,
-                                    indent=0)
-            c.font = Font(size=12, bold=False)
-            top_left_cell.value = obs_sol
+                for row in rows:
+                    for col in columns:
+                        ws.cell(row, col).alignment = Alignment(horizontal='center', vertical='center',
+                                                                wrap_text=True)
+                        ws.cell(row, col).border = Border(left=Side(border_style='thin', color='00000000'),
+                                                          right=Side(border_style='thin', color='00000000'),
+                                                          top=Side(border_style='thin', color='00000000'),
+                                                          bottom=Side(border_style='thin', color='00000000'),
+                                                          diagonal=Side(border_style='thick', color='00000000'),
+                                                          diagonal_direction=0,
+                                                          outline=Side(border_style='thin', color='00000000'),
+                                                          vertical=Side(border_style='thin', color='00000000'),
+                                                          horizontal=Side(border_style='thin', color='00000000'))
 
-            df.to_excel(writer, 'Sheet1', startrow=10, startcol=0, header=False, index=False)
+                ws.merge_cells(f'A8:D8')
+                top_left_cell = ws[f'A8']
+                c = ws[f'A8']
+                c.alignment = Alignment(horizontal='center',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=14, bold=True)
+                top_left_cell.value = 'Solicitação Nº  ' + num_sol
 
-            for row_idx in embalagem_sim_rows:
-                row = row_idx + 12
-                col = 3
-                ws.cell(row, col).fill = styles.PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                ws.merge_cells(f'E8:F8')
+                top_left_cell = ws[f'E8']
+                c = ws[f'E8']
+                c.alignment = Alignment(horizontal='center',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=14, bold=True)
+                top_left_cell.value = 'Emissão:  ' + data_certa
 
-            writer.save()
+                ws.merge_cells(f'B{linhas_certas + 2}:B{linhas_certas + 2}')
+                top_left_cell = ws[f'B{linhas_certas + 2}']
+                c = ws[f'B{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='right',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=True)
+                top_left_cell.value = "Observação:  "
+
+                ws.merge_cells(f'C{linhas_certas + 2}:H{linhas_certas + 2}')
+                top_left_cell = ws[f'C{linhas_certas + 2}']
+                c = ws[f'C{linhas_certas + 2}']
+                c.alignment = Alignment(horizontal='left',
+                                        vertical='center',
+                                        text_rotation=0,
+                                        wrap_text=False,
+                                        shrink_to_fit=False,
+                                        indent=0)
+                c.font = Font(size=12, bold=False)
+                top_left_cell.value = obs_sol
+
+                df.to_excel(writer, 'Sheet1', startrow=10, startcol=0, header=False, index=False)
+
+                for row_idx in embalagem_sim_rows:
+                    row = row_idx + 12
+                    col = 3
+                    ws.cell(row, col).fill = styles.PatternFill(start_color="FFFF00", end_color="FFFF00",
+                                                                fill_type="solid")
+
+                writer.save()
+
+                self.label_Text_Excel.setText("Excel Salvo")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

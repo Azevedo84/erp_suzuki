@@ -684,13 +684,13 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             qtde_necessidade = 0
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT estprod.id, estprod.id_estrutura "
+            cursor.execute(f"SELECT prod.id, estprod.id, estprod.id_estrutura "
                            f"from estrutura_produto as estprod "
                            f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
                            f"where prod.codigo = {cod_prod};")
             dados_estrut = cursor.fetchall()
             for i_estrut in dados_estrut:
-                ides_mat, id_estrutura = i_estrut
+                prod_id, ides_mat, id_estrutura = i_estrut
 
                 cursor = conecta.cursor()
                 cursor.execute(f"select id, id_produto, num_versao, data_versao, obs, data_criacao "

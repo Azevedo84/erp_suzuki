@@ -3757,19 +3757,25 @@ Tudo</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_40">
+           <widget class="QLabel" name="label_4">
             <property name="text">
              <string/>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="check_Excel">
+           <widget class="QPushButton" name="btn_Excel">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
             </property>
             <property name="font">
              <font>
@@ -3778,11 +3784,21 @@ Tudo</string>
               <bold>true</bold>
              </font>
             </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color: rgb(141, 141, 141);</string>
+            </property>
             <property name="text">
              <string>Gerar Excel</string>
             </property>
-            <property name="checked">
-             <bool>false</bool>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_Text_Excel">
+            <property name="text">
+             <string/>
             </property>
            </widget>
           </item>

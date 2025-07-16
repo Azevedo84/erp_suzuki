@@ -176,7 +176,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"SELECT ped.id, COALESCE(ped.NUM_REQ_CLIENTE, '') as reqs, cli.razao, "
                            f"prod.id, prod.codigo, prod.descricao, "
-                           f"COALESCE(prod.obs, '') as obs, "
+                           f"COALESCE(prod.obs, '') as obs, COALESCE(prod.NCM, ''), "
                            f"prod.unidade, prodint.qtde, prodint.data_previsao, prod.quantidade, "
                            f"prod.conjunto, prod.terceirizado, prod.custounitario, prod.custoestrutura, "
                            f"COALESCE(ped.obs, '') as obs, ped.solicitante "
@@ -191,8 +191,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 for i in dados_interno:
                     problemas_produto = 0
 
-                    num_ped, req, cliente, id_cod, cod, descr, ref, um, qtde, ent, saldo, conj, terc, unit, estrut, \
-                    obs, solic = i
+                    (num_ped, req, cliente, id_cod, cod, descr, ref, ncm, um, qtde, ent, saldo, conj, terc,
+                     unit, estrut, obs, solic) = i
 
                     data_pr = date.today() + timedelta(days=7)
                     data = f'{data_pr.day}/{data_pr.month}/{data_pr.year}'
@@ -227,7 +227,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 total = qtde_float * preco
                                 total_dois = ("%.2f" % total)
 
-                                dados = [num_ped, req, cod, descr, ref, um, qtde, valor_s, "", total_dois, data,
+                                dados = [num_ped, req, cod, descr, ref, ncm, um, qtde, valor_s, "", total_dois, data,
                                          "0", obs, solic]
 
                                 tabela_nova.append(dados)
@@ -246,7 +246,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 total = qtde_float * preco_estrut
                                 total_2 = ("%.2f" % total)
 
-                                dados = [num_ped, req, cod, descr, ref, um, qtde, valor_e, "3.25", total_2, data,
+                                dados = [num_ped, req, cod, descr, ref, ncm, um, qtde, valor_e, "3.25", total_2, data,
                                          "0", obs, solic]
 
                                 tabela_nova.append(dados)
@@ -335,9 +335,9 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             extrai_produtos = extrair_tabela(self.table_OV)
             if extrai_produtos:
                 for i in extrai_produtos:
-                    qtde = i[6]
-                    unit = i[7]
-                    ipi = i[8]
+                    qtde = i[7]
+                    unit = i[8]
+                    ipi = i[9]
 
                     qtde_float = valores_para_float(qtde)
 
@@ -370,10 +370,10 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             extrai_produtos = extrair_tabela(self.table_OV)
             if extrai_produtos:
                 for i in extrai_produtos:
-                    qtde = i[6]
-                    unit = i[7]
-                    ipi = i[8]
-                    valor = i[9]
+                    qtde = i[7]
+                    unit = i[8]
+                    ipi = i[9]
+                    valor = i[10]
 
                     qtde_float = valores_para_float(qtde)
 
@@ -542,7 +542,8 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
             lista_pi = []
 
             for itens in dados_alterados:
-                num_pi, req_cli, cod_produto, descr, ref, um, qtde, unit, ipi, total, entr, qtde_ent, obs, solic = itens
+                (num_pi, req_cli, cod_produto, descr, ref, ncm, um, qtde, unit, ipi, total, entr,
+                 qtde_ent, obs, solic) = itens
 
                 codigo_int = int(cod_produto)
 
@@ -646,7 +647,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                 observacao = ""
 
                 for tabi in dados_tabela:
-                    num_pi, req_cli, cod, desc, ref, um, qtde, unit, ipi, total, entr, qtde_ent, obs, solic = tabi
+                    num_pi, req_cli, cod, desc, ref, ncm, um, qtde, unit, ipi, total, entr, qtde_ent, obs, solic = tabi
 
                     solicitante = solic
                     observacao = obs
