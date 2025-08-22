@@ -21,6 +21,8 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
+        produto = "16334"
+
         self.produto = produto
 
         if self.produto:

@@ -869,59 +869,74 @@ class TelaOpEncerrarV2(QMainWindow, Ui_MainWindow):
         try:
             num_op = self.line_Num_OP.text()
 
-            local = self.line_Local.text()
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT COALESCE((extract(day from aux.data)||'/'||"
+                           f"extract(month from aux.data)||'/'||"
+                           f"extract(year from aux.data)), '') AS DATA, prod.codigo, prod.descricao, "
+                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                           f"aux.qtde, func.funcionario "
+                           f"FROM CONSUMO_TEMPORARIO_OP as aux "
+                           f"INNER JOIN produto prod ON aux.id_produto = prod.id "
+                           f"INNER JOIN FUNCIONARIOS func ON aux.id_funcionario = func.id "
+                           f"where aux.num_op = {num_op};")
+            dados_aux = cursor.fetchall()
 
-            if not local:
-                self.mensagem_alerta(f'Favor defina a localização antes de encerrar a OP!')
+            if dados_aux:
+                self.mensagem_alerta("Esta Ordem não pode ser encerrada pois possui produtos temporários vinculados.")
             else:
-                estrutura = extrair_tabela(self.table_Estrutura)
-                consumo_os = extrair_tabela(self.table_ConsumoOS)
+                local = self.line_Local.text()
 
-                linhas_est = len(estrutura)
-                diferentes = 0
-                sem_saldo = 0
-                prod_sem_saldo = []
-
-                for linha_est in range(linhas_est):
-                    id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os = consumo_os[linha_est]
-                    if not cod_os:
-                        diferentes = diferentes + 1
-                    else:
-                        cursor = conecta.cursor()
-                        cursor.execute(f"SELECT id, codigo, quantidade FROM produto where codigo = {cod_os};")
-                        dados_produto = cursor.fetchall()
-                        id_produto, codigo, quantidade = dados_produto[0]
-
-                        quantidade_str = str(quantidade)
-
-                        if quantidade < 0:
-                            sem_saldo = sem_saldo + 1
-                            dados = (cod_os, descr_os, quantidade_str)
-                            prod_sem_saldo.append(dados)
-
-                if diferentes > 0:
-                    self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
-                elif sem_saldo > 0:
-                    texto_composto = ""
-                    if len(prod_sem_saldo) > 1:
-                        for titi in prod_sem_saldo:
-                            cod_os, descr_os, quantidade = titi
-                            texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                            texto_composto = texto_composto + "\n" + texto
-
-                        self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
-                                             f'encerrar a\n'
-                                             f'Ordem de Produção Nº {num_op}\n'
-                                             f'{texto_composto}!')
-                    else:
-                        cod_os, descr_os, quantidade = prod_sem_saldo[0]
-                        texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
-                        self.mensagem_alerta(f'O produto abaixo está sem saldo para '
-                                             f'encerrar a\n'
-                                             f'Ordem de Produção Nº {num_op}\n'
-                                             f'{texto}!')
+                if not local:
+                    self.mensagem_alerta(f'Favor defina a localização antes de encerrar a OP!')
                 else:
-                    self.salvar_lista()
+                    estrutura = extrair_tabela(self.table_Estrutura)
+                    consumo_os = extrair_tabela(self.table_ConsumoOS)
+
+                    linhas_est = len(estrutura)
+                    diferentes = 0
+                    sem_saldo = 0
+                    prod_sem_saldo = []
+
+                    for linha_est in range(linhas_est):
+                        id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os = consumo_os[linha_est]
+                        if not cod_os:
+                            diferentes = diferentes + 1
+                        else:
+                            cursor = conecta.cursor()
+                            cursor.execute(f"SELECT id, codigo, quantidade FROM produto where codigo = {cod_os};")
+                            dados_produto = cursor.fetchall()
+                            id_produto, codigo, quantidade = dados_produto[0]
+
+                            quantidade_str = str(quantidade)
+
+                            if quantidade < 0:
+                                sem_saldo = sem_saldo + 1
+                                dados = (cod_os, descr_os, quantidade_str)
+                                prod_sem_saldo.append(dados)
+
+                    if diferentes > 0:
+                        self.mensagem_alerta(f'Esta Ordem de Produção tem divergências com a estrutura!')
+                    elif sem_saldo > 0:
+                        texto_composto = ""
+                        if len(prod_sem_saldo) > 1:
+                            for titi in prod_sem_saldo:
+                                cod_os, descr_os, quantidade = titi
+                                texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
+                                texto_composto = texto_composto + "\n" + texto
+
+                            self.mensagem_alerta(f'Os produtos abaixo estão sem saldo para '
+                                                 f'encerrar a\n'
+                                                 f'Ordem de Produção Nº {num_op}\n'
+                                                 f'{texto_composto}!')
+                        else:
+                            cod_os, descr_os, quantidade = prod_sem_saldo[0]
+                            texto = "- " + cod_os + " - " + descr_os + " - Saldo: " + quantidade
+                            self.mensagem_alerta(f'O produto abaixo está sem saldo para '
+                                                 f'encerrar a\n'
+                                                 f'Ordem de Produção Nº {num_op}\n'
+                                                 f'{texto}!')
+                    else:
+                        self.salvar_lista()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

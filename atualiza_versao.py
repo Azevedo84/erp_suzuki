@@ -4,6 +4,7 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
+from banco_dados.dados_email import email_user, password
 
 
 msg_erro = 'Houve um problema com a função '
@@ -32,12 +33,9 @@ def mensagem_email():
                     f"Se houver algum problema com o recebimento de emails, " \
                     f"favor entrar em contato pelo email maquinas@unisold.com.br.\n\n"
 
-        email_user = 'ti.ahcmaq@gmail.com'
         to = ['<fat_maq@unisold.com.br>', '<maquinas@unisold.com.br>', '<ahcmaquinas@gmail.com>']
 
-        password = 'poswxhqkeaacblku'
-
-        return saudacao, msg_final, email_user, to, password
+        return saudacao, msg_final, to
 
     except Exception as e:
         print(f'{msg_erro}"mensagem_email"{msg_erro1}{e}')
@@ -45,7 +43,7 @@ def mensagem_email():
 
 def envia_email(alteracoes, versao_final):
     try:
-        saudacao, msg_final, email_user, to, password = mensagem_email()
+        saudacao, msg_final, to = mensagem_email()
 
         subject = f'Atualização ERP Suzuki - Versão: {versao_final}'
 
@@ -76,12 +74,14 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(11/07/2025) INCLUIR SOLICITAÇÃO: CRIADO BOTÃO PARA GERAR EXCEL',
-                  '(15/07/2025) INCLUIR OV: ADICIONADO NCM',
-                  '(16/07/2025) MOVIMENTO PRODUTO: ERRO DE BUSCA DE PRODUTO',]
+lista_modifica = ['(08/08/2025) INCLUIR PRODUTO: ERRO DE ITENS INDUSTRIALIZADOS',
+                  '(12/08/2025) INCLUIR OV: VERIFICA NCM',
+                  '(13/08/2025) INCLUIR ESTRUTURA: ADICIONADO BOTÃO COM EXCEL DA ESTRUTURA',
+                  '(19/08/2025) INCLUIR CONSUMO TEMPORÁRIO: ADICIONADO NOVA TELA',
+                  '(19/08/2025) ENCERRAR OP: SÓ PODE ENCERRAR OP SE NÃO HOUVER PRODUTO TEMPORÁRIO',]
 
 programa = "ERP SUZUKI"
-versao = "2.08.006"
+versao = "2.09.000"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

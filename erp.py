@@ -21,8 +21,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.08.006"
-        self.data_versao = f"16/07/2025"
+        self.versao = f"Versão 2.09.000"
+        self.data_versao = f"19/08/2025"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -57,6 +57,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.compras_status = []
 
         self.ci_incluir = []
+        self.ci_incluir_consumo_temp_op = []
 
         self.est_final = []
         self.est_mov = []
@@ -189,6 +190,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.action_Compras_Status.triggered.connect(self.definir_tela_action)
 
             self.action_CI_Incluir.triggered.connect(self.definir_tela_action)
+            self.actionIncluir_Consumo_Tempor_rio.triggered.connect(self.definir_tela_action)
 
             self.action_Est_Final.triggered.connect(self.definir_tela_action)
             self.action_Est_Mov.triggered.connect(self.definir_tela_action)
@@ -338,6 +340,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.ci_incluir = TelaCiIncluir()
                 self.ci_incluir.show()
 
+            elif sender == self.actionIncluir_Consumo_Tempor_rio:
+                from menu_consumiveis.consumo_temp_op import TelaConsumoTemporario
+                self.ci_incluir_consumo_temp_op = TelaConsumoTemporario()
+                self.ci_incluir_consumo_temp_op.show()
+
             elif sender == self.action_Est_Final:
                 from menu_estoque.est_estoque import TelaEstEstoque
                 self.est_final = TelaEstEstoque()
@@ -485,11 +492,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             from email.mime.text import MIMEText
             import smtplib
 
-            cur = conecta.cursor()
-            cur.execute(f"SELECT id, descricao, nome_usuario FROM ENVIA_PC "
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT id, descricao, nome_usuario FROM ENVIA_PC "
                         f"where descricao = '{self.nome_computador}' "
                         f"and nome_usuario = '{self.username}';")
-            select = cur.fetchall()
+            select = cursor.fetchall()
 
             if not select:
                 saudacao, msg_final, email_user, to, password = self.mensagem_email()
@@ -545,7 +552,6 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             dados = cursor.fetchall()
             version = dados[0]
             versao_banco = version[0]
-            print(versao_banco)
 
             resultado_comparacao = self.comparar_versoes(versao_app, versao_banco)
             if resultado_comparacao < 0:

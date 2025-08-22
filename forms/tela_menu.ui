@@ -314,6 +314,7 @@
      <string>Consumíveis</string>
     </property>
     <addaction name="action_CI_Incluir"/>
+    <addaction name="actionIncluir_Consumo_Tempor_rio"/>
    </widget>
    <addaction name="menu_Produto"/>
    <addaction name="menuEstrutura"/>
@@ -750,6 +751,11 @@
   <action name="actionServi_o_Interno">
    <property name="text">
     <string>Serviço Interno</string>
+   </property>
+  </action>
+  <action name="actionIncluir_Consumo_Tempor_rio">
+   <property name="text">
+    <string>Incluir Consumo Temporário (OP)</string>
    </property>
   </action>
  </widget>

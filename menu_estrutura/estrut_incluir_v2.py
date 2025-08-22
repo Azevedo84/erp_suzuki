@@ -50,6 +50,8 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
         self.btn_ExcluirItem.clicked.connect(self.excluir_produto_tab)
         self.btn_Limpar.clicked.connect(self.limpar)
 
+        self.btn_Excel.clicked.connect(self.gerar_excel)
+
         self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
         self.check_Converte_Manu.stateChanged.connect(self.verifica_check_converter_kilos)
@@ -362,6 +364,8 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
 
     def manipula_versao_escolhida(self):
         try:
+            self.label_5.setText("")
+
             self.limpa_tabela()
             self.lista_original = []
 
@@ -619,6 +623,8 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
 
         self.limpa_dados_mao_de_obra_servico()
         self.line_Obs.clear()
+
+        self.label_5.setText("")
 
     def mascara_tempo_mao_de_obra(self):
         try:
@@ -910,6 +916,90 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
         self.limpa_tudo()
         self.line_Codigo_Estrut.clear()
         self.line_Codigo_Estrut.setFocus()
+
+        self.label_5.setText("")
+
+    def gerar_excel(self):
+        import pandas as pd
+        from openpyxl import load_workbook
+        from openpyxl.styles import Border, Side, Alignment
+        from openpyxl.utils import get_column_letter
+
+        self.label_5.setText("")
+
+        codigo_prod = self.line_Codigo_Estrut.text()
+        versao = self.combo_Versao.currentText()
+
+        dados_estrutura = extrair_tabela(self.table_Estrutura)
+
+        if dados_estrutura and codigo_prod and versao:
+            numero_versao = versao.split(" - ")[0].replace("VERSÃO: ", "").strip()
+
+            colunas = ["Código", "Descrição", "Referência", "UM", "Qtde", "NCM", "Tipo", "Movimenta"]
+
+            # Converter "Código" para número e "Qtde" para float
+            for i, linha in enumerate(dados_estrutura):
+                try:
+                    dados_estrutura[i][0] = int(linha[0])
+                except ValueError:
+                    pass
+                try:
+                    dados_estrutura[i][4] = float(linha[4])
+                except ValueError:
+                    pass
+
+            # Criar DataFrame
+            df = pd.DataFrame(dados_estrutura, columns=colunas)
+
+            nome_arquivo = f"estrutura_{codigo_prod}_{numero_versao}.xlsx"
+            print(nome_arquivo)
+
+            # Caminho da área de trabalho
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+            arquivo_excel = os.path.join(desktop_path, nome_arquivo)
+
+            # Salvar Excel
+            df.to_excel(arquivo_excel, index=False)
+
+            # ---------- FORMATAÇÃO COM OPENPYXL ----------
+            wb = load_workbook(arquivo_excel)
+            ws = wb.active
+
+            # Criar estilo de borda
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            # Alinhamento centralizado
+            center_alignment = Alignment(horizontal="center", vertical="center")
+
+            # Aplicar bordas e centralizar todas as células
+            for row in ws.iter_rows():
+                for cell in row:
+                    cell.border = thin_border
+                    cell.alignment = center_alignment
+
+            # Ajustar largura das colunas automaticamente
+            for col in ws.columns:
+                max_length = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except:
+                        pass
+                adjusted_width = max_length + 2
+                ws.column_dimensions[col_letter].width = adjusted_width
+
+            # Salvar alterações
+            wb.save(arquivo_excel)
+
+            print(f"Arquivo salvo e formatado em: {arquivo_excel}")
+            self.label_5.setText("Excel Gerado com Sucesso!")
 
     def verifica_salvamento(self):
         try:

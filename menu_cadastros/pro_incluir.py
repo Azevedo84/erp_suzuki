@@ -658,12 +658,19 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                     conjuntotete = conjunto.find(" - ")
                     id_conjunto = conjunto[:conjuntotete]
 
+                    tip = self.combo_Tipo.currentText()
+                    if tip:
+                        tipotete = tip.find(" - ") + 3
+                        tipo_a = tip[tipotete:]
+                    else:
+                        tipo_a = ""
+
                     if um == "KG":
                         kg_mt = self.line_kg_mt.text()
                         if not kg_mt:
                             self.mensagem_alerta(f'Se o material for Aço, verifique o campo "KG/MT"')
                         self.salvar_produto()
-                    elif id_conjunto == "10":
+                    elif id_conjunto == "10" and tipo_a != "INDUSTRIALIZACAO":
                         if not servico_interno:
                             self.mensagem_alerta(f'O Serviço Interno do produto acabado não pode estar vazio!')
                         else:
@@ -724,16 +731,19 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             conjuntotete = conjunto.find(" - ")
             id_conjunto = conjunto[:conjuntotete]
 
-            if id_conjunto == "10":
-                servico_interno = self.combo_Servico_Interno.currentText()
-                servico_internotete = servico_interno.find(" - ")
-                id_servico_interno = servico_interno[:servico_internotete]
-            else:
-                id_servico_interno = "NULL"
-
             tipo = self.combo_Tipo.currentText()
             tipotete = tipo.find(" - ")
             id_tipo = tipo[:tipotete]
+
+            if id_conjunto == "10" and id_tipo != "119":
+                servico_interno = self.combo_Servico_Interno.currentText()
+                if servico_interno:
+                    servico_internotete = servico_interno.find(" - ")
+                    id_servico_interno = servico_interno[:servico_internotete]
+                else:
+                    id_servico_interno = "NULL"
+            else:
+                id_servico_interno = "NULL"
 
             um = self.combo_UM.currentText()
 

@@ -246,7 +246,15 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 total = qtde_float * preco_estrut
                                 total_2 = ("%.2f" % total)
 
-                                dados = [num_ped, req, cod, descr, ref, ncm, um, qtde, valor_e, "3.25", total_2, data,
+                                if (ncm == "8412.90.90"
+                                        or ncm == "84129090"
+                                        or ncm == "8477.80.90"
+                                        or ncm == "84778090"):
+                                    ipi = ""
+                                else:
+                                    ipi = "3.25"
+
+                                dados = [num_ped, req, cod, descr, ref, ncm, um, qtde, valor_e, ipi, total_2, data,
                                          "0", obs, solic]
 
                                 tabela_nova.append(dados)
