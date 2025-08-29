@@ -74,14 +74,11 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(08/08/2025) INCLUIR PRODUTO: ERRO DE ITENS INDUSTRIALIZADOS',
-                  '(12/08/2025) INCLUIR OV: VERIFICA NCM',
-                  '(13/08/2025) INCLUIR ESTRUTURA: ADICIONADO BOTÃO COM EXCEL DA ESTRUTURA',
-                  '(19/08/2025) INCLUIR CONSUMO TEMPORÁRIO: ADICIONADO NOVA TELA',
-                  '(19/08/2025) ENCERRAR OP: SÓ PODE ENCERRAR OP SE NÃO HOUVER PRODUTO TEMPORÁRIO',]
+lista_modifica = ['(22/08/2025) PCP PRODUTO: ERRO DE ITENS INDUSTRIALIZADOS',
+                  '(29/08/2025) PRODUTO ALTERAR: AJUSTE DE FORMA DE ATUALIZAR CADASTRO',]
 
 programa = "ERP SUZUKI"
-versao = "2.09.000"
+versao = "2.09.001"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

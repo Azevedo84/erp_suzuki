@@ -8,6 +8,7 @@ from comandos.cores import cor_verde, widgets, cor_vermelho
 from comandos.lines import validador_so_numeros
 from comandos.conversores import valores_para_float
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt5.QtCore import QTimer
 import inspect
 import os
 import traceback
@@ -139,6 +140,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta('Este código de produto não existe!')
                 self.limpa_dados_produto()
                 self.limpa_tabelas()
+                QTimer.singleShot(0, self.line_Codigo.setFocus)
             else:
                 self.lanca_dados_produto_manual()
 

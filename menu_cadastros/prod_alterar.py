@@ -42,14 +42,10 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
         self.processando = False
 
-        self.dados_produto = ()
-
         if dados_produto:
             self.lanca_dados_produto(dados_produto)
             self.line_Codigo.setReadOnly(True)
             self.line_Descricao.setFocus()
-
-            self.dados_produto = dados_produto
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -267,11 +263,6 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 else:
                     self.line_NCM.setText(ncm)
                     self.line_NCM.setStyleSheet("QLineEdit { background-color: white; }")
-
-                dados = (codigo_produto, data, barras_sem_espacos, descr, compl, ref, um, embalagem, kg_mt,
-                         custo, local, conjunto, tipo, projeto, min_str, ncm, obs, id_servico_int)
-
-                self.dados_produto = dados
 
             else:
                 self.mensagem_alerta("Este cadastro de produto não existe!")
@@ -721,60 +712,98 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
     def salvar_alteracao(self):
         try:
-            if self.dados_produto:
-                print(len(self.dados_produto))
-                codigo, emissao, barra, descr, compl, ref, um, embalagem, kg_mt, custo, local, conjunto, \
-                tipo, projeto, qtde_mini, ncm, obs, servico_int = self.dados_produto
+            cod_produto_a = self.line_Codigo.text()
+
+            cur = conecta.cursor()
+            cur.execute(f"SELECT prod.id, prod.codbarras, prod.descricao, COALESCE(prod.descricaocomplementar, ''), "
+                        f"COALESCE(prod.obs, ''), prod.unidade, COALESCE(prod.localizacao, ''), prod.ncm, "
+                        f"prod.quantidade, prod.embalagem, COALESCE(prod.kilosmetro, ''), "
+                        f"prod.tipomaterial, prod.DATA_CRIACAO, COALESCE(prod.embalagem, ''), "
+                        f"prod.custounitario, prod.quantidademin, prod.projeto, prod.conjunto, prod.obs2, "
+                        f"prod.ID_SERVICO_INTERNO "
+                        f"FROM produto as prod "
+                        f"LEFT JOIN conjuntos conj ON prod.conjunto = conj.id "
+                        f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
+                        f"LEFT JOIN projeto proj ON prod.projeto = proj.id "
+                        f"where prod.codigo = {cod_produto_a};")
+            detalhes_produto = cur.fetchall()
+
+            if detalhes_produto:
+                id_prod, cod_barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, id_tipo, \
+                    data, embalagem, custo, minima, id_projeto, id_conjunto, obs, id_serv_int = detalhes_produto[0]
+
+                if not id_conjunto:
+                    id_conjunto = "NULL"
+                if not id_tipo:
+                    id_tipo = "NULL"
+                if not id_serv_int:
+                    id_serv_int = "NULL"
+                if not id_projeto:
+                    id_projeto = "NULL"
+                if not ncm:
+                    ncm = "NULL"
+                if not obs:
+                    obs = "NULL"
+
+                qtde_mini_float = valores_para_float(minima)
+
+                cod_barras_a = self.line_Barras.text()
+                cod_barras_a = cod_barras_a.ljust(14)
 
                 ref_a = self.line_Referencia.text()
                 descr_a = self.line_Descricao.text()
                 compl_a = self.line_DescrCompl.text()
                 embalagem_a = self.line_Embalagem.text()
-                ncm_a = self.line_NCM.text()
                 kg_mt_a = self.line_kg_mt.text()
                 qtde_mini_a = self.line_Qtde_Mini.text()
                 custo_a = self.line_Custo_Unit.text()
 
                 local_a = self.line_Local.text()
+
                 obs_plain = self.plain_Obs.toPlainText()
-                obs_a = obs_plain.upper()
-
-                conjunt = self.combo_Conjunto.currentText()
-                if conjunt:
-                    conjuntotete = conjunt.find(" - ") + 3
-                    conjunto_a = conjunt[conjuntotete:]
+                if obs_plain:
+                    obs_a = obs_plain.upper()
                 else:
-                    conjunto_a = ""
+                    obs_a = "NULL"
 
-                conjuntotete = conjunt.find(" - ")
-                id_conjunto = conjunto[:conjuntotete]
+                conjunto_a = self.combo_Conjunto.currentText()
+                if conjunto_a:
+                    conjuntotete = conjunto_a.find(" - ")
+                    id_conjunto_a = int(conjunto_a[:conjuntotete])
+                else:
+                    id_conjunto_a = "NULL"
 
                 tip = self.combo_Tipo.currentText()
                 if tip:
-                    tipotete = tip.find(" - ") + 3
-                    tipo_a = tip[tipotete:]
+                    tipotete = tip.find(" - ")
+                    id_tipo_a = int(tip[:tipotete])
                 else:
-                    tipo_a = ""
+                    id_tipo_a = "NULL"
 
-                if id_conjunto == "10" and tipo_a != "INDUSTRIALIZACAO":
+                if id_conjunto_a  == 10 and id_tipo_a != 119:
                     servico_interno = self.combo_Servico_Interno.currentText()
+
                     if servico_interno:
                         servico_internotete = servico_interno.find(" - ")
-                        id_servico_interno = servico_interno[:servico_internotete]
+                        id_serv_int_a = int(servico_interno[:servico_internotete])
                     else:
-                        id_servico_interno = "NULL"
+                        id_serv_int_a = "NULL"
                 else:
-                    id_servico_interno = "NULL"
+                    id_serv_int_a = "NULL"
 
                 um_a = self.combo_UM.currentText()
 
-                projet = self.combo_Projeto.currentText()
-                if projet:
-                    projetotete = projet.find(" - ") + 3
-                    projeto_a = projet[projetotete:]
+                projeto_a = self.combo_Projeto.currentText()
+                if projeto_a:
+                    projetotete = projeto_a.find(" - ") + 3
+                    id_projeto_a = int(projeto_a[projetotete:])
 
                 else:
-                    projeto_a = ""
+                    id_projeto_a = "NULL"
+
+                ncm_a = self.line_NCM.text()
+                if not ncm_a:
+                    ncm_a = "NULL"
 
                 kg_mt_float = valores_para_float(kg_mt)
                 kg_mt_float_a = valores_para_float(kg_mt_a)
@@ -782,10 +811,11 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 custo_float = valores_para_float(custo)
                 custo_float_a = valores_para_float(custo_a)
 
-                qtde_mini_float = valores_para_float(qtde_mini)
                 qtde_mini_float_a = valores_para_float(qtde_mini_a)
 
                 campos_atualizados = []
+                if cod_barras != cod_barras_a:
+                    campos_atualizados.append(f"codbarras = '{cod_barras_a}'")
 
                 if descr != descr_a:
                     campos_atualizados.append(f"DESCRICAO = '{descr_a}'")
@@ -811,33 +841,16 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 if local != local_a:
                     campos_atualizados.append(f"LOCALIZACAO = '{local_a}'")
 
-                if conjunto != conjunto_a:
-                    if conjunto_a:
-                        conjuntotete = conjunt.find(" - ")
-                        id_conj_a = conjunt[:conjuntotete]
-                    else:
-                        id_conj_a = "NULL"
-                    campos_atualizados.append(f"CONJUNTO = '{id_conj_a}'")
+                if id_conjunto != id_conjunto_a:
+                    campos_atualizados.append(f"CONJUNTO = '{id_conjunto_a}'")
 
-                if servico_int != id_servico_interno:
-                    if not id_servico_interno:
-                        id_servico_interno = "NULL"
-                    campos_atualizados.append(f"ID_SERVICO_INTERNO = {id_servico_interno}")
+                if id_serv_int != id_serv_int_a:
+                    campos_atualizados.append(f"ID_SERVICO_INTERNO = {id_serv_int_a}")
 
-                if tipo != tipo_a:
-                    if tipo_a:
-                        tipotete = tip.find(" - ")
-                        id_tipo_a = tip[:tipotete]
-                    else:
-                        id_tipo_a = "NULL"
+                if id_tipo != id_tipo_a:
                     campos_atualizados.append(f"TIPOMATERIAL = '{id_tipo_a}'")
 
-                if projeto != projeto_a:
-                    if projeto_a:
-                        projetotete = projet.find(" - ")
-                        id_projeto_a = projet[:projetotete]
-                    else:
-                        id_projeto_a = "NULL"
+                if id_projeto != id_projeto_a:
                     campos_atualizados.append(f"PROJETO = {id_projeto_a}")
 
                 if qtde_mini_float != qtde_mini_float_a:
@@ -857,16 +870,13 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
                 if campos_atualizados:
                     campos_update = ", ".join(campos_atualizados)
-
-                    cod_produto = self.line_Codigo.text()
-
                     cursor = conecta.cursor()
                     cursor.execute(f"UPDATE produto SET {campos_update} "
-                                   f"WHERE codigo = '{cod_produto}';")
+                                   f"WHERE codigo = '{cod_produto_a}';")
 
                     conecta.commit()
 
-                    self.mensagem_alerta(f"Cadastro do produto {cod_produto} atualizado com Sucesso!")
+                    self.mensagem_alerta(f"Cadastro do produto {cod_produto_a} atualizado com Sucesso!")
 
                     if self.veio_de_fora:
                         foi_alterado = True
