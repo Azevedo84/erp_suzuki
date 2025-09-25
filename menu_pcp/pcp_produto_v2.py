@@ -13,6 +13,8 @@ import inspect
 import os
 import traceback
 
+from menu_cadastros.tela_projeto import TelaProjeto
+
 
 class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
     def __init__(self, produto, parent=None):
@@ -35,6 +37,8 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
         layout_cabec_tab(self.table_Mov)
 
         validador_so_numeros(self.line_Codigo)
+
+        self.btn_Projeto.clicked.connect(self.abrir_pdf)
 
         self.showMaximized()
 
@@ -79,6 +83,38 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             alert.setWindowTitle("Atenção")
             alert.setStandardButtons(QMessageBox.Ok)
             alert.exec_()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_pdf(self):
+        try:
+            ref = self.line_Referencia.text()
+
+            import re
+
+            s = re.sub(r"[^\d.]", "", ref)  # remove tudo que não é número ou ponto
+            s = re.sub(r"\.+$", "", s)
+            print(s)  # saída: 47.00.014.07
+
+            caminho_pdf = rf"\\Publico\C\OP\Projetos\{s}.pdf"
+
+            if os.path.exists(caminho_pdf):
+                self.abrir_tela_alteracao_prod(caminho_pdf)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def abrir_tela_alteracao_prod(self, caminho):
+        try:
+            from menu_cadastros import tela_projeto
+
+            self.escolher_produto = TelaProjeto(caminho)
+            self.escolher_produto.show()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -550,6 +586,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
                            f"INNER JOIN clientes as cli ON ped.id_cliente = cli.id "
                            f"where prodint.status = 'A' and prod.codigo = {cod_prod};")
             dados_pi = cursor.fetchall()
+
             if dados_pi:
                 for i_pi in dados_pi:
                     emissao_pi, num_pi, clie_pi, qtde_pi, entrega_pi = i_pi

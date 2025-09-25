@@ -732,6 +732,11 @@
                     <string>3 - VOTI</string>
                    </property>
                   </item>
+                  <item>
+                   <property name="text">
+                    <string>16 - SUZUKI MAQUINAS</string>
+                   </property>
+                  </item>
                  </widget>
                 </item>
                </layout>

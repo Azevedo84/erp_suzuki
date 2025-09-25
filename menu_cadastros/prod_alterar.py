@@ -795,8 +795,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
                 projeto_a = self.combo_Projeto.currentText()
                 if projeto_a:
-                    projetotete = projeto_a.find(" - ") + 3
-                    id_projeto_a = int(projeto_a[projetotete:])
+                    projetotete = projeto_a.find(" - ")
+                    id_projeto_a = int(projeto_a[:projetotete])
 
                 else:
                     id_projeto_a = "NULL"
