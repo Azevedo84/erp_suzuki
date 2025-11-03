@@ -42,7 +42,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
         self.widget_Terceiros.setHidden(True)
         self.widget_Compra.setHidden(True)
 
-        validador_inteiro(self.line_Codigo_Estrut, 123456)
+        validador_inteiro(self.line_Codigo_Estrut)
 
         self.lanca_custo_hora_homem()
         self.calcula_total_maodeobra()

@@ -3791,7 +3791,8 @@ Tudo</string>
              <string notr="true">background-color: rgb(141, 141, 141);</string>
             </property>
             <property name="text">
-             <string>Gerar Excel</string>
+             <string>Gerar
+Orçamento</string>
             </property>
            </widget>
           </item>

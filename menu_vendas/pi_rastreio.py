@@ -32,7 +32,7 @@ class TelaPiRastreio(QMainWindow, Ui_MainWindow):
 
         self.escolher_produto = []
 
-        validador_inteiro(self.line_Num_Ped, 123456789)
+        validador_inteiro(self.line_Num_Ped)
         self.line_Num_Ped.setFocus()
 
         self.line_Num_Ped.returnPressed.connect(self.verifica_line_num_pi)

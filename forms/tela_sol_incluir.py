@@ -1694,5 +1694,6 @@ class Ui_MainWindow(object):
 " Item"))
         self.btn_ExcluirTudo_Sol.setText(_translate("MainWindow", "Excluir\n"
 "Tudo"))
-        self.btn_Excel.setText(_translate("MainWindow", "Gerar Excel"))
+        self.btn_Excel.setText(_translate("MainWindow", "Gerar\n"
+"Orçamento"))
         self.btn_Salvar.setText(_translate("MainWindow", "Salvar"))

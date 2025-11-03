@@ -45,7 +45,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         self.line_Codigo.editingFinished.connect(self.verifica_line_codigo_manual)
         self.line_Qtde.editingFinished.connect(self.verifica_line_qtde_manual)
 
-        self.btn_Adicionar.clicked.connect(self.verifica_line_qtde_manual)
+        self.btn_Adicionar.clicked.connect(self.verifica_antes_de_lancar)
 
         self.btn_Buscar.clicked.connect(self.procura_produtos)
 
@@ -59,7 +59,7 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
         self.definir_combo_funcionario()
         self.definir_combo_consulta_funcionario()
         self.definir_combo_localestoque()
-        self.combo_Funcionario.setFocus()
+        self.line_Codigo.setFocus()
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -756,18 +756,13 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
                 self.processando = True
 
                 codigo_produto = self.line_Codigo.text()
-                funcionario = self.combo_Funcionario.currentText()
-                local_est = self.combo_Local_Estoque.currentText()
 
                 if codigo_produto:
                     if int(codigo_produto) == 0:
                         self.mensagem_alerta('O campo "Código" não pode ser "0"')
                         self.limpa_manual()
                     else:
-                        if funcionario and local_est:
-                            self.verifica_sql_produto_manual()
-                        else:
-                            self.mensagem_alerta("Defina o Funcionário e o Local de Estoque!")
+                        self.verifica_sql_produto_manual()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
@@ -866,15 +861,20 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
             try:
                 self.processando = True
 
+                cod = self.line_Codigo.text()
                 qtdezinha = self.line_Qtde.text()
 
+                if not cod:
+                    self.mensagem_alerta('O campo "Código:" não pode ser estar vazio')
+                elif not qtdezinha:
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser estar vazio')
                 if qtdezinha:
                     if qtdezinha == "0":
                         self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
                         self.line_Qtde.clear()
                         self.line_Qtde.setFocus()
                     else:
-                        self.item_produto_manual()
+                        self.combo_Funcionario.setFocus()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
@@ -884,8 +884,39 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
             finally:
                 self.processando = False
 
+    def verifica_antes_de_lancar(self):
+        try:
+            cod = self.line_Codigo.text()
+            funcionario = self.combo_Funcionario.currentText()
+            local_est = self.combo_Local_Estoque.currentText()
+
+            qtdezinha = self.line_Qtde.text()
+
+            if not cod:
+                self.mensagem_alerta('O campo "Código:" não pode ser estar vazio')
+            elif not funcionario:
+                self.mensagem_alerta('O campo "Func.:" não pode ser estar vazio')
+            elif not local_est:
+                self.mensagem_alerta('O campo "L. Estoque:" não pode ser estar vazio')
+            elif not qtdezinha:
+                self.mensagem_alerta('O campo "Qtde:" não pode ser estar vazio')
+            if qtdezinha:
+                if qtdezinha == "0":
+                    self.mensagem_alerta('O campo "Qtde:" não pode ser "0"')
+                    self.line_Qtde.clear()
+                    self.line_Qtde.setFocus()
+                else:
+                    self.item_produto_manual()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def item_produto_manual(self):
         try:
+            pode_seguir = False
+
             funcionario = self.combo_Funcionario.currentText()
             local_est = self.combo_Local_Estoque.currentText()
 
@@ -893,26 +924,69 @@ class TelaCiIncluir(QMainWindow, Ui_MainWindow):
             cod = self.line_Codigo.text()
             descr = self.line_Descricao.text()
 
-            qtde_manu = self.line_Qtde.text()
-            if "," in qtde_manu:
-                qtde_manu_com_ponto = qtde_manu.replace(',', '.')
-                qtde_float = float(qtde_manu_com_ponto)
+            qtde = self.line_Qtde.text()
+            qtde_float = valores_para_float(qtde)
+
+            cursor = conecta.cursor()
+            cursor.execute(f"select id, negativo "
+                           f"from localestoque "
+                           f"where nome = '{local_est}';")
+            dados_local = cursor.fetchall()
+
+            negativo = dados_local[0][1]
+
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT prod.id, prod.quantidade "
+                           f"FROM produto as prod "
+                           f"where prod.codigo = '{cod}';")
+            dados_produto = cursor.fetchall()
+
+            saldo_total = dados_produto[0][1]
+
+            saldo_total_float = valores_para_float(saldo_total)
+
+            if negativo == "S":
+                if saldo_total_float >= qtde_float:
+                    pode_seguir = True
+                else:
+                    pode_seguir = False
             else:
-                qtde_float = float(qtde_manu)
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT prod.id, prod.codigo, saldo.saldo, loc.negativo "
+                               f"FROM produto as prod "
+                               f"INNER JOIN SALDO_ESTOQUE saldo ON prod.id = saldo.produto_id "
+                               f"INNER JOIN LOCALESTOQUE loc ON saldo.local_estoque = loc.id "
+                               f"where prod.codigo = '{cod}' and loc.nome = '{local_est}';")
+                dados_saldo = cursor.fetchall()
+                if dados_saldo:
+                    id_prod, codigo, saldo_local, negativo = dados_saldo[0]
 
-            extrai_consumo = extrair_tabela(self.table_Consumo)
+                    saldo_local_float = valores_para_float(saldo_local)
 
-            dados = [cod, descr, um, qtde_float, funcionario, local_est]
-            extrai_consumo.append(dados)
-            lanca_tabela(self.table_Consumo, extrai_consumo)
+                    if saldo_local_float >= qtde_float:
+                        if saldo_total_float >= qtde_float:
+                            pode_seguir = True
+                        else:
+                            pode_seguir = False
+                    else:
+                        pode_seguir = False
 
-            self.limpa_manual()
-            self.line_Descricao.clear()
-            self.line_Referencia.clear()
-            self.line_UM.clear()
-            self.line_Local.clear()
-            self.line_Qtde.clear()
-            self.line_Codigo.setFocus()
+            if pode_seguir:
+                extrai_consumo = extrair_tabela(self.table_Consumo)
+
+                dados = [cod, descr, um, qtde_float, funcionario, local_est]
+                extrai_consumo.append(dados)
+                lanca_tabela(self.table_Consumo, extrai_consumo)
+
+                self.limpa_manual()
+                self.line_Descricao.clear()
+                self.line_Referencia.clear()
+                self.line_UM.clear()
+                self.line_Local.clear()
+                self.line_Qtde.clear()
+                self.line_Codigo.setFocus()
+            else:
+                self.mensagem_alerta("Saldo insuficiente para realizar o lançamento!")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

@@ -63,7 +63,7 @@ class TelaExpIncluir(QMainWindow, Ui_MainWindow):
 
         validador_decimal(self.line_Peso_Liquido, 9999999.000)
         validador_decimal(self.line_Peso_Bruto, 9999999.000)
-        validador_inteiro(self.line_Volume, 123456)
+        validador_inteiro(self.line_Volume)
 
         self.lanca_combo_cliente()
         self.definir_combo_funcionario()

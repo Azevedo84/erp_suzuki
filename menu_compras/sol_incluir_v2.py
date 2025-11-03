@@ -9,6 +9,7 @@ from comandos.lines import definir_data_atual
 from comandos.cores import cor_amarelo, cor_branco, cor_vermelho
 from comandos.telas import tamanho_aplicacao, icone
 from comandos.conversores import valores_para_float
+from comandos.lines import validador_inteiro
 from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QMainWindow, QMessageBox
 from PyQt5.QtGui import QKeySequence, QFont, QColor, QIcon
 from PyQt5.QtCore import Qt
@@ -25,6 +26,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Side, Alignment, Border, Font
 import openpyxl.styles as styles
 from pathlib import Path
+import re
 
 
 class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
@@ -125,6 +127,8 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
             if sender == self.btn_ExcluirTudo_Sol:
                 self.table_Solicitacao.setRowCount(0)
 
+                self.table_Anexos.setRowCount(0)
+
             elif sender == self.btn_ExcluirTudo_Rec:
                 self.table_Recomendacao.setRowCount(0)
 
@@ -186,6 +190,9 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
     def definir_botoes_e_comandos(self):
         try:
+            validador_inteiro(self.line_Codigo_Manu)
+            validador_inteiro(self.line_Codigo_Estrut)
+
             self.line_Codigo_Manu.editingFinished.connect(self.verifica_line_codigo_manu)
 
             self.line_Codigo_Estrut.returnPressed.connect(lambda: self.verifica_line_codigo())
@@ -215,7 +222,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
             self.btn_Adicionar_Chapas.clicked.connect(self.lanca_so_chapas)
 
-            self.btn_Excel.clicked.connect(self.gera_excel)
+            self.btn_Excel.clicked.connect(self.gerar_orcamento)
 
             self.btn_Salvar.clicked.connect(self.verifica_salvamento)
 
@@ -589,6 +596,62 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
             if extrai_anexos:
                 lanca_tabela(self.table_Anexos, extrai_anexos)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_anexo(self, caminho_pdf):
+        try:
+            extrai_anexos = extrair_tabela(self.table_Anexos)
+
+            nome_arquivo_pdf = os.path.basename(caminho_pdf)
+
+            ja_existe_pdf = False
+            for arq_ext, cam_ext in extrai_anexos:
+                if arq_ext == nome_arquivo_pdf:
+                    ja_existe_pdf = True
+                    break
+
+            if not ja_existe_pdf:
+                dados1 = [nome_arquivo_pdf, caminho_pdf]
+                extrai_anexos.append(dados1)
+
+            if extrai_anexos:
+                lanca_tabela(self.table_Anexos, extrai_anexos)
+            else:
+                self.mensagem_alerta(f'O arquivo {nome_arquivo_pdf} já foi adicionado!!')
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_anexo_chapa(self, caminho_pdf, caminho_dwg):
+        try:
+            extrai_anexos = extrair_tabela(self.table_Anexos)
+
+            nome_arquivo_pdf = os.path.basename(caminho_pdf)
+            nome_arquivo_dwg = os.path.basename(caminho_dwg)
+
+            ja_existe_pdf = False
+            for arq_ext, cam_ext in extrai_anexos:
+                if arq_ext == nome_arquivo_pdf:
+                    ja_existe_pdf = True
+                    break
+
+            if not ja_existe_pdf:
+                dados1 = [nome_arquivo_pdf, caminho_pdf]
+                extrai_anexos.append(dados1)
+
+                dados2 = [nome_arquivo_dwg, caminho_dwg]
+                extrai_anexos.append(dados2)
+
+            if extrai_anexos:
+                lanca_tabela(self.table_Anexos, extrai_anexos)
+            else:
+                self.mensagem_alerta(f'O arquivo {nome_arquivo_pdf} já foi adicionado!!')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -1167,11 +1230,11 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
             descricaozinho = self.line_Descricao_Manu.text()
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT unidade, embalagem, COALESCE(kilosmetro, '') "
+            cursor.execute(f"SELECT unidade, embalagem, COALESCE(kilosmetro, ''), tipomaterial "
                            f"FROM produto where codigo = '{codigo_produto}';")
             dados_prod = cursor.fetchall()
 
-            um, embalagem, kg_mt = dados_prod[0]
+            um, embalagem, kg_mt, tipo_mat = dados_prod[0]
 
             if embalagem == "SIM":
                 line_unidade = self.line_Unidade.text()
@@ -1282,6 +1345,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                         self.line_NCM_Manu.clear()
                         self.line_Codigo_Manu.setFocus()
                         self.btn_Consome_Manu.setEnabled(False)
+
                         self.desaparece_referencia_editada()
                 else:
                     self.mensagem_alerta(f'Este produto está sem "NCM" no cadastro.\n\n'
@@ -1319,8 +1383,50 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
     def procedimento_lanca_tabela(self, extrai_solicitacao):
         try:
-            lanca_tabela(self.table_Solicitacao, extrai_solicitacao)
-            self.pintar_bloquear_tabela_solicitacao()
+            nova_tabela = []
+
+            if extrai_solicitacao:
+                for i in extrai_solicitacao:
+                    cod, descr, ref, um, qtde, destino = i
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT unidade, tipomaterial "
+                                   f"FROM produto where codigo = '{cod}';")
+                    dados_prod = cursor.fetchall()
+
+                    um, tipo_mat = dados_prod[0]
+
+                    if tipo_mat == 84 or tipo_mat == 85 or tipo_mat == 116 or tipo_mat == 125:
+
+                        s = re.sub(r"[^\d.]", "", ref)  # remove tudo que não é número ou ponto
+                        s = re.sub(r"\.+$", "", s)
+
+                        caminho_pdf = rf"\\Publico\C\OP\Projetos\{s}.pdf"
+                        caminho_dwg = rf"\\Publico\C\OP\Projetos\{s}.dwg"
+
+                        if os.path.exists(caminho_pdf) and os.path.exists(caminho_dwg):
+                            dados = (cod, descr, ref, um, qtde, destino)
+                            nova_tabela.append(dados)
+
+                            self.lanca_anexo_chapa(caminho_pdf, caminho_dwg)
+                        else:
+                            self.mensagem_alerta(f"O código {cod} - {s} está classificado como chapa e precisa dos desenhos para solicitar compra!")
+
+                    else:
+                        dados = (cod, descr, ref, um, qtde, destino)
+                        nova_tabela.append(dados)
+
+                        s = re.sub(r"[^\d.]", "", ref)  # remove tudo que não é número ou ponto
+                        s = re.sub(r"\.+$", "", s)
+
+                        caminho_pdf = rf"\\Publico\C\OP\Projetos\{s}.pdf"
+
+                        if os.path.exists(caminho_pdf):
+                            self.lanca_anexo(caminho_pdf)
+
+            if nova_tabela:
+                lanca_tabela(self.table_Solicitacao, nova_tabela)
+                self.pintar_bloquear_tabela_solicitacao()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -1486,7 +1592,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                     cod, desc, ref, um, qtde, local, saldo = dados
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, ''), tipomaterial "
                                    f"FROM produto where codigo = '{cod}';")
                     dados_prod = cursor.fetchall()
 
@@ -1562,11 +1668,12 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                     cod, desc, ref, um, qtde, local, saldo = dados
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, ''), tipomaterial "
                                    f"FROM produto where codigo = '{cod}';")
                     dados_prod = cursor.fetchall()
 
                     ncm = dados_prod[0][1]
+
                     if ncm:
                         existe_compra = self.consulta_compras_pendentes(cod)
                         if existe_compra:
@@ -1643,7 +1750,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                     cod, desc, ref, um, qtde, local, saldo = dados
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                    cursor.execute(f"SELECT descricao, COALESCE(ncm, ''), tipomaterial "
                                    f"FROM produto where codigo = '{cod}';")
                     dados_prod = cursor.fetchall()
 
@@ -1723,7 +1830,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
                     if float(saldo) < float(qtde):
                         cursor = conecta.cursor()
-                        cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                        cursor.execute(f"SELECT descricao, COALESCE(ncm, ''), tipomaterial "
                                        f"FROM produto where codigo = '{cod}';")
                         dados_prod = cursor.fetchall()
 
@@ -1813,7 +1920,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
                     if float(saldo) < float(qtde):
                         cursor = conecta.cursor()
-                        cursor.execute(f"SELECT descricao, COALESCE(ncm, '') "
+                        cursor.execute(f"SELECT descricao, COALESCE(ncm, ''), tipomaterial "
                                        f"FROM produto where codigo = '{cod}';")
                         dados_prod = cursor.fetchall()
 
@@ -2085,7 +2192,75 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def gera_excel(self):
+    def criar_pasta_orcamento(self, num_sol):
+        try:
+            desktop_path = os.path.expanduser("~/Desktop")
+            nome_pasta = f"Orçamento Nº {num_sol}"
+            caminho_pasta = os.path.join(desktop_path, nome_pasta)
+            if not os.path.exists(caminho_pasta):
+                os.mkdir(caminho_pasta)
+
+            return caminho_pasta
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def copiar_anexos_pasta_orcamento(self, caminho_pasta, arquivo, origem_arquivo):
+        try:
+            destino_arquivo = os.path.join(caminho_pasta, arquivo)
+
+            try:
+                shutil.copy2(str(origem_arquivo), str(destino_arquivo))
+            except FileNotFoundError:
+                self.mensagem_alerta(f'Arquivo "{arquivo}" não encontrado na pasta de origem.')
+            except shutil.Error as e:
+                nome_funcao = inspect.currentframe().f_code.co_name
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                tb = traceback.extract_tb(exc_traceback)
+                num_linha_erro = tb[-1][1]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, num_linha_erro)
+                grava_erro_banco(nome_funcao, e, self.nome_arquivo, num_linha_erro)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def gerar_orcamento(self):
+        try:
+            num_sol = self.line_Num_Sol.text()
+
+            dados_tabela_sol = extrair_tabela(self.table_Solicitacao)
+            dados_tabela_anexo = extrair_tabela(self.table_Anexos)
+
+            if dados_tabela_anexo and dados_tabela_sol:
+                caminho_pasta = self.criar_pasta_orcamento(num_sol)
+                for i in dados_tabela_anexo:
+                    arquivo, caminho_arquivo = i
+
+                    self.copiar_anexos_pasta_orcamento(caminho_pasta, arquivo, caminho_arquivo)
+
+                nome_orcamento = f'Orçamento Nº {num_sol}.xlsx'
+                destino_arquivo = os.path.join(caminho_pasta, nome_orcamento)
+
+                self.gera_excel(destino_arquivo)
+            elif dados_tabela_sol:
+                desktop = Path.home() / "Desktop"
+                desk_str = str(desktop)
+                nome_req = f'\Orçamento Nº {num_sol}.xlsx'
+                caminho = (desk_str + nome_req)
+
+                self.gera_excel(caminho)
+
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def gera_excel(self, caminho):
         try:
             num_sol = self.line_Num_Sol.text()
             obs_solicitacao = self.line_Obs.text()
@@ -2132,15 +2307,10 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                 qtde_float = {'Qtde': float}
                 df = df.astype(qtde_float)
 
-                camino = os.path.join('..', 'arquivos', 'modelo excel', 'Modelo.xlsx')
+                camino = os.path.join('..', 'arquivos', 'modelo excel', 'Mod_orcamento.xlsx')
                 caminho_arquivo = definir_caminho_arquivo(camino)
 
                 book = load_workbook(caminho_arquivo)
-
-                desktop = Path.home() / "Desktop"
-                desk_str = str(desktop)
-                nome_req = f'\Solicitação {num_sol}.xlsx'
-                caminho = (desk_str + nome_req)
 
                 writer = pd.ExcelWriter(caminho, engine='openpyxl')
 
@@ -2186,7 +2356,7 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
                                         shrink_to_fit=False,
                                         indent=0)
                 c.font = Font(size=14, bold=True)
-                top_left_cell.value = 'Solicitação Nº  ' + num_sol
+                top_left_cell.value = 'Orçamento Nº  ' + num_sol
 
                 ws.merge_cells(f'E8:F8')
                 top_left_cell = ws[f'E8']

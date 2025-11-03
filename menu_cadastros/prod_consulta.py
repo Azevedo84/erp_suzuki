@@ -45,7 +45,7 @@ class TelaProdutoConsultar(QMainWindow, Ui_MainWindow):
         self.tela_ppc_prod = []
         self.tela_prod_ficha = []
 
-        validador_inteiro(self.line_Codigo, 123456)
+        validador_inteiro(self.line_Codigo)
 
         self.line_Codigo.editingFinished.connect(self.verifica_line_codigo_manual)
 

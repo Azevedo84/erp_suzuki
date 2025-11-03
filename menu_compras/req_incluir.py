@@ -534,14 +534,15 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
             for valores in dados_select:
                 num_sol, item_sol, cod, descr, ref, um, qtde, unit, ipi, fornc, destino, pc = valores
 
-                if pc == "HALLMAQMAQUINAS":
-                    solic = "ANDERSON"
-                elif pc == "PROJETO":
-                    solic = "ALESSANDRO"
-                elif pc == "ALMOX":
-                    solic = "JONATAN"
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, responsavel FROM ENVIA_PC "
+                               f"where descricao = '{pc}';")
+                select = cursor.fetchall()
+
+                if select:
+                    solic = select[0][1]
                 else:
-                    solic = "Desconhecido"
+                    solic = "DESCONHECIDO"
 
                 qtde_float = 0.00
                 unit_float = 0.00
