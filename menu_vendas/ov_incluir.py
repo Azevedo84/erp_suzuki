@@ -246,10 +246,10 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 total = qtde_float * preco_estrut
                                 total_2 = ("%.2f" % total)
 
-                                if (ncm == "8412.90.90"
-                                        or ncm == "84129090"
-                                        or ncm == "8477.80.90"
-                                        or ncm == "84778090"):
+                                ncm = ncm.strip()
+
+                                if (ncm == "8412.90.90" or ncm == "84129090" or ncm == "8412.9090"
+                                    or ncm == "8477.80.90" or ncm == "84778090" or ncm == "8477.8090"):
                                     ipi = ""
                                 else:
                                     ipi = "3.25"

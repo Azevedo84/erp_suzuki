@@ -31,11 +31,6 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
 
         self.processando = False
 
-        if produto:
-            self.line_Codigo_Estrut.setText(produto)
-            self.line_Codigo_Estrut.setReadOnly(True)
-            self.verifica_line_codigo_acabado()
-
         self.line_Codigo_Estrut.setFocus()
 
         self.line_Codigo_Estrut.editingFinished.connect(self.verifica_line_codigo_acabado)
@@ -70,6 +65,11 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
         self.widget_MaoObra.setHidden(True)
         self.widget_Terceiros.setHidden(True)
         self.widget_medida_peca.setHidden(True)
+
+        if produto:
+            self.line_Codigo_Estrut.setText(produto)
+            self.line_Codigo_Estrut.setReadOnly(True)
+            self.verifica_line_codigo_acabado()
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -271,6 +271,15 @@ class TelaEstruturaIncluirV2(QMainWindow, Ui_MainWindow):
                 self.lanca_descricao_custo_servico(codigo_produto)
 
                 self.lanca_versoes()
+
+                # Selecionar automaticamente a versão ATIVO
+                for i in range(self.combo_Versao.count()):
+                    texto = self.combo_Versao.itemText(i)
+                    if "- ATIVO" in texto:
+                        self.combo_Versao.setCurrentIndex(i)
+
+                        self.manipula_versao_escolhida()
+                        break
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

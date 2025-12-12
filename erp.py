@@ -2,7 +2,7 @@ import sys
 from banco_dados.conexao import conecta
 from forms.tela_menu import *
 from banco_dados.controle_erros import grava_erro_banco
-from comandos.telas import icone
+from comandos.telas import icone, editar_botao
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QMessageBox
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPixmap
@@ -15,20 +15,25 @@ import subprocess
 from datetime import datetime
 import traceback
 
+from menu_pcp.pcp_produto_v2_2 import TelaPcpProdutoV2
+
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.09.004"
-        self.data_versao = f"03/11/2025"
+        self.versao = f"Versão 2.10.000"
+        self.data_versao = f"12/12/2025"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
 
         pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
         self.label.setPixmap(pixmap)
+
+        editar_botao(self.btn_Produto, "produto.png", 'Produto', 50)
+        self.btn_Produto.clicked.connect(self.chama_tela_produto)
 
         self.pre_incluir = []
         self.pre_status = []
@@ -79,6 +84,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         self.pi_incluir = []
         self.pi_alterar = []
+        self.pi_rastrear = []
         self.ov_incluir = []
         self.ov_alterar = []
         self.vendas_status = []
@@ -161,6 +167,10 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def chama_tela_produto(self):
+        self.pcp_produto = TelaPcpProdutoV2()
+        self.pcp_produto.show()
+
     def definir_comando_telas(self):
         try:
             self.action_Pre_Incluir_2.triggered.connect(self.definir_tela_action)
@@ -212,6 +222,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
             self.action_PI_Incluir.triggered.connect(self.definir_tela_action)
             self.action_PI_Alterar.triggered.connect(self.definir_tela_action)
+            self.actionRastrear_PI.triggered.connect(self.definir_tela_action)
             self.action_OV_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OV_Alterar.triggered.connect(self.definir_tela_action)
             self.action_Vendas_Status.triggered.connect(self.definir_tela_action)
@@ -376,8 +387,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.pcp_previsao.show()
 
             elif sender == self.action_Pcp_Produto:
-                from menu_pcp.pcp_produto_v2 import TelaPcpProdutoV2
-                self.pcp_produto = TelaPcpProdutoV2("")
+                self.pcp_produto = TelaPcpProdutoV2()
                 self.pcp_produto.show()
 
             elif sender == self.action_OP_Incluir:
@@ -419,6 +429,12 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_vendas.pi_alterar import TelaPiAlterar
                 self.pi_alterar = TelaPiAlterar()
                 self.pi_alterar.show()
+
+            elif sender == self.actionRastrear_PI:
+                from menu_vendas.pi_rastreio import TelaPiRastreio
+                self.pi_rastrear = TelaPiRastreio("", "")
+                print(self.pi_rastrear)
+                self.pi_rastrear.show()
 
             elif sender == self.action_OV_Incluir:
                 from menu_vendas.ov_incluir import TelaOvIncluir

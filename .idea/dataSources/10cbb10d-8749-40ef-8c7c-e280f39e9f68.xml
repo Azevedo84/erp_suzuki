@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataSource name="ESTOQUE.GDB@PUBLICO">
+  <database-model serializer="dbm" dbms="FIREBIRD" family-id="FIREBIRD" format-version="4.54">
+    <root id="1">
+      <Dbms>FIREBIRD</Dbms>
+      <DefaultCasing>upper</DefaultCasing>
+      <ServerVersion>2.5</ServerVersion>
+    </root>
+    <database id="2" parent="1">
+      <Current>1</Current>
+    </database>
+    <schema id="3" parent="2">
+      <Current>1</Current>
+    </schema>
+  </database-model>
+</dataSource>

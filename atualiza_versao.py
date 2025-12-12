@@ -74,10 +74,14 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(03/11/2025) CI INCLUIR: BLOQUEIO DO SALDO NEGATIVO ALMOX',]
+lista_modifica = ['(03/11/2025) CI INCLUIR: BLOQUEIO DO SALDO NEGATIVO ALMOX',
+                  '(17/11/2025) OC INCLUIR: CORRIGIDO PROBLEMA COM A TELA',
+                  '(17/11/2025) NF INCLUIR: CORRIGIDO PROBLEMA COM A TELA',
+                  '(09/12/2025) PI RASTREAR: INCLUÍDO TELA DE RASTREAR PEDIDO INTERNO POR PRODUTO',
+                  '(11/12/2025) BOTÃO PRODUTO PCP: INCLUÍDO BOTÃO DO PRODUTO PCP COM NOVOS ATALHOS',]
 
 programa = "ERP SUZUKI"
-versao = "2.09.004"
+versao = "2.10.000"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

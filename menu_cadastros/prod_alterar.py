@@ -108,6 +108,31 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
             return None
 
+    def verifica_line_codigo_pcp(self):
+        if not self.processando:
+            try:
+                self.processando = True
+
+                self.lanca_combo_conjunto()
+                self.lanca_combo_servico_interno()
+                self.lanca_combo_tipo()
+                self.lanca_combo_projeto()
+                self.data_emissao()
+
+                codigo_produto = self.line_Codigo.text()
+
+                if codigo_produto:
+                    self.verifica_sql_produto_manual()
+                    self.line_Referencia.setFocus()
+
+            except Exception as e:
+                nome_funcao = inspect.currentframe().f_code.co_name
+                exc_traceback = sys.exc_info()[2]
+                self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+            finally:
+                self.processando = False
+
     def verifica_line_codigo_manual(self):
         if not self.processando:
             try:

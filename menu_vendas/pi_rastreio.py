@@ -15,7 +15,7 @@ from menu_cadastros.tela_projeto import TelaProjeto
 
 
 class TelaPiRastreio(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, produto, num_pi, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
@@ -42,6 +42,25 @@ class TelaPiRastreio(QMainWindow, Ui_MainWindow):
         self.table_OP.viewport().installEventFilter(self)
 
         self.processando = False
+
+        if produto and num_pi:
+            self.line_Num_Ped.setText(num_pi)
+
+            self.lanca_combo_produtos()
+            self.lanca_dados_pi()
+
+            item_count = self.combo_Produto.count()
+            for i in range(item_count):
+                item_text = self.combo_Produto.itemText(i)
+
+                if item_text:
+                    clientetete = item_text.find(" - ")
+                    id_produto = int(item_text[:clientetete])
+
+                    if int(produto) == int(id_produto):
+                        self.combo_Produto.setCurrentText(item_text)
+
+            self.lanca_dados_tabelas()
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
         try:
@@ -355,9 +374,8 @@ class TelaPiRastreio(QMainWindow, Ui_MainWindow):
                             pipis = (cod_filho, tipo_filho)
                             adiciona_industrializados.append(pipis)
                     if tipo == "CONJUNTO":
-                        if total_estrut != total_consumo:
-                            dados = (num_op, cod, descr, ref, um, qtde, tipo)
-                            dados_finais.append(dados)
+                        dados = (num_op, cod, descr, ref, um, qtde, tipo)
+                        dados_finais.append(dados)
                     else:
                         dados = (num_op, cod, descr, ref, um, qtde, tipo)
                         dados_finais.append(dados)
@@ -529,6 +547,6 @@ class TelaPiRastreio(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaPiRastreio()
+    tela = TelaPiRastreio("", "")
     tela.show()
     qt.exec_()

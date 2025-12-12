@@ -219,6 +219,15 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
                 self.lanca_versoes()
 
+                # Selecionar automaticamente a versão ATIVO
+                for i in range(self.combo_Versao.count()):
+                    texto = self.combo_Versao.itemText(i)
+                    if "- ATIVO" in texto:
+                        self.combo_Versao.setCurrentIndex(i)
+
+                        self.manipula_versao_escolhida()
+                        break
+
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
@@ -352,7 +361,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
     def limpa_dados_mao_de_obra_servico(self):
         try:
-            print("passei aqui")
             self.label_Descricao_Mao.clear()
             self.label_Tempo_Mao.clear()
 
@@ -446,17 +454,14 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
     def lanca_descricao_tempo_mao_de_obra(self, codigo):
         try:
-            print(codigo)
             cursor = conecta.cursor()
             cursor.execute(f"SELECT etapas, tempo FROM produto WHERE codigo = {codigo};")
             dados_produto = cursor.fetchall()
             if dados_produto:
                 for i in dados_produto:
-                    print(i)
                     etapas, tempo = i
 
                     if etapas:
-                        print("ue")
                         self.label_Descricao_Mao.setText(etapas)
                     if tempo:
                         self.label_Tempo_Mao.setText(str(tempo))
@@ -646,8 +651,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
                 for i in tab_ordenada:
                     niv, codi, descr, ref, um, qtdi, conj, temp, terc, unit, estrut = i
-                    if codi == "75694":
-                        print(i)
 
                     if conj == 10:
                         if temp or terc:
@@ -666,7 +669,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                             tabela_nova.append(dados)
                     else:
                         if not unit:
-                            print("entrei", i)
                             unit_float = 0
 
                             total = float(qtdi) * float(unit_float)
@@ -729,13 +731,7 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
 
                 if dados_estrutura:
                     for prod in dados_estrutura:
-                        if c_pai == "20864":
-                            print(c_pai, prod)
-
                         cod_f, descr_f, ref_f, um_f, qtde_f = prod
-
-                        if cod_f == "75694":
-                            print("detalhes pai", detalhes_pai[0], prod)
 
                         filhos.extend(self.verifica_estrutura_problema(nivel_plus, cod_f, qtde_f))
 

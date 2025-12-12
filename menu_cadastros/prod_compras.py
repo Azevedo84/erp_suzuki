@@ -2,12 +2,10 @@ import sys
 from banco_dados.conexao import conecta
 from forms.tela_prod_compras import *
 from banco_dados.controle_erros import grava_erro_banco
-from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
+from comandos.tabelas import lanca_tabela, layout_cabec_tab
 from comandos.telas import tamanho_aplicacao, icone
-from comandos.cores import cor_cinza_claro
 from comandos.conversores import valores_para_float, float_para_moeda_reais, float_para_porcentagem
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt5.QtGui import QColor
 import inspect
 import os
 import traceback
@@ -187,35 +185,15 @@ class TelaProdutoCompras(QMainWindow, Ui_MainWindow):
                     else:
                         if dados_nfs:
                             nf = dados_nfs[0][1]
-                        else:
-                            nf = ""
 
-                        dados = (entr, nf, oc, qtde_float, unit_rs, ipi_porc, tot_rs, emissao, n_f, forn, id_req,
-                                 id_sol)
-                        tabela.append(dados)
+                            dados = (entr, nf, oc, qtde_float, unit_rs, ipi_porc, tot_rs, emissao, n_f, forn, id_req,
+                                     id_sol)
+                            tabela.append(dados)
 
             if tabela:
                 lanca_tabela(self.table_Compras, tabela)
-                self.pinta_tabela()
 
                 self.table_Compras.scrollToBottom()
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def pinta_tabela(self):
-        try:
-            dados_tabela = extrair_tabela(self.table_Compras)
-
-            for index, dados in enumerate(dados_tabela):
-                entr, nf, oc, qtde, unit, ipi, tot, emissao, n_f, forn, id_req, id_sol = dados
-
-                if nf:
-                    num_colunas = len(dados_tabela[0])
-                    for i in range(num_colunas):
-                        self.table_Compras.item(index, i).setBackground(QColor(cor_cinza_claro))
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

@@ -793,6 +793,8 @@ class Ui_MainWindow(object):
         self.table_Produtos_NF.setHorizontalHeaderItem(12, item)
         self.verticalLayout_6.addWidget(self.table_Produtos_NF)
         self.widget = QtWidgets.QWidget(self.widget_Cor3)
+        self.widget.setMinimumSize(QtCore.QSize(0, 23))
+        self.widget.setMaximumSize(QtCore.QSize(16777215, 23))
         self.widget.setObjectName("widget")
         self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.widget)
         self.horizontalLayout_8.setContentsMargins(0, 0, 0, 0)

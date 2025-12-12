@@ -21,8 +21,6 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
-        produto = "16334"
-
         self.produto = produto
 
         if self.produto:
@@ -30,8 +28,6 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
 
         icone(self, "menu_cadastro.png")
         tamanho_aplicacao(self)
-
-        self.btn_Excluir.clicked.connect(self.verifica_exclusao)
 
         layout_cabec_tab(self.table_Mov)
 
@@ -101,67 +97,80 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
         try:
             cod_produto = self.line_Codigo.text()
             if cod_produto:
-                descr = self.line_Descricao.text()
-                ref = self.line_Referencia.text()
-                um = self.line_UM.text()
-
                 nome_tabela = self.table_Mov
 
                 dados_tab = extrair_tabela(nome_tabela)
                 if dados_tab:
                     linha = nome_tabela.currentRow()
                     if linha >= 0:
-                        data, local_est, ent, sai, saldo, registro, oc_ov, cfop, solicitante, obs = dados_tab[linha]
-
-                        entra_ou_sai = ""
-                        qtde = "0"
-
-                        if ent:
-                            qtde = ent
-                            entra_ou_sai = "entrada"
-                        elif sai:
-                            qtde = sai
-                            entra_ou_sai = "saida"
-
-                        print(entra_ou_sai, registro)
-
-                        if registro == "CI":
-                            tipinho = "220 - CONSUMO INTERNO"
-                            print(tipinho)
-                        elif "OP" in registro and entra_ou_sai == "saida":
-                            tipinho = "210 - CONSUMO OP"
-                            print(tipinho)
-                        elif "INVENTÁRIO" in registro and entra_ou_sai == "entrada":
-                            tipinho = "140 - ENTRADA INVENTÁRIO"
-                            print(tipinho)
-                        elif "NF" in registro and entra_ou_sai == "entrada":
-                            tipinho = "130 - ENTRADA NF"
-                            print(tipinho)
-                        elif "OS" in registro and entra_ou_sai == "saida":
-                            tipinho = "250 - CONSUMO OS"
-                            print(tipinho)
-                        elif "OS" in registro and entra_ou_sai == "entrada":
-                            tipinho = "112 - DEVOLUCAO OS"
-                            print(tipinho)
-                        elif "NF" in registro and entra_ou_sai == "saida":
-                            tipinho = "230 - SAIDA NF"
-                            print(tipinho)
-                        elif "OP" in registro and entra_ou_sai == "entrada":
-                            tipinho = "110 - ENTRADA OP"
-                            print(tipinho)
-                        elif "OP" in registro and entra_ou_sai == "entrada":
-                            tipinho = "110 - ENTRADA OP"
-                            print(tipinho)
-
-                        data_final = string_pra_data(data)
+                        id_mov, data, local_est, ent, sai, saldo, registro, oc_ov, cfop, solicitante, obs = dados_tab[linha]
 
                         cur = conecta.cursor()
                         cur.execute(
                             f"SELECT id, data, produto, tipo, quantidade, localestoque "
                             f"from movimentacao "
-                            f"where data = '{data_final}' and codigo = '{cod_produto}' and quantidade = '{qtde}';")
+                            f"where id = {id_mov};")
                         detalhes_mov = cur.fetchall()
 
+                        if detalhes_mov:
+                            tipo_mov = detalhes_mov[0][3]
+
+                            cur.execute(
+                                f"SELECT id, descricao "
+                                f"from TIPO_MOVIMENTO "
+                                f"where numero_tipo = {tipo_mov};")
+                            detalhes_tipo = cur.fetchall()
+
+                            print(tipo_mov, detalhes_tipo[0][1], detalhes_mov)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from CONSUMO_TEMPORARIO_OP where ID_MOVIMENTACAO = {id_mov};")
+                            consumo_temporario = cur.fetchall()
+                            if consumo_temporario:
+                                print("consumo_temporario", consumo_temporario)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from ENTRADAPROD where MOVIMENTACAO = {id_mov};")
+                            entrada_prod = cur.fetchall()
+                            if entrada_prod:
+                                print("entrada_prod", entrada_prod)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from ORDEMSERVICO where MOVIMENTACAO = {id_mov};")
+                            entrada_producao_op = cur.fetchall()
+                            if entrada_producao_op:
+                                print("entrada_producao_op", entrada_producao_op)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from PRODUTOORDEMCOMPRA where MOVIMENTACAO = {id_mov};")
+                            ordem_compra = cur.fetchall()
+                            if ordem_compra:
+                                print("ordem_compra", ordem_compra)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from PRODUTOOS where MOVIMENTACAO = {id_mov};")
+                            consumo_op = cur.fetchall()
+                            if consumo_op:
+                                print("consumo_op", consumo_op)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from PRODUTOSERVICO where MOVIMENTACAO = {id_mov};")
+                            consumo_os = cur.fetchall()
+                            if consumo_os:
+                                print("consumo_os", consumo_os)
+
+                            cur = conecta.cursor()
+                            cur.execute(
+                                f"SELECT * from SAIDAPROD where MOVIMENTACAO = {id_mov};")
+                            saida_nf = cur.fetchall()
+                            if saida_nf:
+                                print("saida_nf", saida_nf)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -217,7 +226,7 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
             tabela_nova = []
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT m.data, "
+            cursor.execute(f"SELECT m.id, m.data, "
                            f"CASE WHEN m.tipo < 200 THEN m.quantidade END AS Qtde_Entrada, "
                            f"CASE WHEN m.tipo > 200 THEN m.quantidade END AS Qtde_Saida, "
                            f"(select case when sum(quantidade) is null then 0 else sum(quantidade) end "
@@ -251,8 +260,7 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
                            f"WHEN m.tipo = 250 THEN ('OS '|| produtoservico.numero) "
                            f"WHEN m.tipo = 112 THEN ('DEVOL. OS '|| produtoservico.numero) "
                            f"WHEN m.tipo = 220 THEN 'CI' "
-                           f"END AS OS_NF_CI, "
-                           f"natop.descricao as CFOP, localestoque.nome, "
+                           f"END AS OS_NF_CI, natop.descricao, localestoque.nome, "
                            f"COALESCE(m.obs, ''), m.tipo, "
                            f"CASE WHEN m.tipo = 130 THEN ('OC '|| occ.numero) "
                            f"WHEN m.tipo = 230 THEN ('OV '|| ocs.numero) "
@@ -290,7 +298,7 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
             results = cursor.fetchall()
             if results:
                 for i in results:
-                    data, entrada, saida, saldo, registro, cfop, local_est, obs, tipo, op_ov, empresa_func = i
+                    id_mov, data, entrada, saida, saldo, registro, cfop, local_est, obs, tipo, op_ov, empresa_func = i
 
                     data_final = f'{data.day}/{data.month}/{data.year}'
 
@@ -323,7 +331,7 @@ class TelaProdutoMovimentacao(QMainWindow, Ui_MainWindow):
                     else:
                         ordens = ""
 
-                    dados = (data_final, local_est, ent, sai, saldo, reg, ordens, natur, empresa, obs)
+                    dados = (id_mov, data_final, local_est, ent, sai, saldo, reg, ordens, natur, empresa, obs)
                     tabela_nova.append(dados)
 
             if tabela_nova:
