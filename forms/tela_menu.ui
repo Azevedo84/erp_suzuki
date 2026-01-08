@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>720</height>
+    <width>1101</width>
+    <height>719</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -264,7 +264,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1100</width>
+     <width>1101</width>
      <height>23</height>
     </rect>
    </property>
@@ -333,6 +333,7 @@
       <string>Solicitação</string>
      </property>
      <addaction name="action_Sol_Incluir"/>
+     <addaction name="actionAlterar_Sol"/>
     </widget>
     <widget class="QMenu" name="menu_Requisicao">
      <property name="title">
@@ -849,6 +850,11 @@
   <action name="actionRastrear_PI">
    <property name="text">
     <string>Rastrear PI</string>
+   </property>
+  </action>
+  <action name="actionAlterar_Sol">
+   <property name="text">
+    <string>Alterar Sol</string>
    </property>
   </action>
  </widget>

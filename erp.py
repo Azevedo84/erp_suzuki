@@ -23,8 +23,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.10.000"
-        self.data_versao = f"12/12/2025"
+        self.versao = f"Versão 2.11.000"
+        self.data_versao = f"08/01/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -55,6 +55,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.local_estoque = []
 
         self.sol_incluir = []
+        self.sol_alterar = []
         self.req_incluir = []
         self.oc_incluir = []
         self.oc_alterar = []
@@ -193,6 +194,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.actionServi_o_Interno.triggered.connect(self.definir_tela_action)
 
             self.action_Sol_Incluir.triggered.connect(self.definir_tela_action)
+            self.actionAlterar_Sol.triggered.connect(self.definir_tela_action)
             self.action_Req_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OC_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OC_Alterar.triggered.connect(self.definir_tela_action)
@@ -320,6 +322,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_compras.sol_incluir_v2 import TelaSolIncluirV2
                 self.sol_incluir = TelaSolIncluirV2()
                 self.sol_incluir.show()
+
+            elif sender == self.actionAlterar_Sol:
+                from menu_compras.sol_alterar import TelaSolAlterar
+                self.sol_alterar = TelaSolAlterar()
+                self.sol_alterar.show()
 
             elif sender == self.action_Req_Incluir:
                 from menu_compras.req_incluir import TelaReqIncluir

@@ -42,6 +42,8 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
         icone(self, "menu_producao.png")
         tamanho_aplicacao(self)
 
+        self.showMaximized()
+
         caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
         caminho_arquivo = definir_caminho_arquivo(caminho)
         icon = QIcon(caminho_arquivo)
@@ -70,8 +72,6 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
         validador_so_numeros(self.line_Codigo)
 
         self.btn_Projeto.clicked.connect(self.abrir_pdf)
-
-        self.showMaximized()
 
         self.line_Codigo.editingFinished.connect(self.verifica_line_codigo_manual)
 
@@ -410,6 +410,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
         try:
             self.label.clear()
 
+            cod = self.line_Codigo.text()
             ref = self.line_Referencia.text()
 
             import re
@@ -418,17 +419,22 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             s = re.sub(r"\.+$", "", s)
 
             caminho_pdf = rf"\\Publico\C\OP\Projetos\{s}.pdf"
+            caminho_png = rf"\\Publico\C\OP\Projetos\{cod}.png"
 
             if os.path.exists(caminho_pdf):
                 doc = fitz.open(caminho_pdf)
                 page = doc.load_page(0)  # primeira página
-                pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))  # zoom 2x para melhor resolução
+                pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))  # zoom 2x para melhor resolução
 
                 # Converter para QImage
                 image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
                 pixmap = QPixmap.fromImage(image)
 
                 # Mostrar no QLabel criado no Qt Designer (nomeado "label")
+                self.label.setPixmap(pixmap)
+                self.label.setScaledContents(True)
+            elif os.path.exists(caminho_png):
+                pixmap = QPixmap(caminho_png)
                 self.label.setPixmap(pixmap)
                 self.label.setScaledContents(True)
             else:
@@ -439,7 +445,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
                 doc = fitz.open(caminho_arquivo)
                 page = doc.load_page(0)  # primeira página
-                pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))  # zoom 2x para melhor resolução
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # zoom 2x para melhor resolução
 
                 # Converter para QImage
                 image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
@@ -456,6 +462,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
     def abrir_pdf(self):
         try:
+            cod = self.line_Codigo.text()
             ref = self.line_Referencia.text()
 
             import re
@@ -464,9 +471,12 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             s = re.sub(r"\.+$", "", s)
 
             caminho_pdf = rf"\\Publico\C\OP\Projetos\{s}.pdf"
+            caminho_png = rf"\\Publico\C\OP\Projetos\{cod}.png"
 
             if os.path.exists(caminho_pdf):
                 self.abrir_tela_alteracao_prod(caminho_pdf)
+            elif os.path.exists(caminho_png):
+                self.abrir_tela_alteracao_prod(caminho_png)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

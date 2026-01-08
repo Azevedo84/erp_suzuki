@@ -43,7 +43,6 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
         self.lista_produtos_oc = []
 
         self.closeEvent = self.ao_fechar
-        self.carregar_dados()
 
         self.processando = False
 
@@ -172,15 +171,6 @@ class TelaOcAlterar(QMainWindow, Ui_MainWindow):
         try:
             print("encerrar")
             event.accept()
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def carregar_dados(self):
-        try:
-            print("Dados carregados")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

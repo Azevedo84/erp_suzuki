@@ -528,6 +528,8 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                 for i in dados_produto:
                     id_prod, custo_compra = i
 
+                    print(codigo, custo_compra)
+
                     custo_compra_float = valores_para_float(custo_compra)
                     custo_compra_final = float_para_moeda_reais(custo_compra_float)
                     self.line_Custo_Compra.setText(str(custo_compra_final))
@@ -564,6 +566,8 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                         total_1_float = float(total_1_com_ponto)
                     else:
                         total_1_float = float(total_sem_cifra)
+
+                    print(dados, total)
 
                     valor_final = valor_final + total_1_float
 

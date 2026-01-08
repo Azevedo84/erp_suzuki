@@ -21,7 +21,12 @@ class TelaProjeto(QMainWindow, Ui_MainWindow):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
-        if projeto:
+        self.setMinimumSize(900, 600)
+        self.resize(900, 600)
+
+        if ".png" in projeto:
+            self.abrir_png(projeto)
+        elif projeto:
             self.abrir_pdf(projeto)
 
     def trata_excecao(self, nome_funcao, mensagem, arquivo, excecao):
@@ -60,13 +65,28 @@ class TelaProjeto(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def abrir_png(self, caminho_png):
+        try:
+            self.label.clear()
+
+            pixmap = QPixmap(caminho_png)
+            self.label.setPixmap(pixmap)
+            self.label.setScaledContents(True)
+
+            self.resize(900, 600)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def abrir_pdf(self, caminho_pdf):
         try:
             self.label.clear()
 
             doc = fitz.open(caminho_pdf)
             page = doc.load_page(0)  # primeira página
-            pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))  # zoom 2x para melhor resolução
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.4, 1.2))  # zoom 2x para melhor resolução
 
             # Converter para QImage
             image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
