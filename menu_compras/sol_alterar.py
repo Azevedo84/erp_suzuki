@@ -2537,20 +2537,23 @@ class TelaSolAlterar(QMainWindow, Ui_MainWindow):
 
             df = df.astype({'Código': int, 'Qtde': float})
 
-            caminho_modelo = os.path.join(
-                '..', 'arquivos', 'modelo excel', 'Mod_orcamento.xlsx'
-            )
-            caminho_arquivo = definir_caminho_arquivo(caminho_modelo)
+            camino = os.path.join('..', 'arquivos', 'modelo excel', 'Mod_orcamento.xlsx')
+            caminho_arquivo = definir_caminho_arquivo(camino)
 
-            # ===== OPENPYXL =====
             book = load_workbook(caminho_arquivo)
-            ws = book.active
+
+            writer = pd.ExcelWriter(caminho, engine='openpyxl')
+
+            writer.book = book
+            writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
 
             linhas_frame = df.shape[0]
             colunas_frame = df.shape[1]
 
-            linhas_certas = linhas_frame + 11
+            linhas_certas = linhas_frame + 2 + 9
             colunas_certas = colunas_frame + 1
+
+            ws = book.active
 
             inicia = 11
             rows = range(inicia, inicia + linhas_frame)
@@ -2561,69 +2564,75 @@ class TelaSolAlterar(QMainWindow, Ui_MainWindow):
 
             for row in rows:
                 for col in columns:
-                    cell = ws.cell(row, col)
-                    cell.alignment = Alignment(
-                        horizontal='center',
-                        vertical='center',
-                        wrap_text=True
-                    )
-                    cell.border = Border(
-                        left=Side(style='thin'),
-                        right=Side(style='thin'),
-                        top=Side(style='thin'),
-                        bottom=Side(style='thin')
-                    )
+                    ws.cell(row, col).alignment = Alignment(horizontal='center', vertical='center',
+                                                            wrap_text=True)
+                    ws.cell(row, col).border = Border(left=Side(border_style='thin', color='00000000'),
+                                                      right=Side(border_style='thin', color='00000000'),
+                                                      top=Side(border_style='thin', color='00000000'),
+                                                      bottom=Side(border_style='thin', color='00000000'),
+                                                      diagonal=Side(border_style='thick', color='00000000'),
+                                                      diagonal_direction=0,
+                                                      outline=Side(border_style='thin', color='00000000'),
+                                                      vertical=Side(border_style='thin', color='00000000'),
+                                                      horizontal=Side(border_style='thin', color='00000000'))
 
-            ws.merge_cells('A8:D8')
-            c = ws['A8']
-            c.value = f'Orçamento Nº  {num_sol}'
-            c.alignment = Alignment(horizontal='center', vertical='center')
+            ws.merge_cells(f'A8:D8')
+            top_left_cell = ws[f'A8']
+            c = ws[f'A8']
+            c.alignment = Alignment(horizontal='center',
+                                    vertical='center',
+                                    text_rotation=0,
+                                    wrap_text=False,
+                                    shrink_to_fit=False,
+                                    indent=0)
             c.font = Font(size=14, bold=True)
+            top_left_cell.value = 'Orçamento Nº  ' + num_sol
 
-            ws.merge_cells('E8:F8')
-            c = ws['E8']
-            c.value = f'Emissão:  {data_certa}'
-            c.alignment = Alignment(horizontal='center', vertical='center')
+            ws.merge_cells(f'E8:F8')
+            top_left_cell = ws[f'E8']
+            c = ws[f'E8']
+            c.alignment = Alignment(horizontal='center',
+                                    vertical='center',
+                                    text_rotation=0,
+                                    wrap_text=False,
+                                    shrink_to_fit=False,
+                                    indent=0)
             c.font = Font(size=14, bold=True)
+            top_left_cell.value = 'Emissão:  ' + data_certa
 
             ws.merge_cells(f'B{linhas_certas + 2}:B{linhas_certas + 2}')
+            top_left_cell = ws[f'B{linhas_certas + 2}']
             c = ws[f'B{linhas_certas + 2}']
-            c.value = "Observação:  "
-            c.alignment = Alignment(horizontal='right', vertical='center')
+            c.alignment = Alignment(horizontal='right',
+                                    vertical='center',
+                                    text_rotation=0,
+                                    wrap_text=False,
+                                    shrink_to_fit=False,
+                                    indent=0)
             c.font = Font(size=12, bold=True)
+            top_left_cell.value = "Observação:  "
 
             ws.merge_cells(f'C{linhas_certas + 2}:H{linhas_certas + 2}')
+            top_left_cell = ws[f'C{linhas_certas + 2}']
             c = ws[f'C{linhas_certas + 2}']
-            c.value = obs_sol
-            c.alignment = Alignment(horizontal='left', vertical='center')
-            c.font = Font(size=12)
+            c.alignment = Alignment(horizontal='left',
+                                    vertical='center',
+                                    text_rotation=0,
+                                    wrap_text=False,
+                                    shrink_to_fit=False,
+                                    indent=0)
+            c.font = Font(size=12, bold=False)
+            top_left_cell.value = obs_sol
 
-            # noinspection PyTypeChecker
-            with pd.ExcelWriter(
-                    caminho,
-                    engine='openpyxl',
-                    mode='a',
-                    if_sheet_exists='overlay'
-            ) as writer:
-                df.to_excel(
-                    writer,
-                    sheet_name=ws.title,
-                    startrow=10,
-                    startcol=0,
-                    header=False,
-                    index=False
-                )
+            df.to_excel(writer, 'Sheet1', startrow=10, startcol=0, header=False, index=False)
 
-            # ===== Destaque embalagem SIM =====
             for row_idx in embalagem_sim_rows:
                 row = row_idx + 12
-                ws.cell(row, 3).fill = styles.PatternFill(
-                    start_color="FFFF00",
-                    end_color="FFFF00",
-                    fill_type="solid"
-                )
+                col = 3
+                ws.cell(row, col).fill = styles.PatternFill(start_color="FFFF00", end_color="FFFF00",
+                                                            fill_type="solid")
 
-            book.save(caminho)
+            writer.save()
 
             self.label_Text_Excel.setText("Excel Salvo")
 

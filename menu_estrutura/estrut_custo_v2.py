@@ -5,6 +5,8 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.lines import validador_inteiro
 from comandos.telas import tamanho_aplicacao, icone
+from comandos.valores_padrao import custo_padrao_acinplas
+from comandos.cores import cor_vermelho
 from comandos.conversores import valores_para_float, valores_para_virgula, float_para_moeda_reais
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
@@ -528,8 +530,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                 for i in dados_produto:
                     id_prod, custo_compra = i
 
-                    print(codigo, custo_compra)
-
                     custo_compra_float = valores_para_float(custo_compra)
                     custo_compra_final = float_para_moeda_reais(custo_compra_float)
                     self.line_Custo_Compra.setText(str(custo_compra_final))
@@ -537,7 +537,7 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
             self.label_Custo_Materiais.setText(custo_compra_final)
             self.label_Custo_Total.setText(custo_compra_final)
 
-            preco = (custo_compra_float + (custo_compra_float * 0.05)) / 0.7663
+            preco = custo_padrao_acinplas(custo_compra_float)
             valor_final = float_para_moeda_reais(preco)
 
             self.label_Venda_Total.setText(valor_final)
@@ -566,8 +566,6 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                         total_1_float = float(total_1_com_ponto)
                     else:
                         total_1_float = float(total_sem_cifra)
-
-                    print(dados, total)
 
                     valor_final = valor_final + total_1_float
 
@@ -700,6 +698,10 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                         tempo_mao = self.label_Tempo_Mao.text()
                         if tempo_mao:
                             self.calcula_valor_venda()
+                            self.label_Tempo_Mao.setStyleSheet("background-color: transparent;")
+                        else:
+                            self.label_Tempo_Mao.setText("Definir Tempo de Serviço")
+                            self.label_Tempo_Mao.setStyleSheet(f"background-color: {cor_vermelho};")
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -753,7 +755,7 @@ class TelaCustoV2(QMainWindow, Ui_MainWindow):
                 custo_total = self.label_Custo_Total.text()
                 custo_tot_float = valores_para_float(custo_total)
 
-                preco = (custo_tot_float + (custo_tot_float * 0.05)) / 0.7663
+                preco = custo_padrao_acinplas(custo_tot_float)
 
                 valor_totau_dois = ("%.2f" % preco)
                 valor_string = str(valor_totau_dois)

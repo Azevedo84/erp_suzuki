@@ -6,6 +6,7 @@ from arquivos.chamar_arquivos import definir_caminho_arquivo
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.telas import tamanho_aplicacao, icone
 from comandos.conversores import valores_para_float
+from comandos.valores_padrao import custo_padrao_acinplas
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from datetime import date, datetime, timedelta
 import inspect
@@ -220,7 +221,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 qtde_float = valores_para_float(qtde)
 
                                 custo_tot_float = valores_para_float(unit)
-                                preco = (custo_tot_float + (custo_tot_float * 0.05)) / 0.7663
+                                preco = custo_padrao_acinplas(custo_tot_float)
                                 valor_totau_dois = ("%.2f" % preco)
                                 valor_s = str(valor_totau_dois)
 
@@ -239,7 +240,7 @@ class TelaOvIncluir(QMainWindow, Ui_MainWindow):
                                 qtde_float = valores_para_float(qtde)
 
                                 custo_estrut_float = valores_para_float(estrut)
-                                preco_estrut = (custo_estrut_float + (custo_estrut_float * 0.05)) / 0.7663
+                                preco_estrut = custo_padrao_acinplas(custo_estrut_float)
                                 valor_totau_dois = ("%.2f" % preco_estrut)
                                 valor_e = str(valor_totau_dois)
 

@@ -5,6 +5,7 @@ from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import extrair_tabela, lanca_tabela, layout_cabec_tab
 from comandos.lines import validador_inteiro
 from comandos.telas import tamanho_aplicacao, icone
+from comandos.valores_padrao import custo_padrao_acinplas
 from comandos.conversores import valores_para_float, valores_para_virgula, float_para_moeda_reais
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import inspect
@@ -454,7 +455,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
             self.label_Custo_Materiais.setText(custo_compra_final)
             self.label_Custo_Total.setText(custo_compra_final)
 
-            preco = (custo_compra_float + (custo_compra_float * 0.05)) / 0.7663
+            preco = custo_padrao_acinplas(custo_compra_float)
             valor_final = float_para_moeda_reais(preco)
 
             self.label_Venda_Total.setText(valor_final)
@@ -670,7 +671,7 @@ class TelaCusto(QMainWindow, Ui_MainWindow):
                 custo_total = self.label_Custo_Total.text()
                 custo_tot_float = valores_para_float(custo_total)
 
-                preco = (custo_tot_float + (custo_tot_float * 0.05)) / 0.7663
+                preco = custo_padrao_acinplas(custo_tot_float)
 
                 valor_totau_dois = ("%.2f" % preco)
                 valor_string = str(valor_totau_dois)

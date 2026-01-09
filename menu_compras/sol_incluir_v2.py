@@ -2254,7 +2254,6 @@ class TelaSolIncluirV2(QMainWindow, Ui_MainWindow):
 
                 self.gera_excel(caminho)
 
-
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
