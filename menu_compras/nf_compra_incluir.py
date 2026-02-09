@@ -759,6 +759,8 @@ class TelaNFCompraIncluir(QMainWindow, Ui_MainWindow):
                     ncm_bc_num = ncm_bc_sem_espaco.replace(".", "").replace("-", "")
                     ncm_bc_4_digitos = ncm_bc_num[:4]
 
+                    print(unit_float, unit_bc_float)
+
                     if qtde_float > qtde_bc_float:
                         self.mensagem_alerta("A quantidade da NF não está de acordo com o saldo da Ordem de Compra!")
                     elif unit_float != unit_bc_float:

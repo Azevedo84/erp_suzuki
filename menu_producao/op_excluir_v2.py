@@ -179,24 +179,17 @@ class TelaOpExcluirV2(QMainWindow, Ui_MainWindow):
 
                 extrai_tab_extrusora = extrair_tabela(self.table_Lista)
                 item_selecionado = extrai_tab_extrusora[item.row()]
-                emissao, previsao, op, cod, descr, ref, um, qtde, est_con = item_selecionado
+                emissao, op, cod, descr, ref, um, qtde = item_selecionado
 
-                posicao = est_con.find("/")
-                inicio = posicao + 1
-                consumo = est_con[inicio:]
-                if consumo == "0":
-                    data_obj = datetime.strptime(emissao, "%d/%m/%Y").date()
+                data_obj = datetime.strptime(emissao, "%d/%m/%Y").date()
 
-                    self.line_Num.setText(op)
-                    self.date_Emissao.setDate(data_obj)
-                    self.line_Codigo.setText(cod)
-                    self.line_Descricao.setText(descr)
-                    self.line_Referencia.setText(ref)
-                    self.line_UM.setText(um)
-                    self.line_Qtde.setText(qtde)
-                else:
-                    self.mensagem_alerta(f'A OP {op} tem material consumido e '
-                                                                f'não pdoe ser excluída!')
+                self.line_Num.setText(op)
+                self.date_Emissao.setDate(data_obj)
+                self.line_Codigo.setText(cod)
+                self.line_Descricao.setText(descr)
+                self.line_Referencia.setText(ref)
+                self.line_UM.setText(um)
+                self.line_Qtde.setText(qtde)
 
             return super(QMainWindow, self).eventFilter(source, event)
 
@@ -221,35 +214,15 @@ class TelaOpExcluirV2(QMainWindow, Ui_MainWindow):
                 for dados_op in op_abertas:
                     emissao, previsao, op, cod, descr, ref, um, qtde = dados_op
 
-                    data_em_texto = '{}/{}/{}'.format(emissao.day, emissao.month, emissao.year)
-
-                    if previsao:
-                        data_prev = '{}/{}/{}'.format(previsao.day, previsao.month, previsao.year)
-                    else:
-                        data_prev = ''
-
                     cursor = conecta.cursor()
-                    cursor.execute(f"SELECT id_versao, codigo FROM produto where codigo = {cod};")
-                    select_prod = cursor.fetchall()
+                    cursor.execute(f"SELECT codigo, id_estrut_prod, qtde_estrut_prod "
+                                   f"FROM produtoos where numero = {op};")
+                    itens_os = cursor.fetchall()
 
-                    id_versao, cod = select_prod[0]
+                    if not itens_os:
+                        data_em_texto = '{}/{}/{}'.format(emissao.day, emissao.month, emissao.year)
 
-                    cursor = conecta.cursor()
-                    cursor.execute(f"select count(id) from estrutura_produto where id_estrutura = {id_versao};")
-                    total_itens_estrutura = cursor.fetchall()
-                    itens_estrut_limpa = total_itens_estrutura[0]
-                    itens_estrut = itens_estrut_limpa[0]
-
-                    cursor = conecta.cursor()
-                    cursor.execute(f"select count(id) from produtoos where numero = {op};")
-                    total_itens_consumo = cursor.fetchall()
-                    itens_consumo_limpa = total_itens_consumo[0]
-                    itens_consumo = itens_consumo_limpa[0]
-
-                    est_con = f"{itens_estrut}/{itens_consumo}"
-
-                    if itens_consumo == 0:
-                        dados = (data_em_texto, data_prev, op, cod, descr, ref, um, qtde, est_con)
+                        dados = (data_em_texto, op, cod, descr, ref, um, qtde)
                         op_ab_editado.append(dados)
 
                 lanca_tabela(self.table_Lista, op_ab_editado)

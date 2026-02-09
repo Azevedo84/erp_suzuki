@@ -992,7 +992,7 @@ class TelaOpEncerrar(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"UPDATE ordemservico SET "
                            f"movimentacao = {id_mov_ultimo}, status = 'B', datafinal = '{encerra_certo}', "
-                           f"obs = '{obs_op}' "
+                           f"obs = '{obs_op}', etapa = 'ENCERRADA' "
                            f"where numero = {num_op_int};")
 
             conecta.commit()

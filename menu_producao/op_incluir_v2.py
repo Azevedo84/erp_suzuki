@@ -535,10 +535,10 @@ class TelaOpIncluirV2(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"Insert into ordemservico "
                            f"(id, produto, numero, quantidade, datainicial, obs, codbarras, status, codigo, "
-                           f"dataprevisao, id_estrutura) "
+                           f"dataprevisao, id_estrutura, etapa) "
                            f"values (GEN_ID(GEN_ORDEMSERVICO_ID,1), {id_prod}, {num_op_int}, "
                            f"'{qtdezinha_float}', '{emissao_certo}', '{obs_certo}', '{cod_barras}', 'A', "
-                           f"'{cod_prod}', '{previsao}', {id_estrutura});")
+                           f"'{cod_prod}', '{previsao}', {id_estrutura}, 'ABERTA');")
             conecta.commit()
 
             self.mensagem_alerta(f'A Ordem de Produção Nº {num_op} foi criado com sucesso!')

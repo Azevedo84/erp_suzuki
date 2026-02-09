@@ -1159,11 +1159,6 @@
             </column>
             <column>
              <property name="text">
-              <string>PREVISÃO</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
               <string>Nº OP</string>
              </property>
             </column>
@@ -1190,11 +1185,6 @@
             <column>
              <property name="text">
               <string>QTDE</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>EST/CON</string>
              </property>
             </column>
            </widget>

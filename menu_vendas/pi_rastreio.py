@@ -483,6 +483,7 @@ class TelaPiRastreio(QMainWindow, Ui_MainWindow):
                            f"and prodreq.numero = {num_req} "
                            f"and prod.codigo = {cod_prod};")
             dados_req = cursor.fetchall()
+            print(dados_req)
 
             if dados_req:
                 num_req, qtde, descr, ref, um, tipo = dados_req[0]

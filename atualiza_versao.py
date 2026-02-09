@@ -75,10 +75,11 @@ def envia_email(alteracoes, versao_final):
 
 
 lista_modifica = ['(08/01/26) ESTRUTURA CUSTO: CORRIGIDO PROBLEMA COM TEMPO DE SERVIÇO',
-                  '(09/01/26) SOL ALTERAR: CORRIGIDO PROBLEMA COM BOTÃO "GERAR ORÇAMENTO"',]
+                  '(09/01/26) SOL ALTERAR: CORRIGIDO PROBLEMA COM BOTÃO "GERAR ORÇAMENTO"',
+                  '(09/02/26) OP INCLUIR/ALTERAR: ADICIONADO OPÇÃO DE ETAPAS DA PRODUÇÃO',]
 
 programa = "ERP SUZUKI"
-versao = "2.11.001"
+versao = "2.11.002"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()
