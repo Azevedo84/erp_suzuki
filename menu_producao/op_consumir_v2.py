@@ -1773,7 +1773,169 @@ class TelaOpConsumirV2(QMainWindow, Ui_MainWindow):
                     conecta.commit()
                     self.mensagem_alerta("Material lançado com sucesso!")
 
+            self.atualiza_etapa_completo(numero_os)
+
             self.reiniciar()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def atualiza_etapa_completo(self, num_op):
+        try:
+            cursor = conecta.cursor()
+            cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.codigo, "
+                           f"prod.descricao, "
+                           f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                           f"ordser.quantidade, ordser.id_estrutura, prod.TIPOMATERIAL "
+                           f"from ordemservico as ordser "
+                           f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                           f"where ordser.numero = {num_op};")
+            op_abertas = cursor.fetchall()
+            if op_abertas:
+                emissao, previsao, op, cod, descr, ref, um, qtde, id_estrut, tipo = op_abertas[0]
+
+                if id_estrut:
+                    total_estrut = 0
+                    total_consumo = 0
+
+                    cursor = conecta.cursor()
+                    cursor.execute(f"SELECT estprod.id, "
+                                   f"((SELECT quantidade FROM ordemservico where numero = {op}) * "
+                                   f"(estprod.quantidade)) AS Qtde "
+                                   f"FROM estrutura_produto as estprod "
+                                   f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                   f"where estprod.id_estrutura = {id_estrut};")
+                    itens_estrutura = cursor.fetchall()
+
+                    for dads in itens_estrutura:
+                        ides, quantidade = dads
+                        total_estrut += 1
+
+                        cursor = conecta.cursor()
+                        cursor.execute(f"SELECT max(prodser.ID_ESTRUT_PROD), "
+                                       f"sum(prodser.QTDE_ESTRUT_PROD) as total "
+                                       f"FROM estrutura_produto as estprod "
+                                       f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                       f"INNER JOIN produtoos as prodser ON estprod.id = prodser.ID_ESTRUT_PROD "
+                                       f"where prodser.numero = {op} and estprod.id = {ides} "
+                                       f"group by prodser.ID_ESTRUT_PROD;")
+                        itens_consumo = cursor.fetchall()
+                        for duds in itens_consumo:
+                            id_mats, qtde_mats = duds
+                            if ides == id_mats and quantidade == qtde_mats:
+                                total_consumo += 1
+
+                    if tipo == 87:
+                        if total_estrut == total_consumo:
+                            cursor = conecta.cursor()
+                            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
+                                           f"FROM ordemservico as op "
+                                           f"where op.numero = {num_op};")
+                            ops_abertas = cursor.fetchall()
+
+                            if ops_abertas:
+                                id_op, num_op, cod, id_estrut = ops_abertas[0]
+
+                                cursor = conecta.cursor()
+                                cursor.execute(f"UPDATE ordemservico SET etapa = 'A PRODUZIR' "
+                                               f"WHERE id = {id_op};")
+
+                                conecta.commit()
+                                print('A PRODUZIR')
+                        else:
+                            self.verifica_se_completo(num_op)
+                    else:
+                        if total_estrut == total_consumo:
+                            cursor = conecta.cursor()
+                            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
+                                           f"FROM ordemservico as op "
+                                           f"where op.numero = {num_op};")
+                            ops_abertas = cursor.fetchall()
+
+                            if ops_abertas:
+                                id_op, num_op, cod, id_estrut = ops_abertas[0]
+
+                                cursor = conecta.cursor()
+                                cursor.execute(f"UPDATE ordemservico SET etapa = 'EM PRODUCAO' "
+                                               f"WHERE id = {id_op};")
+
+                                conecta.commit()
+                                print('EM PRODUCAO')
+                        else:
+                            self.verifica_se_completo(num_op)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def verifica_se_completo(self, num_op):
+        try:
+            extrai_total = self.jutando_tabelas_extraidas()
+
+            falta_material = 0
+
+            for itens in extrai_total:
+                id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo, \
+                data_os, cod_os, descr_os, ref_os, um_os, qtde_os = itens
+                qtde_est_float = float(qtde_est)
+                saldo_float = float(saldo)
+
+                if not cod_os and saldo_float < qtde_est_float:
+                    falta_material += 1
+
+            if falta_material:
+                self.atualiza_etapa_aguarda_material(num_op)
+            else:
+                self.atualiza_etapa_falta_separar(num_op)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def atualiza_etapa_falta_separar(self, num_op):
+        try:
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
+                           f"FROM ordemservico as op "
+                           f"where op.numero = {num_op};")
+            ops_abertas = cursor.fetchall()
+
+            if ops_abertas:
+                id_op, num_op, cod, id_estrut = ops_abertas[0]
+
+                cursor = conecta.cursor()
+                cursor.execute(f"UPDATE ordemservico SET etapa = 'SEPARANDO MATERIAL' "
+                               f"WHERE id = {id_op};")
+
+                conecta.commit()
+                print('SEPARANDO MATERIAL')
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def atualiza_etapa_aguarda_material(self, num_op):
+        try:
+            cursor = conecta.cursor()
+            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
+                           f"FROM ordemservico as op "
+                           f"where op.numero = {num_op};")
+            ops_abertas = cursor.fetchall()
+
+            if ops_abertas:
+                id_op, num_op, cod, id_estrut = ops_abertas[0]
+
+                cursor = conecta.cursor()
+                cursor.execute(f"UPDATE ordemservico SET etapa = 'AGUARDANDO MATERIAL' "
+                               f"WHERE id = {id_op};")
+
+                conecta.commit()
+                print('AGUARDANDO MATERIAL')
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name

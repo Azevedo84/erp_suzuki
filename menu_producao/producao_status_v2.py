@@ -846,16 +846,22 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
             try:
                 self.processando = True
 
-                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+                dados_op = self.tela2_dados_op()
 
-                if not num_op:
-                    self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
-                    self.reiniciar()
-                elif int(num_op) == 0:
-                    self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
-                    self.reiniciar()
+                if not dados_op:
+                    self.mensagem_alerta('Este número de "OP" não existe!')
+                    self.line_Num_OP.clear()
                 else:
-                    self.tela2_verifica_sql_op()
+                    id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
+
+                    if not num_op:
+                        self.mensagem_alerta('O campo "Nº OP" não pode estar vazio')
+                        self.reiniciar()
+                    elif int(num_op) == 0:
+                        self.mensagem_alerta('O campo "Nº OP" não pode ser "0"')
+                        self.reiniciar()
+                    else:
+                        self.tela2_verifica_sql_op()
 
             except Exception as e:
                 nome_funcao = inspect.currentframe().f_code.co_name
@@ -867,17 +873,24 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_verifica_sql_op(self):
         try:
-            id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT numero, datainicial, status, produto, quantidade "
-                           f"FROM ordemservico where numero = {num_op};")
-            extrair_dados = cursor.fetchall()
-            if not extrair_dados:
+            if not dados_op:
                 self.mensagem_alerta('Este número de "OP" não existe!')
-
+                self.line_Num_OP.clear()
             else:
-                self.tela2_verifica_vinculo_materia()
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT numero, datainicial, status, produto, quantidade "
+                               f"FROM ordemservico where numero = {num_op};")
+                extrair_dados = cursor.fetchall()
+                if not extrair_dados:
+                    self.mensagem_alerta('Este número de "OP" não existe!')
+                    self.line_Num_OP.clear()
+
+                else:
+                    self.tela2_verifica_vinculo_materia()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -886,23 +899,29 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_verifica_vinculo_materia(self):
         try:
-            id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT codigo, ID_ESTRUT_PROD, QTDE_ESTRUT_PROD FROM produtoos where numero = {num_op};")
-            itens_os = cursor.fetchall()
-
-            verifica_cadastro = 0
-            for item in itens_os:
-                codigo, id_materia, qtde_materia = item
-                if not id_materia and not qtde_materia:
-                    verifica_cadastro = verifica_cadastro + 1
-
-            if verifica_cadastro > 0:
-                self.mensagem_alerta('O material consumido não está vinculado com a estrutura!')
-                self.reiniciar()
+            if not dados_op:
+                self.mensagem_alerta('Este número de "OP" não existe!')
+                self.line_Num_OP.clear()
             else:
-                self.tela2_verifica_dados_op()
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT codigo, ID_ESTRUT_PROD, QTDE_ESTRUT_PROD FROM produtoos where numero = {num_op};")
+                itens_os = cursor.fetchall()
+
+                verifica_cadastro = 0
+                for item in itens_os:
+                    codigo, id_materia, qtde_materia = item
+                    if not id_materia and not qtde_materia:
+                        verifica_cadastro = verifica_cadastro + 1
+
+                if verifica_cadastro > 0:
+                    self.mensagem_alerta('O material consumido não está vinculado com a estrutura!')
+                    self.reiniciar()
+                else:
+                    self.tela2_verifica_dados_op()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -911,34 +930,40 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_verifica_dados_op(self):
         try:
-            id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
-                           f"COALESCE(prod.obs, ' ') as obs, prod.unidade, "
-                           f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
-                           f"(estprod.quantidade)) AS Qtde, "
-                           f"prod.localizacao, prod.quantidade "
-                           f"FROM estrutura_produto as estprod "
-                           f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
-                           f"where estprod.id_estrutura = {id_estrut} ORDER BY prod.descricao;")
-            itens_select_estrut = cursor.fetchall()
-            if not itens_select_estrut:
-                self.mensagem_alerta('Este material não tem estrutura cadastrada!')
-                self.reiniciar()
-            elif produto_os is None:
-                self.mensagem_alerta('Esta "OP" está sem código de produto!')
-                self.reiniciar()
-            elif qtde_os is None:
-                self.mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
-                self.reiniciar()
-            elif num_op is None:
-                self.mensagem_alerta('O número da "OP" deve ser maior que "0"!')
-                self.reiniciar()
+            if not dados_op:
+                self.mensagem_alerta('Este número de "OP" não existe!')
+                self.line_Num_OP.clear()
             else:
-                self.tela2_lanca_dados_op()
-                self.tela2_separar_dados_select()
-                self.tela2_pintar_tabelas()
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
+
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
+                               f"COALESCE(prod.obs, ' ') as obs, prod.unidade, "
+                               f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                               f"(estprod.quantidade)) AS Qtde, "
+                               f"prod.localizacao, prod.quantidade "
+                               f"FROM estrutura_produto as estprod "
+                               f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                               f"where estprod.id_estrutura = {id_estrut} ORDER BY prod.descricao;")
+                itens_select_estrut = cursor.fetchall()
+                if not itens_select_estrut:
+                    self.mensagem_alerta('Este material não tem estrutura cadastrada!')
+                    self.reiniciar()
+                elif produto_os is None:
+                    self.mensagem_alerta('Esta "OP" está sem código de produto!')
+                    self.reiniciar()
+                elif qtde_os is None:
+                    self.mensagem_alerta('A quantidade da "OP" deve ser maior que "0"!')
+                    self.reiniciar()
+                elif num_op is None:
+                    self.mensagem_alerta('O número da "OP" deve ser maior que "0"!')
+                    self.reiniciar()
+                else:
+                    self.tela2_lanca_dados_op()
+                    self.tela2_separar_dados_select()
+                    self.tela2_pintar_tabelas()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -947,22 +972,28 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_lanca_dados_op(self):
         try:
-            id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            cur = conecta.cursor()
-            cur.execute("SELECT codigo, descricao, COALESCE(obs, ' ') as obs, unidade "
-                        "FROM produto where id = '{}';".format(produto_os))
-            detalhes_produtos = cur.fetchall()
-            codigo_id, descricao_id, referencia_id, unidade_id = detalhes_produtos[0]
+            if not dados_op:
+                self.mensagem_alerta('Este número de "OP" não existe!')
+                self.line_Num_OP.clear()
+            else:
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
 
-            self.date_Emissao3.setDate(data_emissao)
+                cur = conecta.cursor()
+                cur.execute("SELECT codigo, descricao, COALESCE(obs, ' ') as obs, unidade "
+                            "FROM produto where id = '{}';".format(produto_os))
+                detalhes_produtos = cur.fetchall()
+                codigo_id, descricao_id, referencia_id, unidade_id = detalhes_produtos[0]
 
-            self.line_Codigo_Manu.setText(codigo_id)
-            self.line_Descricao_Manu.setText(descricao_id)
-            self.line_Referencia_Manu.setText(referencia_id)
-            self.line_UM_Manu.setText(unidade_id)
-            numero = str(qtde_os).replace('.', ',')
-            self.line_Qtde_Manu.setText(numero)
+                self.date_Emissao3.setDate(data_emissao)
+
+                self.line_Codigo_Manu.setText(codigo_id)
+                self.line_Descricao_Manu.setText(descricao_id)
+                self.line_Referencia_Manu.setText(referencia_id)
+                self.line_UM_Manu.setText(unidade_id)
+                numero = str(qtde_os).replace('.', ',')
+                self.line_Qtde_Manu.setText(numero)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -973,11 +1004,18 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
         try:
             numero_os_line = self.line_Num_OP.text()
             cur = conecta.cursor()
-            cur.execute(f"SELECT id, numero, datainicial, status, produto, quantidade, obs, ID_ESTRUTURA "
-                        f"FROM ordemservico where numero = {numero_os_line};")
-            extrair_dados = cur.fetchall()
-            id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = extrair_dados[0]
+            cur.execute(
+                "SELECT id, numero, datainicial, status, produto, quantidade, obs, ID_ESTRUTURA "
+                "FROM ordemservico WHERE numero = ?",
+                (numero_os_line,)
+            )
 
+            dados = cur.fetchone()
+
+            if not dados:
+                return None  # ← deixa claro que não encontrou nada
+
+            id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados
             return id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut
 
         except Exception as e:
@@ -987,45 +1025,51 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_separar_dados_select(self):
         try:
-            id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            itens_manipula_total = self.tela2_select_mistura()
-
-            self.qtde_vezes_select = self.qtde_vezes_select + 1
-
-            tabela_estrutura = []
-            tabela_consumo_os = []
-
-            for itens in itens_manipula_total:
-                id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo, \
-                data_os, cod_os, descr_os, ref_os, um_os, qtde_os = itens
-
-                qtde_est_str = str(qtde_est)
-                qtde_est_float = float(qtde_est_str)
-                qtde_est_red = "%.3f" % qtde_est_float
-
-                if qtde_os == "":
-                    qtde_os_red = qtde_os
-                else:
-                    qtde_os_str = str(qtde_os)
-                    qtde_os_float = float(qtde_os_str)
-                    qtde_os_red = "%.3f" % qtde_os_float
-
-                lista_est = (id_mat, cod_est, descr_est, um_est, qtde_est_red)
-                tabela_estrutura.append(lista_est)
-
-                lista_os = (id_mat, data_os, cod_os, descr_os, um_os, qtde_os_red)
-                tabela_consumo_os.append(lista_os)
-
-            lanca_tabela(self.table_Consumo, tabela_consumo_os)
-            lanca_tabela(self.table_Estrutura, tabela_estrutura)
-
-            if status_os == "B":
-                msg = "Ordem de Produção Encerrada"
-                self.label_Status.setText(msg)
+            if not dados_op:
+                self.mensagem_alerta('Este número de "OP" não existe!')
+                self.line_Num_OP.clear()
             else:
-                msg = "Ordem de Produção Aberta"
-                self.label_Status.setText(msg)
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
+
+                itens_manipula_total = self.tela2_select_mistura()
+
+                self.qtde_vezes_select = self.qtde_vezes_select + 1
+
+                tabela_estrutura = []
+                tabela_consumo_os = []
+
+                for itens in itens_manipula_total:
+                    id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo, \
+                    data_os, cod_os, descr_os, ref_os, um_os, qtde_os = itens
+
+                    qtde_est_str = str(qtde_est)
+                    qtde_est_float = float(qtde_est_str)
+                    qtde_est_red = "%.3f" % qtde_est_float
+
+                    if qtde_os == "":
+                        qtde_os_red = qtde_os
+                    else:
+                        qtde_os_str = str(qtde_os)
+                        qtde_os_float = float(qtde_os_str)
+                        qtde_os_red = "%.3f" % qtde_os_float
+
+                    lista_est = (id_mat, cod_est, descr_est, um_est, qtde_est_red)
+                    tabela_estrutura.append(lista_est)
+
+                    lista_os = (id_mat, data_os, cod_os, descr_os, um_os, qtde_os_red)
+                    tabela_consumo_os.append(lista_os)
+
+                lanca_tabela(self.table_Consumo, tabela_consumo_os)
+                lanca_tabela(self.table_Estrutura, tabela_estrutura)
+
+                if status_os == "B":
+                    msg = "Ordem de Produção Encerrada"
+                    self.label_Status.setText(msg)
+                else:
+                    msg = "Ordem de Produção Aberta"
+                    self.label_Status.setText(msg)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -1034,69 +1078,76 @@ class TelaOpStatusV2(QMainWindow, Ui_ConsultaOP):
 
     def tela2_select_mistura(self):
         try:
-            id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = self.tela2_dados_op()
+            dados_op = self.tela2_dados_op()
 
-            dados_para_tabela = []
-            campo_br = ""
+            if not dados_op:
+                self.mensagem_alerta('Este número de "OP" não existe!')
+                self.line_Num_OP.clear()
 
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
-                           f"COALESCE(prod.obs, ' ') as obs, prod.unidade, "
-                           f"((SELECT quantidade FROM ordemservico where numero = {numero_os}) * "
-                           f"(estprod.quantidade)) AS Qtde, "
-                           f"prod.localizacao, prod.quantidade "
-                           f"FROM estrutura_produto as estprod "
-                           f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
-                           f"where estprod.id_estrutura = {id_estrut} ORDER BY prod.descricao;")
-            select_estrut = cursor.fetchall()
+            else:
+                id_os, num_op, data_emissao, status_os, produto_os, qtde_os, obs, id_estrut = dados_op
 
-            for dados_estrut in select_estrut:
-                id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
+                dados_para_tabela = []
+                campo_br = ""
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT max(estprod.id), max(prod.codigo), max(prod.descricao), "
-                               f"sum(prodser.QTDE_ESTRUT_PROD) as total "
+                cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
+                               f"COALESCE(prod.obs, ' ') as obs, prod.unidade, "
+                               f"((SELECT quantidade FROM ordemservico where numero = {num_op}) * "
+                               f"(estprod.quantidade)) AS Qtde, "
+                               f"prod.localizacao, prod.quantidade "
                                f"FROM estrutura_produto as estprod "
                                f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
-                               f"INNER JOIN produtoos as prodser ON estprod.id = prodser.ID_ESTRUT_PROD "
-                               f"where estprod.id_estrutura = {id_estrut} "
-                               f"and prodser.numero = {numero_os} and estprod.id = {id_mat_e} "
-                               f"group by prodser.ID_ESTRUT_PROD;")
-                select_os_resumo = cursor.fetchall()
+                               f"where estprod.id_estrutura = {id_estrut} ORDER BY prod.descricao;")
+                select_estrut = cursor.fetchall()
 
-                if not select_os_resumo:
-                    dados0 = (id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e,
-                              campo_br, campo_br, campo_br, campo_br, campo_br, campo_br)
-                    dados_para_tabela.append(dados0)
-
-                for dados_res in select_os_resumo:
-                    id_mat_sum, cod_sum, descr_sum, qtde_sum = dados_res
-                    sobras = qtde_e - qtde_sum
-                    if sobras > 0:
-                        dados1 = (id_mat_e, cod_e, descr_e, ref_e, um_e, sobras, local_e, saldo_e,
-                                  campo_br, campo_br, campo_br, campo_br, campo_br, campo_br)
-                        dados_para_tabela.append(dados1)
+                for dados_estrut in select_estrut:
+                    id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e = dados_estrut
 
                     cursor = conecta.cursor()
-                    cursor.execute(f"select prodser.ID_ESTRUT_PROD, "
-                                   f"COALESCE((extract(day from prodser.data)||'/'||"
-                                   f"extract(month from prodser.data)||'/'||"
-                                   f"extract(year from prodser.data)), '') AS DATA, prod.codigo, prod.descricao, "
-                                   f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                                   f"prodser.quantidade, prodser.QTDE_ESTRUT_PROD "
-                                   f"from produtoos as prodser "
-                                   f"INNER JOIN produto as prod ON prodser.produto = prod.id "
-                                   f"where prodser.numero = {numero_os} and prodser.ID_ESTRUT_PROD = {id_mat_e};")
-                    select_os = cursor.fetchall()
+                    cursor.execute(f"SELECT max(estprod.id), max(prod.codigo), max(prod.descricao), "
+                                   f"sum(prodser.QTDE_ESTRUT_PROD) as total "
+                                   f"FROM estrutura_produto as estprod "
+                                   f"INNER JOIN produto prod ON estprod.id_prod_filho = prod.id "
+                                   f"INNER JOIN produtoos as prodser ON estprod.id = prodser.ID_ESTRUT_PROD "
+                                   f"where estprod.id_estrutura = {id_estrut} "
+                                   f"and prodser.numero = {num_op} and estprod.id = {id_mat_e} "
+                                   f"group by prodser.ID_ESTRUT_PROD;")
+                    select_os_resumo = cursor.fetchall()
 
-                    for dados_os in select_os:
-                        id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os, qtde_mat_os = dados_os
+                    if not select_os_resumo:
+                        dados0 = (id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_e, local_e, saldo_e,
+                                  campo_br, campo_br, campo_br, campo_br, campo_br, campo_br)
+                        dados_para_tabela.append(dados0)
 
-                        dados2 = (id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_mat_os, local_e, saldo_e,
-                                  data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
-                        dados_para_tabela.append(dados2)
+                    for dados_res in select_os_resumo:
+                        id_mat_sum, cod_sum, descr_sum, qtde_sum = dados_res
+                        sobras = qtde_e - qtde_sum
+                        if sobras > 0:
+                            dados1 = (id_mat_e, cod_e, descr_e, ref_e, um_e, sobras, local_e, saldo_e,
+                                      campo_br, campo_br, campo_br, campo_br, campo_br, campo_br)
+                            dados_para_tabela.append(dados1)
 
-            return dados_para_tabela
+                        cursor = conecta.cursor()
+                        cursor.execute(f"select prodser.ID_ESTRUT_PROD, "
+                                       f"COALESCE((extract(day from prodser.data)||'/'||"
+                                       f"extract(month from prodser.data)||'/'||"
+                                       f"extract(year from prodser.data)), '') AS DATA, prod.codigo, prod.descricao, "
+                                       f"COALESCE(prod.obs, '') as obs, prod.unidade, "
+                                       f"prodser.quantidade, prodser.QTDE_ESTRUT_PROD "
+                                       f"from produtoos as prodser "
+                                       f"INNER JOIN produto as prod ON prodser.produto = prod.id "
+                                       f"where prodser.numero = {num_op} and prodser.ID_ESTRUT_PROD = {id_mat_e};")
+                        select_os = cursor.fetchall()
+
+                        for dados_os in select_os:
+                            id_mat_os, data_os, cod_os, descr_os, ref_os, um_os, qtde_os, qtde_mat_os = dados_os
+
+                            dados2 = (id_mat_e, cod_e, descr_e, ref_e, um_e, qtde_mat_os, local_e, saldo_e,
+                                      data_os, cod_os, descr_os, ref_os, um_os, qtde_os)
+                            dados_para_tabela.append(dados2)
+
+                return dados_para_tabela
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
