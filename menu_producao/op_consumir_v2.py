@@ -1773,7 +1773,7 @@ class TelaOpConsumirV2(QMainWindow, Ui_MainWindow):
                     conecta.commit()
                     self.mensagem_alerta("Material lançado com sucesso!")
 
-            self.atualiza_etapa_completo(numero_os)
+            self.atualiza_local_op(numero_os)
 
             self.reiniciar()
 
@@ -1782,19 +1782,21 @@ class TelaOpConsumirV2(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def atualiza_etapa_completo(self, num_op):
+    def atualiza_local_op(self, num_op):
         try:
             cursor = conecta.cursor()
-            cursor.execute(f"select ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.codigo, "
+            cursor.execute(f"select ordser.id, ordser.datainicial, ordser.dataprevisao, ordser.numero, prod.codigo, "
                            f"prod.descricao, "
                            f"COALESCE(prod.obs, '') as obs, prod.unidade, "
-                           f"ordser.quantidade, ordser.id_estrutura, prod.TIPOMATERIAL "
+                           f"ordser.quantidade, ordser.id_estrutura, prod.TIPOMATERIAL, ordser.LOCAL_OP, "
+                           f"COALESCE(ser.descricao, '') "
                            f"from ordemservico as ordser "
                            f"INNER JOIN produto prod ON ordser.produto = prod.id "
+                           f"LEFT JOIN SERVICO_INTERNO as ser ON ser.id = prod.id_servico_interno "
                            f"where ordser.numero = {num_op};")
             op_abertas = cursor.fetchall()
             if op_abertas:
-                emissao, previsao, op, cod, descr, ref, um, qtde, id_estrut, tipo = op_abertas[0]
+                id_op, emissao, previsao, op, cod, descr, ref, um, qtde, id_estrut, tipo, local_op, servico = op_abertas[0]
 
                 if id_estrut:
                     total_estrut = 0
@@ -1827,115 +1829,109 @@ class TelaOpConsumirV2(QMainWindow, Ui_MainWindow):
                             if ides == id_mats and quantidade == qtde_mats:
                                 total_consumo += 1
 
-                    if tipo == 87:
-                        if total_estrut == total_consumo:
+                    esta_na_pasta = self.verifica_arquivos_aguardando(num_op)
+
+                    if esta_na_pasta:
+                        cursor = conecta.cursor()
+                        cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'ALMOX' "
+                                       f"WHERE id = {id_op};")
+                    elif local_op == "PROJETO":
+                        pass
+                    elif local_op == "ALMOX":
+                        pass
+                    elif not servico:
+                        pass
+                    elif servico != "MONTAGEM" and servico != "SOLDA" and servico != "ELETRICO":
+                        if total_consumo == 0:
                             cursor = conecta.cursor()
-                            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
-                                           f"FROM ordemservico as op "
-                                           f"where op.numero = {num_op};")
-                            ops_abertas = cursor.fetchall()
-
-                            if ops_abertas:
-                                id_op, num_op, cod, id_estrut = ops_abertas[0]
-
-                                cursor = conecta.cursor()
-                                cursor.execute(f"UPDATE ordemservico SET etapa = 'A PRODUZIR' "
-                                               f"WHERE id = {id_op};")
-
-                                conecta.commit()
-                                print('A PRODUZIR')
+                            cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'LOC. CORTE' "
+                                           f"WHERE id = {id_op};")
                         else:
-                            self.verifica_se_completo(num_op)
+                            cursor = conecta.cursor()
+                            cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'LOC. USINAGEM' "
+                                           f"WHERE id = {id_op};")
+                    elif servico == "SOLDA":
+                        cursor = conecta.cursor()
+                        cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'LOC. SOLDA' "
+                                       f"WHERE id = {id_op};")
+                    elif servico == "ELETRICO":
+                        cursor = conecta.cursor()
+                        cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'LOC. ELETRICA' "
+                                       f"WHERE id = {id_op};")
+
+                    elif servico == "MONTAGEM":
+                        cursor = conecta.cursor()
+                        cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'LOC. MONTAGEM' "
+                                       f"WHERE id = {id_op};")
+
                     else:
-                        if total_estrut == total_consumo:
-                            cursor = conecta.cursor()
-                            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
-                                           f"FROM ordemservico as op "
-                                           f"where op.numero = {num_op};")
-                            ops_abertas = cursor.fetchall()
+                        cursor = conecta.cursor()
+                        cursor.execute(f"UPDATE ordemservico SET LOCAL_OP = 'NÃO SEI' "
+                                       f"WHERE id = {id_op};")
 
-                            if ops_abertas:
-                                id_op, num_op, cod, id_estrut = ops_abertas[0]
-
-                                cursor = conecta.cursor()
-                                cursor.execute(f"UPDATE ordemservico SET etapa = 'EM PRODUCAO' "
-                                               f"WHERE id = {id_op};")
-
-                                conecta.commit()
-                                print('EM PRODUCAO')
-                        else:
-                            self.verifica_se_completo(num_op)
+            conecta.commit()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def verifica_se_completo(self, num_op):
+    def verifica_arquivos_aguardando(self, num_op_bc):
         try:
-            extrai_total = self.jutando_tabelas_extraidas()
+            esta_na_pasta = False
 
-            falta_material = 0
+            arquivos_pdf = self.procura_arquivos_aguarda_material()
 
-            for itens in extrai_total:
-                id_mat, cod_est, descr_est, ref_est, um_est, qtde_est, local, saldo, \
-                data_os, cod_os, descr_os, ref_os, um_os, qtde_os = itens
-                qtde_est_float = float(qtde_est)
-                saldo_float = float(saldo)
+            numeros_op_processados = []
+            duplicados = []
 
-                if not cod_os and saldo_float < qtde_est_float:
-                    falta_material += 1
+            for arq_original in arquivos_pdf:
+                dadinhos = arq_original[35:]
 
-            if falta_material:
-                self.atualiza_etapa_aguarda_material(num_op)
-            else:
-                self.atualiza_etapa_falta_separar(num_op)
+                inicio = dadinhos.find("OP ")
+                dadinhos1 = dadinhos[inicio + 3:]
+
+                ini = dadinhos1.find(" - ")
+                num_op = dadinhos1[:ini]
+
+                if num_op in numeros_op_processados:
+                    duplicados.append(num_op)
+                else:
+                    numeros_op_processados.append(num_op)
+
+            if not duplicados:
+                for arq_original in arquivos_pdf:
+                    arq_original = arq_original[35:]
+
+                    inicio = arq_original.find("OP ")
+                    dadinhos1 = arq_original[inicio + 3:]
+
+                    ini = dadinhos1.find(" - ")
+                    num_op = dadinhos1[:ini]
+                    if str(num_op_bc) == num_op:
+                        esta_na_pasta = True
+                        break
+
+            return esta_na_pasta
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def atualiza_etapa_falta_separar(self, num_op):
+    def procura_arquivos_aguarda_material(self):
         try:
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
-                           f"FROM ordemservico as op "
-                           f"where op.numero = {num_op};")
-            ops_abertas = cursor.fetchall()
+            caminho = r'\\publico\C\OP\Aguardando Material/'
+            extensao = ".pdf"
 
-            if ops_abertas:
-                id_op, num_op, cod, id_estrut = ops_abertas[0]
+            arquivos_pdfs = []
 
-                cursor = conecta.cursor()
-                cursor.execute(f"UPDATE ordemservico SET etapa = 'SEPARANDO MATERIAL' "
-                               f"WHERE id = {id_op};")
+            for arquivo in os.listdir(caminho):
+                if arquivo.endswith(extensao):
+                    caminho_arquivo = os.path.join(caminho, arquivo)
+                    arquivos_pdfs.append(caminho_arquivo)
 
-                conecta.commit()
-                print('SEPARANDO MATERIAL')
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def atualiza_etapa_aguarda_material(self, num_op):
-        try:
-            cursor = conecta.cursor()
-            cursor.execute(f"SELECT op.id, op.numero, op.codigo, op.id_estrutura "
-                           f"FROM ordemservico as op "
-                           f"where op.numero = {num_op};")
-            ops_abertas = cursor.fetchall()
-
-            if ops_abertas:
-                id_op, num_op, cod, id_estrut = ops_abertas[0]
-
-                cursor = conecta.cursor()
-                cursor.execute(f"UPDATE ordemservico SET etapa = 'AGUARDANDO MATERIAL' "
-                               f"WHERE id = {id_op};")
-
-                conecta.commit()
-                print('AGUARDANDO MATERIAL')
+            return arquivos_pdfs
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
