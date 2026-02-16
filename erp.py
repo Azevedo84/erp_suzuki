@@ -2,6 +2,7 @@ import sys
 from banco_dados.conexao import conecta
 from forms.tela_menu import *
 from banco_dados.controle_erros import grava_erro_banco
+from banco_dados.dados_email import email_user, password
 from comandos.telas import icone, editar_botao
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QMessageBox
 from PyQt5.QtCore import QTimer
@@ -23,8 +24,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.11.004"
-        self.data_versao = f"12/02/2026"
+        self.versao = f"Versão 2.11.005"
+        self.data_versao = f"16/02/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -498,11 +499,9 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                         f"Se houver algum problema com o recebimento de emails ou conflitos com o arquivo excel, " \
                         f"favor entrar em contato pelo email maquinas@unisold.com.br.\n\n"
 
-            email_user = 'ti.ahcmaq@gmail.com'
             to = ['<maquinas@unisold.com.br>']
-            password = 'poswxhqkeaacblku'
 
-            return saudacao, msg_final, email_user, to, password
+            return saudacao, msg_final, to
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -522,7 +521,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             select = cursor.fetchall()
 
             if not select:
-                saudacao, msg_final, email_user, to, password = self.mensagem_email()
+                saudacao, msg_final, to = self.mensagem_email()
 
                 subject = f'Computadores'
 

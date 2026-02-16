@@ -14,6 +14,8 @@ from datetime import date
 import traceback
 from unidecode import unidecode
 
+import re
+
 
 class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
@@ -36,8 +38,11 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
         self.btn_Limpar.clicked.connect(self.reiniciando_tela)
         self.btn_Excluir.clicked.connect(self.excluir_cadastro)
 
-        self.btn_Consulta.clicked.connect(self.procura_palavra)
-        self.line_Consulta.returnPressed.connect(lambda: self.procura_palavra())
+        self.btn_Consulta.clicked.connect(self.procura_descricao)
+        self.line_Consulta.returnPressed.connect(lambda: self.procura_descricao())
+
+        self.btn_Consulta_Siger.clicked.connect(self.procura_siger)
+        self.line_Consulta_Siger.returnPressed.connect(lambda: self.procura_siger())
 
         validador_so_numeros(self.line_Num)
         self.line_Num.setReadOnly(True)
@@ -143,6 +148,10 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             self.line_Registro.clear()
             self.line_Descricao.clear()
             self.line_Consulta.clear()
+            self.line_Consulta_Siger.clear()
+            self.line_CNPJ.clear()
+
+            self.table_Lista.setRowCount(0)
 
             self.lanca_numero_id()
             self.definir_desbloqueios()
@@ -152,7 +161,7 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def procura_palavra(self):
+    def procura_descricao(self):
         try:
             tabela_nova = []
 
@@ -165,7 +174,7 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                 palavra_maiuscula = palavra_consulta.upper()
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT DISTINCT id, data_criacao, registro, razao "
+                cursor.execute(f"SELECT DISTINCT id, data_criacao, registro, razao, cnpj "
                                f"FROM fornecedores "
                                f"WHERE razao LIKE '%{palavra_maiuscula}%' "
                                f"ORDER BY razao;")
@@ -176,11 +185,47 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                     self.line_Consulta.clear()
                 else:
                     for i in palavra:
-                        id_fornecedor, data, registro, razao = i
+                        id_fornecedor, data, registro, razao, cnpj = i
 
                         data_formatada = timestamp_brasileiro(data)
 
-                        dados = (id_fornecedor, data_formatada, registro, razao)
+                        dados = (id_fornecedor, data_formatada, registro, razao, cnpj)
+                        tabela_nova.append(dados)
+
+                if tabela_nova:
+                    lanca_tabela(self.table_Lista, tabela_nova)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def procura_siger(self):
+        try:
+            tabela_nova = []
+
+            siger = self.line_Consulta_Siger.text()
+
+            if not siger:
+                self.mensagem_alerta(f'O Campo "Consulta Reg. Siger" não pode estar vazio!')
+                self.line_Consulta.clear()
+            else:
+                cursor = conecta.cursor()
+                cursor.execute(f"SELECT id, data_criacao, registro, razao, cnpj "
+                               f"FROM fornecedores "
+                               f"WHERE registro ='{siger}';")
+                dados_cnpj = cursor.fetchall()
+
+                if not dados_cnpj:
+                    self.mensagem_alerta(f'Não foi encontrado Fornecedor com Código de Registro: "{siger}"!')
+                    self.line_Consulta.clear()
+                else:
+                    for i in dados_cnpj:
+                        id_fornecedor, data, registro, razao, cnpj = i
+
+                        data_formatada = timestamp_brasileiro(data)
+
+                        dados = (id_fornecedor, data_formatada, registro, razao, cnpj)
                         tabela_nova.append(dados)
 
                 if tabela_nova:
@@ -201,11 +246,12 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                 extrai_recomendados = extrair_tabela(self.table_Lista)
                 item_selecionado = extrai_recomendados[item.row()]
 
-                id_cli, criacao, registro, desc = item_selecionado
+                id_cli, criacao, registro, desc, cnpj = item_selecionado
 
                 self.line_Num.setText(id_cli)
                 self.line_Registro.setText(registro)
                 self.line_Descricao.setText(desc)
+                self.line_CNPJ.setText(cnpj)
 
                 self.definir_bloqueios()
 
@@ -287,11 +333,21 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def limpar_cnpj(self, cnpj):
+        try:
+            return re.sub(r'\D', '', cnpj)
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def verifica_salvamento(self):
         try:
             num_id = self.line_Num.text()
             registro = self.line_Registro.text()
             nome = self.line_Descricao.text()
+            cnpj = self.line_CNPJ.text()
 
             if not num_id:
                 self.mensagem_alerta('O campo "Código" não pode estar vazio!')
@@ -315,6 +371,14 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta('O campo "Descrição:" não pode ser "0"!   ')
                 self.line_Descricao.clear()
                 self.line_Descricao.setFocus()
+            elif not cnpj:
+                self.mensagem_alerta('O campo "CNPJ:" não pode estar vazio!   ')
+                self.line_Descricao.clear()
+                self.line_Descricao.setFocus()
+            elif cnpj == "0":
+                self.mensagem_alerta('O campo "CNPJ:" não pode ser "0"!   ')
+                self.line_Descricao.clear()
+                self.line_Descricao.setFocus()
             else:
                 self.salvar_dados()
 
@@ -333,17 +397,22 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             descr_maiuscula = descr.upper()
             descr_sem_acentos = unidecode(descr_maiuscula)
 
+            cnpj = self.limpar_cnpj(self.line_CNPJ.text())
+
             cursor = conecta.cursor()
-            cursor.execute(f"select id, data_criacao, registro, razao "
+            cursor.execute(f"select id, data_criacao, registro, razao, cnpj "
                            f"from fornecedores where id = {num_id};")
             fornecedor = cursor.fetchall()
 
             if fornecedor:
-                num_id_b, criacao_b, registro_b, razao_b = fornecedor[0]
+                num_id_b, criacao_b, registro_b, razao_b, cnpj_b = fornecedor[0]
 
                 campos_atualizados = []
                 if descr_sem_acentos != razao_b:
                     campos_atualizados.append(f"razao = '{descr_sem_acentos}'")
+
+                if cnpj != cnpj_b:
+                    campos_atualizados.append(f"cnpj = '{cnpj}'")
 
                 if campos_atualizados:
                     msg = f'Deseja realmente atualizar o cadastro do Fornecedor?'
@@ -362,8 +431,9 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                 msg = f'Deseja realmente cadastrar este Fornecedor?'
                 if self.pergunta_confirmacao(msg):
                     cursor = conecta.cursor()
-                    cursor.execute(f"Insert into fornecedores (ID, RAZAO, REGISTRO) "
-                                   f"values (GEN_ID(GEN_FORNECEDORES_ID,1), '{descr_sem_acentos}', '{registro}');")
+                    cursor.execute(f"Insert into fornecedores (ID, RAZAO, REGISTRO, CNPJ) "
+                                   f"values (GEN_ID(GEN_FORNECEDORES_ID,1), '{descr_sem_acentos}', '{registro}', "
+                                   f"'{cnpj}');")
 
                     conecta.commit()
 
