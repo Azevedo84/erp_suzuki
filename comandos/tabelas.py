@@ -46,6 +46,61 @@ def layout_cabec_tab(nome_tabela):
         exc_traceback = sys.exc_info()[2]
         trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
 
+def layout_cabec_tab_v2(nome_tabela):
+    try:
+        nome_tabela.horizontalHeader().setStyleSheet(f"""
+            QHeaderView::section {{
+                background-color: #f5f6f8;
+                font-weight: 600;
+                color: #000000;
+                padding: 4px;
+                border: none;
+                border-bottom: 1px solid #dcdcdc;
+            }}
+        """)
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
+def lanca_tabela_v2(nome_tabela, dados_tab, altura_linha=23,
+                 zebra=True, largura_auto=True, bloqueia_texto=True):
+
+    try:
+        linhas_est = len(dados_tab)
+        colunas_est = len(dados_tab[0])
+
+        nome_tabela.setRowCount(linhas_est)
+        nome_tabela.setColumnCount(colunas_est)
+
+        alinha_cetralizado = AlignDelegate(nome_tabela)
+        for j in range(colunas_est):
+            nome_tabela.setItemDelegateForColumn(j, alinha_cetralizado)
+
+        for i, linha in enumerate(dados_tab):
+            nome_tabela.setRowHeight(i, altura_linha)
+
+            for j, dado in enumerate(linha):
+                item = QTableWidgetItem(str(dado))
+                nome_tabela.setItem(i, j, item)
+
+        nome_tabela.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        if largura_auto:
+            nome_tabela.resizeColumnsToContents()
+
+        if bloqueia_texto:
+            nome_tabela.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        if zebra:
+            nome_tabela.setAlternatingRowColors(True)
+
+    except Exception as e:
+        nome_funcao = inspect.currentframe().f_code.co_name
+        exc_traceback = sys.exc_info()[2]
+        trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
+
 
 def lanca_tabela(nome_tabela, dados_tab, altura_linha=25, zebra=True, largura_auto=True, bloqueia_texto=True):
     try:

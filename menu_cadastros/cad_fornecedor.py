@@ -105,24 +105,6 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def definir_bloqueios(self):
-        try:
-            self.line_Registro.setReadOnly(True)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
-    def definir_desbloqueios(self):
-        try:
-            self.line_Registro.setReadOnly(False)
-
-        except Exception as e:
-            nome_funcao = inspect.currentframe().f_code.co_name
-            exc_traceback = sys.exc_info()[2]
-            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
-
     def lanca_numero_id(self):
         try:
             definir_proximo_registro(self.line_Num, "id", "fornecedores")
@@ -154,7 +136,6 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
             self.table_Lista.setRowCount(0)
 
             self.lanca_numero_id()
-            self.definir_desbloqueios()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -252,8 +233,6 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
                 self.line_Registro.setText(registro)
                 self.line_Descricao.setText(desc)
                 self.line_CNPJ.setText(cnpj)
-
-                self.definir_bloqueios()
 
             return super(QMainWindow, self).eventFilter(source, event)
 
@@ -413,6 +392,9 @@ class TelaCadastroFornecedor(QMainWindow, Ui_MainWindow):
 
                 if cnpj != cnpj_b:
                     campos_atualizados.append(f"cnpj = '{cnpj}'")
+
+                if registro != registro_b:
+                    campos_atualizados.append(f"registro = '{registro}'")
 
                 if campos_atualizados:
                     msg = f'Deseja realmente atualizar o cadastro do Fornecedor?'

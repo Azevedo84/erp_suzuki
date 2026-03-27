@@ -395,10 +395,9 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def abrir_tela_escolher_produto(self):
-        cod_prod = self.line_Codigo.text()
         from menu_cadastros.prod_pesquisar import TelaProdutoPesquisar
 
-        self.escolher_produto = TelaProdutoPesquisar(cod_prod, True)
+        self.escolher_produto = TelaProdutoPesquisar(True)
         self.escolher_produto.produto_escolhido.connect(self.atualizar_produto_entry)
         self.escolher_produto.show()
 

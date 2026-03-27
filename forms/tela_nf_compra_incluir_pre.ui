@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ui version="4.0">
+ <class>TelaEntradaNF</class>
+ <widget class="QWidget" name="TelaEntradaNF">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Entrada de NF</string>
+  </property>
+
+  <layout class="QVBoxLayout">
+
+   <!-- Seleção NF -->
+
+   <item>
+    <layout class="QGridLayout">
+
+```
+ <item row="0" column="0">
+  <widget class="QLabel">
+   <property name="text">
+    <string>Fornecedor</string>
+   </property>
+  </widget>
+ </item>
+
+ <item row="0" column="1">
+  <widget class="QComboBox" name="combo_fornecedor"/>
+ </item>
+
+ <item row="0" column="2">
+  <widget class="QLabel">
+   <property name="text">
+    <string>Pré NF</string>
+   </property>
+  </widget>
+ </item>
+
+ <item row="0" column="3">
+  <widget class="QComboBox" name="combo_pre_nf"/>
+ </item>
+
+ <item row="1" column="0">
+  <widget class="QLabel">
+   <property name="text">
+    <string>Data Entrada</string>
+   </property>
+  </widget>
+ </item>
+
+ <item row="1" column="1">
+  <widget class="QDateEdit" name="date_entrada_nf">
+   <property name="calendarPopup">
+    <bool>true</bool>
+   </property>
+  </widget>
+ </item>
+
+</layout>
+```
+
+   </item>
+
+   <!-- Dados NF -->
+
+   <item>
+    <widget class="QGroupBox">
+     <property name="title">
+      <string>Dados da NF</string>
+     </property>
+
+```
+ <layout class="QGridLayout">
+
+  <item row="0" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Número</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="0" column="1">
+   <widget class="QLabel" name="label_numero_nf"/>
+  </item>
+
+  <item row="0" column="2">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Série</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="0" column="3">
+   <widget class="QLabel" name="label_serie_nf"/>
+  </item>
+
+  <item row="1" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Data Emissão</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="1" column="1">
+   <widget class="QLabel" name="label_data_nf"/>
+  </item>
+
+  <item row="2" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Chave NFe</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="2" column="1" colspan="3">
+   <widget class="QLabel" name="label_chave_nfe"/>
+  </item>
+
+  <item row="3" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Natureza Operação</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="3" column="1" colspan="3">
+   <widget class="QLabel" name="label_natop"/>
+  </item>
+
+  <item row="4" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Parcelas</string>
+    </property>
+   </widget>
+  </item>
+
+  <item row="4" column="1" colspan="3">
+   <widget class="QLabel" name="label_faturas"/>
+  </item>
+
+ </layout>
+</widget>
+```
+
+   </item>
+
+   <!-- Itens -->
+
+   <item>
+    <widget class="QGroupBox">
+     <property name="title">
+      <string>Itens da NF</string>
+     </property>
+
+```
+ <layout class="QVBoxLayout">
+
+  <item>
+   <widget class="QTableWidget" name="table_itens_nf">
+    <column>
+     <property name="text">
+      <string>✔</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Item</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Código</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Produto</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>UM</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Qtde</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Status</string>
+     </property>
+    </column>
+
+    <column>
+     <property name="text">
+      <string>Ação</string>
+     </property>
+    </column>
+
+   </widget>
+  </item>
+
+ </layout>
+</widget>
+```
+
+   </item>
+
+   <!-- Totais -->
+
+   <item>
+    <widget class="QGroupBox">
+     <property name="title">
+      <string>Totais da NF</string>
+     </property>
+
+```
+ <layout class="QGridLayout">
+
+  <item row="0" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Produtos</string>
+    </property>
+   </widget>
+  </item>
+  <item row="0" column="1">
+   <widget class="QLabel" name="label_total_produtos"/>
+  </item>
+
+  <item row="0" column="2">
+   <widget class="QLabel">
+    <property name="text">
+     <string>IPI</string>
+    </property>
+   </widget>
+  </item>
+  <item row="0" column="3">
+   <widget class="QLabel" name="label_total_ipi"/>
+  </item>
+
+  <item row="1" column="0">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Frete</string>
+    </property>
+   </widget>
+  </item>
+  <item row="1" column="1">
+   <widget class="QLabel" name="label_total_frete"/>
+  </item>
+
+  <item row="1" column="2">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Desconto</string>
+    </property>
+   </widget>
+  </item>
+  <item row="1" column="3">
+   <widget class="QLabel" name="label_total_desconto"/>
+  </item>
+
+  <item row="2" column="2">
+   <widget class="QLabel">
+    <property name="text">
+     <string>Total NF</string>
+    </property>
+   </widget>
+  </item>
+  <item row="2" column="3">
+   <widget class="QLabel" name="label_total_nf"/>
+  </item>
+
+ </layout>
+</widget>
+```
+
+   </item>
+
+   <!-- Botão salvar -->
+
+   <item>
+    <widget class="QPushButton" name="btn_salvar_entrada">
+     <property name="text">
+      <string>Salvar Entrada NF</string>
+     </property>
+    </widget>
+   </item>
+
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

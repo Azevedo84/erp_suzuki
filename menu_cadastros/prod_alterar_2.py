@@ -6,7 +6,7 @@ from comandos.telas import icone
 from comandos.lines import validador_decimal
 from comandos.conversores import valores_para_float, float_para_virgula
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt5.QtCore import pyqtSignal, QDate
+from PyQt5.QtCore import pyqtSignal
 import inspect
 import os
 import re
@@ -186,7 +186,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                         f"prod.quantidade, prod.embalagem, COALESCE(prod.kilosmetro, ''), conj.conjunto, "
                         f"COALESCE(tip.tipomaterial, ''), prod.DATA_CRIACAO, COALESCE(prod.embalagem, ''), "
                         f"prod.custounitario, prod.quantidademin, proj.projeto, conj.id, prod.obs2, "
-                        f"COALESCE(prod.ID_SERVICO_INTERNO, '') "
+                        f"COALESCE(prod.ID_SERVICO_INTERNO, ''), COALESCE(prod.MOVIMENTA_ESTOQUE, '') "
                         f"FROM produto as prod "
                         f"LEFT JOIN conjuntos conj ON prod.conjunto = conj.id "
                         f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
@@ -196,7 +196,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
             if detalhes_produto:
                 id_prod, barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, conjunto, tipo, \
-                data, embalagem, custo, minima, projeto, id_conj, obs, id_servico_int = detalhes_produto[0]
+                data, embalagem, custo, minima, projeto, id_conj, obs, id_servico_int, mov_est = detalhes_produto[0]
 
                 barras_sem_espacos = barras.strip()
 
@@ -274,6 +274,18 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                             projeto_text = self.combo_Projeto.itemText(i_projeto)
                             if projeto_certo in projeto_text:
                                 self.combo_Projeto.setCurrentText(projeto_text)
+
+                if mov_est:
+                    if mov_est == 'S':
+                        movimenta_estoque = "SIM"
+                    else:
+                        movimenta_estoque = "NÃO"
+
+                    mov_est_count = self.combo_Movimenta.count()
+                    for mov_est_um in range(mov_est_count):
+                        mov_est_text = self.combo_Movimenta.itemText(mov_est_um)
+                        if movimenta_estoque == mov_est_text:
+                            self.combo_Movimenta.setCurrentText(mov_est_text)
 
                 if minima:
                     min_str = str(minima)
@@ -571,6 +583,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             self.combo_Servico_Interno.setCurrentText("")
             self.combo_Tipo.setCurrentText("")
             self.combo_Projeto.setCurrentText("")
+            self.combo_Movimenta.setCurrentText("")
 
             self.data_emissao()
 
@@ -604,6 +617,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
             servico_interno = self.combo_Servico_Interno.currentText()
             tipo = self.combo_Tipo.currentText()
 
+            movimenta = self.combo_Movimenta.currentText()
+
             if not cod_produto:
                 self.mensagem_alerta(f'O Código do produto não pode estar vazio!')
             elif not cod_barras:
@@ -616,6 +631,8 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta(f'O Conjunto do produto não pode estar vazio!')
             elif not tipo:
                 self.mensagem_alerta(f'O Tipo de Material do produto não pode estar vazio!')
+            elif not movimenta:
+                self.mensagem_alerta(f'O campo Mov. Estoque do produto não pode estar vazio!')
             else:
                 if not ncm:
                     msg = f'A NCM do produto não deveria estar vazia!\n\n' \
@@ -670,7 +687,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                         f"prod.quantidade, prod.embalagem, COALESCE(prod.kilosmetro, ''), "
                         f"prod.tipomaterial, prod.DATA_CRIACAO, COALESCE(prod.embalagem, ''), "
                         f"prod.custounitario, prod.quantidademin, prod.projeto, prod.conjunto, prod.obs2, "
-                        f"prod.ID_SERVICO_INTERNO "
+                        f"prod.ID_SERVICO_INTERNO, COALESCE(prod.MOVIMENTA_ESTOQUE, '') "
                         f"FROM produto as prod "
                         f"LEFT JOIN conjuntos conj ON prod.conjunto = conj.id "
                         f"LEFT JOIN tipomaterial tip ON prod.tipomaterial = tip.id "
@@ -680,7 +697,7 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
 
             if detalhes_produto:
                 id_prod, cod_barras, descr, compl, ref, um, local, ncm, saldo, embal, kg_mt, id_tipo, \
-                    data, embalagem, custo, minima, id_projeto, id_conjunto, obs, id_serv_int = detalhes_produto[0]
+                    data, embalagem, custo, minima, id_projeto, id_conjunto, obs, id_serv_int, mov_est = detalhes_produto[0]
 
                 if not id_conjunto:
                     id_conjunto = "NULL"
@@ -715,6 +732,12 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                     obs_a = obs_plain.upper()
                 else:
                     obs_a = "NULL"
+
+                movimenta = self.combo_Movimenta.currentText()
+                if movimenta == "SIM":
+                    mov_est_a = 'S'
+                else:
+                    mov_est_a = 'N'
 
                 conjunto_a = self.combo_Conjunto.currentText()
                 if conjunto_a:
@@ -811,6 +834,11 @@ class TelaProdutoAlterar(QMainWindow, Ui_MainWindow):
                         campos_atualizados.append(f"NCM = '{ncm_a}'")
                     else:
                         campos_atualizados.append(f"NCM = NULL")
+                print(mov_est)
+                print(mov_est_a)
+                print(mov_est != mov_est_a)
+                if mov_est != mov_est_a:
+                    campos_atualizados.append(f"MOVIMENTA_ESTOQUE = '{mov_est_a}'")
 
                 if obs != obs_a:
                     if obs_a:

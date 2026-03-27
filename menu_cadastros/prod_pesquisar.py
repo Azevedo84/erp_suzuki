@@ -20,11 +20,10 @@ import traceback
 class TelaProdutoPesquisar(QMainWindow, Ui_MainWindow):
     produto_escolhido = pyqtSignal(str)
 
-    def __init__(self, produto, outra_tela, parent=None):
+    def __init__(self, outra_tela, parent=None):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.produto = produto
         self.outra_tela = outra_tela
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
@@ -1604,6 +1603,6 @@ class TelaProdutoPesquisar(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaProdutoPesquisar("", False)
+    tela = TelaProdutoPesquisar(False)
     tela.show()
     qt.exec_()

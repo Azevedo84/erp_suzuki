@@ -598,6 +598,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             self.combo_Tipo.setCurrentText("")
             self.combo_Projeto.setCurrentText("")
             self.combo_Servico_Interno.setCurrentText("")
+            self.combo_Movimenta.setCurrentText("")
 
             self.label_Maquina_Des.setText("")
 
@@ -634,6 +635,8 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             servico_interno = self.combo_Servico_Interno.currentText()
             tipo = self.combo_Tipo.currentText()
 
+            movimenta = self.combo_Movimenta.currentText()
+
             if not cod_produto:
                 self.mensagem_alerta(f'O Código do produto não pode estar vazio!')
             elif not cod_barras:
@@ -648,6 +651,8 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta(f'O Conjunto do produto não pode estar vazio!')
             elif not tipo:
                 self.mensagem_alerta(f'O Tipo de Material do produto não pode estar vazio!')
+            elif not movimenta:
+                self.mensagem_alerta(f'O campo Mov. Estoque do produto não pode estar vazio!')
             else:
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT codigo, descricao, obs FROM produto where codigo = '{cod_produto}';")
@@ -725,6 +730,12 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             local = self.line_Local.text()
             cod_barras = self.line_Barras.text()
 
+            movimenta = self.combo_Movimenta.currentText()
+            if movimenta == "SIM":
+                mov_est = 'S'
+            else:
+                mov_est = 'N'
+
             obs = self.plain_Obs.toPlainText()
 
             conjunto = self.combo_Conjunto.currentText()
@@ -759,26 +770,26 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                                f"DESCRICAO, "
                                f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
-                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, PROJETO, OBS2, NCM) "
+                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, PROJETO, OBS2, NCM, MOVIMENTA_ESTOQUE) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
                                f"'{id_conjunto}', {id_servico_interno}, '{descr}', '{compl}', '{embalagem}', "
                                f"'{um}', '0', '0', "
                                f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
                                f"'{data_hoje}', "
-                               f"'0', '{id_tipo}', '{id_projeto}', '{obs}', '{ncm}');")
+                               f"'0', '{id_tipo}', '{id_projeto}', '{obs}', '{ncm}', '{mov_est}');")
             else:
                 cursor = conecta.cursor()
                 cursor.execute(f"Insert into produto (ID, CODIGO, CODBARRAS, CONJUNTO, ID_SERVICO_INTERNO, "
                                f"DESCRICAO, "
                                f"DESCRICAOCOMPLEMENTAR, EMBALAGEM, UNIDADE, MEDIDADECORTE, PESO, "
                                f"KILOSMETRO, QUANTIDADE, QUANTIDADEMIN, CUSTOUNITARIO, OBS, LOCALIZACAO, "
-                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, OBS2, NCM) "
+                               f"DATA, CUSTOESTRUTURA, TIPOMATERIAL, OBS2, NCM, MOVIMENTA_ESTOQUE) "
                                f"values (GEN_ID(GEN_PRODUTO_ID,1), '{cod_produto}', '{cod_barras}', "
                                f"'{id_conjunto}', {id_servico_interno}, '{descr}', '{compl}', '{embalagem}', "
                                f"'{um}', '0', '0', "
                                f"'{kg_mt_float}', '0', '{qtde_minima}', '{custo_unit}', '{ref}', '{local}', "
                                f"'{data_hoje}', "
-                               f"'0', '{id_tipo}', '{obs}', '{ncm}');")
+                               f"'0', '{id_tipo}', '{obs}', '{ncm}', '{mov_est}');")
 
                 conecta.commit()
 

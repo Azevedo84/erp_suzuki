@@ -24,13 +24,13 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.11.005"
-        self.data_versao = f"16/02/2026"
+        self.versao = f"Versão 2.11.006"
+        self.data_versao = f"27/03/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
 
-        pixmap = QPixmap('arquivos/Logo_sem_fundo.png')
+        pixmap = QPixmap('arquivos/logo_erp.png')
         self.label.setPixmap(pixmap)
 
         editar_botao(self.btn_Produto, "produto.png", 'Produto', 50)
@@ -94,7 +94,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
-        icone(self, "menu_menu.png")
+        icone(self, "menu.png")
         self.tamanho_aplicacao()
 
         self.definir_comando_telas()

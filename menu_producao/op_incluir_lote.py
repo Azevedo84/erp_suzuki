@@ -1050,10 +1050,10 @@ class TelaOpLote(QMainWindow, Ui_MainWindow):
                 cursor = conecta.cursor()
                 cursor.execute(f"Insert into ordemservico "
                                f"(id, produto, numero, quantidade, datainicial, obs, codbarras, status, codigo, "
-                               f"dataprevisao, etapa) "
+                               f"dataprevisao) "
                                f"values (GEN_ID(GEN_ORDEMSERVICO_ID,1), {id_prod_int}, {num_op_int}, "
                                f"'{qtdezinha_int}', '{emissao_certo}', '{obs_certo}', '{cod_barras}', 'A', "
-                               f"'{cod_op}', '{previsao}', 'ABERTA');")
+                               f"'{cod_op}', '{previsao}');")
 
             conecta.commit()
             self.mensagem_alerta(f'As Ordens de Produção em Lote foi criadas com sucesso!')
