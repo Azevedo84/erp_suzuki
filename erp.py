@@ -24,8 +24,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.11.006"
-        self.data_versao = f"27/03/2026"
+        self.versao = f"Versão 2.11.007"
+        self.data_versao = f"31/03/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -261,7 +261,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
             elif sender == self.actionPesquisar_Produto:
                 from menu_cadastros.prod_pesquisar import TelaProdutoPesquisar
-                self.prod_pesquisar = TelaProdutoPesquisar("", False)
+                self.prod_pesquisar = TelaProdutoPesquisar(False)
                 self.prod_pesquisar.show()
 
             elif sender == self.action_Consultar_Produto:
