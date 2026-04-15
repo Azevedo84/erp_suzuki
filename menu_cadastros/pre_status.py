@@ -64,7 +64,7 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
         try:
             tabela = []
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
+            cursor.execute(f"SELECT id, obs, descricao, descr_compl, referencia, um, ncm, "
                            f"kg_mt, fornecedor, data_criacao, codigo "
                            f"FROM PRODUTOPRELIMINAR where codigo IS NULL "
                            f"order by data_criacao;")
@@ -72,11 +72,11 @@ class TelaPreStatus(QMainWindow, Ui_MainWindow):
 
             if dados_banco:
                 for i in dados_banco:
-                    id_pre, registro, obs, descr, compl, ref, um, ncm, kg_mt, forn, emissao, codigo = i
+                    id_pre, obs, descr, compl, ref, um, ncm, kg_mt, forn, emissao, codigo = i
 
                     datis = emissao.strftime("%d/%m/%Y")
 
-                    dados = (datis, registro, obs, descr, compl, ref, um, ncm, kg_mt, forn)
+                    dados = (datis, id_pre, obs, descr, compl, ref, um, ncm, kg_mt, forn)
                     tabela.append(dados)
 
             if tabela:

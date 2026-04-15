@@ -130,7 +130,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
             cursor = conecta.cursor()
             cursor.execute(f"SELECT id, descricao, referencia, um, fornecedor "
                            f"FROM PRODUTOPRELIMINAR "
-                           f"WHERE (codigo IS NULL) AND (entregue IS NULL OR entregue = '');")
+                           f"WHERE codigo IS NULL;")
             dados_banco = cursor.fetchall()
 
             if dados_banco:
@@ -279,7 +279,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
                 id_pre, desc, ref, um, forn = item_selecionado
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
+                cursor.execute(f"SELECT id, obs, descricao, descr_compl, referencia, um, ncm, "
                                f"kg_mt, fornecedor, data_criacao, codigo "
                                f"FROM PRODUTOPRELIMINAR "
                                f"where id = {id_pre};")
@@ -287,7 +287,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
                 if dados_banco:
                     for i in dados_banco:
-                        id_pres, registro, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
+                        id_pres, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
 
                         descr_sem = self.remover_espaco_branco_ini_fim(descrs)
                         compl_sem = self.remover_espaco_branco_ini_fim(compl)
@@ -695,7 +695,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
             if id_pre:
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT id, registro, obs, descricao, descr_compl, referencia, um, ncm, "
+                cursor.execute(f"SELECT id, obs, descricao, descr_compl, referencia, um, ncm, "
                                f"kg_mt, fornecedor, data_criacao, codigo "
                                f"FROM PRODUTOPRELIMINAR "
                                f"where id = {id_pre};")
@@ -703,7 +703,7 @@ class TelaProdutoIncluir(QMainWindow, Ui_MainWindow):
 
                 if dados_banco:
                     for i in dados_banco:
-                        id_pres, registro, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
+                        id_pres, obs, descrs, compl, refs, ums, ncm, kg_mt, forns, emissao, cod_prod = i
 
                         cursor = conecta.cursor()
                         cursor.execute(f"UPDATE PRODUTOPRELIMINAR SET CODIGO = {cod_produto} WHERE id = {id_pres};")

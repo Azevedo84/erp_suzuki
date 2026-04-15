@@ -216,7 +216,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
             produto_descr = cursor.fetchall()
 
             cursor = conecta.cursor()
-            cursor.execute(f"SELECT registro, descricao FROM PRODUTOPRELIMINAR where descricao = '{descr}';")
+            cursor.execute(f"SELECT id, descricao FROM PRODUTOPRELIMINAR where descricao = '{descr}';")
             produto_pre_descr = cursor.fetchall()
 
             if produto_descr:
@@ -245,7 +245,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
                 produto_ref = cursor.fetchall()
 
                 cursor = conecta.cursor()
-                cursor.execute(f"SELECT registro, descricao FROM PRODUTOPRELIMINAR where referencia = '{ref}';")
+                cursor.execute(f"SELECT id, descricao FROM PRODUTOPRELIMINAR where referencia = '{ref}';")
                 produto_pre_ref = cursor.fetchall()
 
                 if produto_ref:
@@ -443,12 +443,12 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
 
                 cursor = conecta.cursor()
                 sql = """
-                INSERT INTO PRODUTOPRELIMINAR (ID, REGISTRO, OBS, DESCRICAO, DESCR_COMPL, 
+                INSERT INTO PRODUTOPRELIMINAR (ID, OBS, DESCRICAO, DESCR_COMPL, 
                 REFERENCIA, UM, NCM, KG_MT, FORNECEDOR) 
-                VALUES (GEN_ID(GEN_PRODUTOPRELIMINAR_ID,1), ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (GEN_ID(GEN_PRODUTOPRELIMINAR_ID,1), ?, ?, ?, ?, ?, ?, ?, ?);
                 """
 
-                cursor.execute(sql, (registro, obs, descr, decr_compl, ref, um, ncm, qtdezinha_float, fornecedor))
+                cursor.execute(sql, (obs, descr, decr_compl, ref, um, ncm, qtdezinha_float, fornecedor))
 
             conecta.commit()
 
