@@ -405,6 +405,12 @@
     <addaction name="action_CI_Incluir"/>
     <addaction name="actionIncluir_Consumo_Tempor_rio"/>
    </widget>
+   <widget class="QMenu" name="menuEngenharia">
+    <property name="title">
+     <string>Engenharia</string>
+    </property>
+    <addaction name="actionConferir_Diver"/>
+   </widget>
    <addaction name="menu_Produto"/>
    <addaction name="menuEstrutura"/>
    <addaction name="menu_Compras"/>
@@ -413,6 +419,7 @@
    <addaction name="menu_Plano"/>
    <addaction name="menu_Vendas"/>
    <addaction name="menu_Estoque"/>
+   <addaction name="menuEngenharia"/>
   </widget>
   <action name="action_Incluir_Sol">
    <property name="text">
@@ -855,6 +862,11 @@
   <action name="actionAlterar_Sol">
    <property name="text">
     <string>Alterar Sol</string>
+   </property>
+  </action>
+  <action name="actionConferir_Diver">
+   <property name="text">
+    <string>Conferir Divergências</string>
    </property>
   </action>
  </widget>

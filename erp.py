@@ -24,8 +24,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.11.010"
-        self.data_versao = f"15/04/2026"
+        self.versao = f"Versão 2.12.000"
+        self.data_versao = f"30/04/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -90,6 +90,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.ov_incluir = []
         self.ov_alterar = []
         self.vendas_status = []
+
+        self.eng_divergencia = []
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
@@ -229,6 +231,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.action_OV_Incluir.triggered.connect(self.definir_tela_action)
             self.action_OV_Alterar.triggered.connect(self.definir_tela_action)
             self.action_Vendas_Status.triggered.connect(self.definir_tela_action)
+
+            self.actionConferir_Diver.triggered.connect(self.definir_tela_action)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -458,6 +462,11 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 from menu_vendas.vendas_status import TelaVendasStatus
                 self.vendas_status = TelaVendasStatus()
                 self.vendas_status.show()
+
+            elif sender == self.actionConferir_Diver:
+                from menu_engenharia.eng_consulta_divergencias import TelaConsultaDivergencias
+                self.eng_divergencia = TelaConsultaDivergencias()
+                self.eng_divergencia.show()
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
