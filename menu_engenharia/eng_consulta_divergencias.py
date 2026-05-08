@@ -24,7 +24,8 @@ class TelaConsultaDivergencias(QMainWindow, Ui_MainWindow):
         icone(self, "menu.png")
         tamanho_aplicacao(self)
 
-        self.definir_combo_fornecedor()
+        self.definir_combo_tipo_divergencia()
+        self.definir_combo_origem()
 
         self.btn_Consulta.clicked.connect(self.lanca_diveregencias)
 
@@ -68,6 +69,41 @@ class TelaConsultaDivergencias(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
+    def consulta_propriedade_ipt_iam(self, id_arquivo, propr):
+        try:
+            propriedade_escolhida = ""
+
+            cursor_eng = conecta_engenharia.cursor()
+            sql = f"""
+                SELECT ipt.id_arquivo, ipt.{propr}
+                FROM PROPRIEDADES_IPT ipt
+                WHERE ipt.id_arquivo = ?
+            """
+            cursor_eng.execute(sql, (id_arquivo,))
+            dados_ipt = cursor_eng.fetchall()
+            if dados_ipt:
+                for i in dados_ipt:
+                    propriedade_escolhida = i[1].strip()
+
+            sql = f"""
+                SELECT iam.id_arquivo, iam.{propr}
+                FROM PROPRIEDADES_IAM iam
+                WHERE iam.id_arquivo = ?
+            """
+            cursor_eng.execute(sql, (id_arquivo,))
+            dados_iam = cursor_eng.fetchall()
+
+            if dados_iam:
+                for ii in dados_iam:
+                    propriedade_escolhida = ii[1].strip()
+
+            return propriedade_escolhida
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
     def resolver_item(self, row):
         try:
             item_ref = self.table_Divergencia.item(row, 0)
@@ -88,7 +124,7 @@ class TelaConsultaDivergencias(QMainWindow, Ui_MainWindow):
         except Exception as e:
             print(e)
 
-    def definir_combo_fornecedor(self):
+    def definir_combo_tipo_divergencia(self):
         try:
             self.combo_Divergencia.clear()
 
@@ -118,44 +154,115 @@ class TelaConsultaDivergencias(QMainWindow, Ui_MainWindow):
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
-    def lanca_diveregencias(self):
+    def definir_combo_origem(self):
         try:
-            self.table_Divergencia.setRowCount(0)
+            self.combo_Origem.clear()
 
-            divergencias = self.combo_Divergencia.currentText()
+            cursor = conecta_engenharia.cursor()
+            sql = """
+            SELECT DISTINCT ID_ORIGEM
+            FROM DIVERGENCIAS
+            """
+            cursor.execute(sql)
 
-            if divergencias:
-                sql = """
-                    SELECT div.RESOLVIDO, div.id, div.ID_ARQUIVO, ARQ.NOME_BASE, arq.TIPO_ARQUIVO, tip_div.DESCRICAO, 
-                    div.OBS, arq.CAMINHO
-                    FROM DIVERGENCIAS as div
-                    INNER JOIN ARQUIVOS as arq ON div.ID_ARQUIVO = arq.id 
-                    INNER JOIN TIPO_DIVERGENCIA as tip_div ON div.ID_TIPO_DIVERGENCIA = tip_div.id 
-                    """
+            ids = cursor.fetchall()
 
-                parametros = []
+            tabela = []
 
-                if divergencias != "TODOS":
-                    pos = divergencias.find(" - ")
-                    if pos == -1:
-                        raise ValueError("Formato inválido no combo de divergência")
+            branco = "TODOS"
+            print(branco)
+            tabela.append(branco)
 
-                    id_divergencia = divergencias[:pos]
+            if ids:
+                for id_origem in ids:
+                    cursor = conecta_engenharia.cursor()
+                    cursor.execute("""
+                                SELECT id, ARQUIVO
+                                FROM arquivos where ID = ?
+                            """, (id_origem[0],))
+                    dados = cursor.fetchall()
 
-                    sql += " WHERE div.ID_TIPO_DIVERGENCIA = ? "
-                    parametros.append(id_divergencia)
+                    if dados:
+                        for dadus in dados:
+                            ides, desenho = dadus
 
-                cur = conecta_engenharia.cursor()
-                cur.execute(sql, parametros)
-                dados_divergencias = cur.fetchall()
+                            descricao = self.consulta_propriedade_ipt_iam(ides, "DESCRIPTION").upper()
 
-                if dados_divergencias:
-                    self.lanca_tabela_v2(self.table_Divergencia, dados_divergencias, bloqueia_texto=False)
+                            msg = f"{ides} - {desenho} - {descricao}"
+                            tabela.append(msg)
+
+                self.combo_Origem.addItems(tabela)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def lanca_diveregencias(self):
+        try:
+            self.table_Divergencia.setRowCount(0)
+
+            divergencias = self.combo_Divergencia.currentText()
+            origem = self.combo_Origem.currentText()
+
+            sql = """
+                SELECT div.RESOLVIDO, div.id, div.ID_ARQUIVO, ARQ.NOME_BASE,
+                       arq.TIPO_ARQUIVO, tip_div.DESCRICAO,
+                       div.OBS, arq.CAMINHO
+                FROM DIVERGENCIAS as div
+                INNER JOIN ARQUIVOS as arq ON div.ID_ARQUIVO = arq.id
+                INNER JOIN TIPO_DIVERGENCIA as tip_div
+                    ON div.ID_TIPO_DIVERGENCIA = tip_div.id
+                WHERE 1=1
+            """
+
+            parametros = []
+
+            # FILTRO TIPO DIVERGÊNCIA
+            if divergencias != "TODOS":
+                pos = divergencias.find(" - ")
+
+                if pos == -1:
+                    raise ValueError("Formato inválido no combo de divergência")
+
+                id_divergencia = divergencias[:pos]
+
+                sql += " AND div.ID_TIPO_DIVERGENCIA = ? "
+                parametros.append(id_divergencia)
+
+            # FILTRO ORIGEM
+            if origem != "TODOS":
+                pos = origem.find(" - ")
+
+                if pos == -1:
+                    raise ValueError("Formato inválido no combo de origem")
+
+                id_origem = origem[:pos]
+
+                sql += " AND div.ID_ORIGEM = ? "
+                parametros.append(id_origem)
+
+            cur = conecta_engenharia.cursor()
+            cur.execute(sql, parametros)
+
+            dados_divergencias = cur.fetchall()
+
+            if dados_divergencias:
+                self.lanca_tabela_v2(
+                    self.table_Divergencia,
+                    dados_divergencias,
+                    bloqueia_texto=False
+                )
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(
+                nome_funcao,
+                str(e),
+                self.nome_arquivo,
+                exc_traceback
+            )
 
     def lanca_tabela_v2(self, nome_tabela, dados_tab, altura_linha=23,
                         zebra=True, largura_auto=True, bloqueia_texto=True):

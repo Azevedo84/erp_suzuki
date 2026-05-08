@@ -33,7 +33,7 @@ def trata_excecao(nome_funcao, mensagem, arquivo, excecao):
         grava_erro_banco(nome_funcao_trat, e, nome_arquivo, num_linha_erro)
 
 
-def validador_decimal(nome_line, numero, decimal=3):
+def validador_decimal(nome_line, numero=9999999.000, decimal=3):
     try:
         validator = QDoubleValidator(0, numero, decimal, nome_line)
         locale = QLocale("pt_BR")

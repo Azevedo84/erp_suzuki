@@ -340,7 +340,7 @@ class TelaPreIncluir(QMainWindow, Ui_MainWindow):
                 extrai_estrutura.append(dados1)
 
                 if extrai_estrutura:
-                    lanca_tabela(self.table_Produto, extrai_estrutura, largura_auto=False)
+                    lanca_tabela(self.table_Produto, extrai_estrutura)
 
             else:
                 self.mensagem_alerta("Este produto já foi adicionado a tabela!")

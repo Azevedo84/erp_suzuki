@@ -409,6 +409,7 @@
     <property name="title">
      <string>Engenharia</string>
     </property>
+    <addaction name="actionCadastro_de_Projetos"/>
     <addaction name="actionConferir_Diver"/>
    </widget>
    <addaction name="menu_Produto"/>
@@ -867,6 +868,11 @@
   <action name="actionConferir_Diver">
    <property name="text">
     <string>Conferir Divergências</string>
+   </property>
+  </action>
+  <action name="actionCadastro_de_Projetos">
+   <property name="text">
+    <string>Cadastro de Projetos</string>
    </property>
   </action>
  </widget>

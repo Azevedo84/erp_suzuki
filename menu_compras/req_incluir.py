@@ -575,12 +575,18 @@ class TelaReqIncluir(QMainWindow, Ui_MainWindow):
                         des_e, soli_e = dados
 
                         if num_e:
-                            num_e_int = int(num_e)
+                            if num_e == "X":
+                                num_e_int = 0
+                            else:
+                                num_e_int = int(num_e)
                         else:
                             num_e_int = 0
 
                         if item_sol_e:
-                            item_sol_e_int = int(item_sol_e)
+                            if item_sol_e == "X":
+                                item_sol_e_int = 0
+                            else:
+                                item_sol_e_int = int(item_sol_e)
                         else:
                             item_sol_e_int = 0
 

@@ -74,10 +74,10 @@ def envia_email(alteracoes, versao_final):
         print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
 
 
-lista_modifica = ['(30/04/26) DIVERGÊNCIAS ENGENHARIA: CRIADO NOVO MENU PARA ACOMPANHAR DESENHOS INVENTOR', ]
+lista_modifica = ['(08/05/26) ENGENHARIA DIVERGÊNCIAS: ADICIONADO FILTRO PARA ACOMPANHAR PELO PROJETO DE ORIGEM', ]
 
 programa = "ERP SUZUKI"
-versao = "2.12.000"
+versao = "2.13.001"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()
