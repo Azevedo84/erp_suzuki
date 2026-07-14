@@ -599,7 +599,7 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT oc.data, oc.numero, cli.razao, prodoc.quantidade, prodoc.dataentrega, "
-                           f"COALESCE(prodoc.id_pedido, ''), COALESCE(prodoc.id_expedicao, '') "
+                           f"COALESCE(prodoc.id_pedido, ''), COALESCE(prodoc., '') "
                            f"FROM PRODUTOORDEMCOMPRA as prodoc "
                            f"INNER JOIN produto as prod ON prodoc.produto = prod.id "
                            f"INNER JOIN ordemcompra as oc ON prodoc.mestre = oc.id "

@@ -33,7 +33,7 @@ def mensagem_email():
                     f"Se houver algum problema com o recebimento de emails, " \
                     f"favor entrar em contato pelo email maquinas@unisold.com.br.\n\n"
 
-        to = ['<fat_maq@unisold.com.br>', '<maquinas@unisold.com.br>', '<ahcmaquinas@gmail.com>']
+        to = ['<maquinas@unisold.com.br>', '<ahcmaquinas@gmail.com>']
 
         return saudacao, msg_final, to
 
@@ -71,13 +71,13 @@ def envia_email(alteracoes, versao_final):
         print("email enviado")
 
     except Exception as e:
-        print(f'{msg_erro}"envia_email_sem_anexo"{msg_erro1}{e}')
+        print(f'{msg_erro}envia_email{msg_erro1}{e}')
 
 
-lista_modifica = ['(08/05/26) ENGENHARIA DIVERGÊNCIAS: ADICIONADO FILTRO PARA ACOMPANHAR PELO PROJETO DE ORIGEM', ]
+lista_modifica = ['(13/07/26) PCP PRODUTO TABLET: TEMPORÁRIO',]
 
 programa = "ERP SUZUKI"
-versao = "2.13.001"
+versao = "2.13.004"
 nome_computador = socket.gethostname()
 
 cursor = conecta_robo.cursor()

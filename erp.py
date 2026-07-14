@@ -17,6 +17,7 @@ from datetime import datetime
 import traceback
 
 from menu_pcp.pcp_produto_v2_2 import TelaPcpProdutoV2
+from menu_pcp.pcp_produto_tablet import TelaPcpProdutoTablet
 
 
 class TelaMenu(QMainWindow, Ui_Menu_Principal):
@@ -24,8 +25,8 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         super().__init__(parent)
         super().setupUi(self)
 
-        self.versao = f"Versão 2.13.001"
-        self.data_versao = f"08/05/2026"
+        self.versao = f"Versão 2.13.004"
+        self.data_versao = f"13/07/2026"
 
         self.label_versao.setText(self.versao)
         self.label_DataVersao.setText(self.data_versao)
@@ -35,6 +36,9 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
 
         editar_botao(self.btn_Produto, "produto.png", 'Produto', 50)
         self.btn_Produto.clicked.connect(self.chama_tela_produto)
+
+        editar_botao(self.btn_PI_Incluir, "vendas.png", 'Vendas', 50)
+        self.btn_PI_Incluir.clicked.connect(self.chama_tela_incluir_pedido)
 
         self.pre_incluir = []
         self.pre_status = []
@@ -98,7 +102,14 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
 
         icone(self, "menu.png")
-        self.tamanho_aplicacao()
+
+        screen = QApplication.primaryScreen()
+        tamanho = screen.size()
+
+        if tamanho.width() <= 1280:  # Tablet
+            self.showMaximized()
+        else:  # PC
+            self.tamanho_aplicacao()
 
         self.definir_comando_telas()
         self.nome_computador = socket.gethostname()
@@ -173,8 +184,29 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
 
     def chama_tela_produto(self):
-        self.pcp_produto = TelaPcpProdutoV2()
+        screen = QApplication.primaryScreen()
+        tamanho = screen.size()
+
+        if tamanho.width() <= 1280:  # Tablet
+            self.pcp_produto = TelaPcpProdutoTablet()
+        else:  # PC
+            self.pcp_produto = TelaPcpProdutoV2()
+
         self.pcp_produto.show()
+
+    def chama_tela_incluir_pedido(self):
+        screen = QApplication.primaryScreen()
+        tamanho = screen.size()
+
+        from menu_vendas.pi_incluir import TelaPiIncluir
+        from menu_vendas.pi_incluir_tablet import TelaPiIncluirTablet
+
+        if tamanho.width() <= 1280:  # Tablet
+            self.pi_incluir = TelaPiIncluirTablet()
+        else:  # PC
+            self.pi_incluir = TelaPiIncluir()
+
+        self.pi_incluir.show()
 
     def definir_comando_telas(self):
         try:
@@ -435,9 +467,7 @@ class TelaMenu(QMainWindow, Ui_Menu_Principal):
                 self.producao_status.show()
 
             elif sender == self.action_PI_Incluir:
-                from menu_vendas.pi_incluir import TelaPiIncluir
-                self.pi_incluir = TelaPiIncluir()
-                self.pi_incluir.show()
+                self.chama_tela_incluir_pedido()
 
             elif sender == self.action_PI_Alterar:
                 from menu_vendas.pi_alterar import TelaPiAlterar

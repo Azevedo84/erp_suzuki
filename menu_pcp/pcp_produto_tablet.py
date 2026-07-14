@@ -1,10 +1,10 @@
 import sys
 from banco_dados.conexao import conecta
-from forms.tela_pcp_produto2 import *
+from forms.tela_pcp_prod_tablet import *
 from arquivos.chamar_arquivos import definir_caminho_arquivo
 from banco_dados.controle_erros import grava_erro_banco
 from comandos.tabelas import lanca_tabela, layout_cabec_tab, extrair_tabela
-from comandos.telas import tamanho_aplicacao, icone, editar_botao
+from comandos.telas import icone, editar_botao
 from comandos.cores import cor_verde, widgets, cor_vermelho
 from comandos.lines import validador_so_numeros
 from comandos.conversores import valores_para_float
@@ -19,12 +19,21 @@ from menu_cadastros.tela_projeto import TelaProjeto
 
 import fitz  # PyMuPDF
 from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import Qt
 
 
-class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
+class TelaPcpProdutoTablet(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         super().setupUi(self)
+
+        from PyQt5.QtWidgets import QScroller
+
+        QScroller.grabGesture(
+            self.scrollArea.viewport(),
+            QScroller.LeftMouseButtonGesture
+        )
+        self.showMaximized()
 
         nome_arquivo_com_caminho = inspect.getframeinfo(inspect.currentframe()).filename
         self.nome_arquivo = os.path.basename(nome_arquivo_com_caminho)
@@ -40,9 +49,6 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
         self.tela_op_encerradas = []
 
         icone(self, "menu_producao.png")
-        tamanho_aplicacao(self)
-
-        self.showMaximized()
 
         caminho = os.path.join('..', 'arquivos', 'icones', 'lupa.png')
         caminho_arquivo = definir_caminho_arquivo(caminho)
@@ -422,51 +428,57 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
             if os.path.exists(caminho_pdf):
                 doc = fitz.open(caminho_pdf)
-                page = doc.load_page(0)  # primeira página
-                pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))  # zoom 2x para melhor resolução
+                page = doc.load_page(0)
+                pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
 
-                # Converter para QImage
-                image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
-                pixmap = QPixmap.fromImage(image)
-
-                # Mostrar no QLabel criado no Qt Designer (nomeado "label")
-                #self.label.setPixmap(pixmap)
-                #self.label.setScaledContents(True)
-                from PyQt5.QtCore import Qt
-
-                pixmap = pixmap.scaled(
-                    self.label.size(),
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
+                image = QImage(
+                    pix.samples,
+                    pix.width,
+                    pix.height,
+                    pix.stride,
+                    QImage.Format_RGB888
                 )
 
-                self.label.setPixmap(pixmap)
+                pixmap = QPixmap.fromImage(image)
+                self.mostrar_pixmap(pixmap)
+
             elif os.path.exists(caminho_png):
                 pixmap = QPixmap(caminho_png)
-                self.label.setPixmap(pixmap)
-                self.label.setScaledContents(True)
+                self.mostrar_pixmap(pixmap)
+
             else:
                 from arquivos.chamar_arquivos import definir_caminho_arquivo
 
-                camino = os.path.join('..', 'arquivos', 'imagens tela', "sem desenho.png")
-                caminho_arquivo = definir_caminho_arquivo(camino)
+                caminho = os.path.join('..', 'arquivos', 'imagens tela', "sem desenho.png")
+                caminho_arquivo = definir_caminho_arquivo(caminho)
 
                 doc = fitz.open(caminho_arquivo)
-                page = doc.load_page(0)  # primeira página
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # zoom 2x para melhor resolução
+                page = doc.load_page(0)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
 
-                # Converter para QImage
-                image = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
+                image = QImage(
+                    pix.samples,
+                    pix.width,
+                    pix.height,
+                    pix.stride,
+                    QImage.Format_RGB888
+                )
+
                 pixmap = QPixmap.fromImage(image)
-
-                # Mostrar no QLabel criado no Qt Designer (nomeado "label")
-                self.label.setPixmap(pixmap)
-                self.label.setScaledContents(True)
+                self.mostrar_pixmap(pixmap)
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
             exc_traceback = sys.exc_info()[2]
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def mostrar_pixmap(self, pixmap):
+        pixmap = pixmap.scaled(
+            self.label.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        self.label.setPixmap(pixmap)
 
     def abrir_pdf(self):
         try:
@@ -1352,6 +1364,6 @@ class TelaPcpProdutoV2(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
-    tela = TelaPcpProdutoV2()
+    tela = TelaPcpProdutoTablet()
     tela.show()
     qt.exec_()

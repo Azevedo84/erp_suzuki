@@ -64,7 +64,7 @@ def layout_cabec_tab_v2(nome_tabela):
         exc_traceback = sys.exc_info()[2]
         trata_excecao(nome_funcao, str(e), nome_arquivo, exc_traceback)
 
-def lanca_tabela_v2(nome_tabela, dados_tab, altura_linha=23,
+def lanca_tabela_v2(nome_tabela, dados_tab, altura_linha=26,
                  zebra=True, largura_auto=True, bloqueia_texto=True):
 
     try:
@@ -86,6 +86,9 @@ def lanca_tabela_v2(nome_tabela, dados_tab, altura_linha=23,
                 nome_tabela.setItem(i, j, item)
 
         nome_tabela.setSelectionBehavior(QAbstractItemView.SelectRows)
+        nome_tabela.setSelectionMode(QAbstractItemView.SingleSelection)
+        nome_tabela.setShowGrid(False)
+        nome_tabela.verticalHeader().setDefaultSectionSize(26)
 
         if largura_auto:
             nome_tabela.resizeColumnsToContents()

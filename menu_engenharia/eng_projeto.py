@@ -187,6 +187,7 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
                                     WHERE NOME_BASE = ? AND TIPO_ARQUIVO IN ('IPT', 'IAM')
                                 """, (texto_desenho,))
                     dados_arquivo = cursor.fetchall()
+
                     if dados_arquivo:
                         id_arquivo, nome_base, tipo_arq = dados_arquivo[0]
 
@@ -285,7 +286,6 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
                             self.line_Qtde.setText(f"{qtde}")
 
                         if obs:
-                            print("entrei", obs)
                             self.plain_Obs.setPlainText(f"{obs}")
 
                         if solicitante:
@@ -456,39 +456,146 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
 
             num_desenho = self.line_Num_Desenho.text()
             id_arquivo = self.line_Cod_Arq.text()
-            cliente = self.combo_Cliente.currentText()
 
-            qtde = self.line_Qtde.text()
-
-            match = padrao_desenho.search(num_desenho)
+            match = padrao_desenho.fullmatch(num_desenho)
 
             if not id_arquivo and not num_desenho:
-                self.mensagem_alerta(f'Precisa definir o número de desenho para prosseguir!')
-            elif not match:
-                self.mensagem_alerta(f'Número de desenho fora do padrão!')
-            elif not cliente:
-                msg = f'Tem certeza que deseja salvar o projeto sem definir o Cliente?'
+                self.mensagem_alerta(
+                    'Precisa definir o número de desenho para prosseguir!'
+                )
+                return
 
-                proj_existe = self.consulta_projeto_existe(id_projeto)
-                if self.pergunta_confirmacao(msg):
-                    if proj_existe:
-                        self.salvar_projeto_existente(id_projeto)
-                    else:
-                        self.salvar_projeto_novo()
-            elif not qtde:
-                msg = f'Tem certeza que deseja salvar o projeto sem definir Quantidade de Produção?'
-                proj_existe = self.consulta_projeto_existe(id_projeto)
-                if self.pergunta_confirmacao(msg):
-                    if proj_existe:
-                        self.salvar_projeto_existente(id_projeto)
-                    else:
-                        self.salvar_projeto_novo()
+            if not match:
+                self.mensagem_alerta(
+                    'Número de desenho fora do padrão!'
+                )
+                return
+
+            if not self.validar_confirmacoes():
+                return
+
+            dados = self.obter_dados_projeto()
+
+            duplicado = None
+
+            if dados["id_cliente"]:
+                duplicado = self.consulta_desenho_cliente(
+                    dados["num_desenho"],
+                    dados["id_cliente"],
+                    id_projeto if id_projeto else None
+                )
+
+            if duplicado:
+                msg = (
+                    "Já existe um projeto com este número de desenho para este cliente.\n\n"
+                    "Deseja salvar mesmo assim?"
+                )
+
+                if not self.pergunta_confirmacao(msg):
+                    return
+
+            proj_existe = self.consulta_projeto_existe(id_projeto)
+
+            if proj_existe:
+                self.salvar_projeto_existente(id_projeto)
             else:
-                proj_existe = self.consulta_projeto_existe(id_projeto)
-                if proj_existe:
-                    self.salvar_projeto_existente(id_projeto)
-                else:
-                    self.salvar_projeto_novo()
+                self.salvar_projeto_novo()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def consulta_desenho_cliente(self, num_desenho, id_cliente, id_projeto=None):
+        try:
+            cursor = conecta_engenharia.cursor()
+
+            sql = """
+                SELECT ID
+                FROM PROJETO
+                WHERE NUM_DESENHO = ?
+                  AND ID_CLIENTE = ?
+            """
+
+            parametros = [num_desenho, id_cliente]
+
+            if id_projeto:
+                sql += " AND ID <> ?"
+                parametros.append(id_projeto)
+
+            cursor.execute(sql, parametros)
+
+            return cursor.fetchone()
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def validar_confirmacoes(self):
+        try:
+            cliente = self.combo_Cliente.currentText()
+            qtde = self.line_Qtde.text()
+
+            if not cliente:
+                msg = 'Tem certeza que deseja salvar o projeto sem definir o Cliente?'
+                if not self.pergunta_confirmacao(msg):
+                    return False
+
+            if not qtde:
+                msg = 'Tem certeza que deseja salvar o projeto sem definir Quantidade de Produção?'
+                if not self.pergunta_confirmacao(msg):
+                    return False
+
+            return True
+
+        except Exception as e:
+            nome_funcao = inspect.currentframe().f_code.co_name
+            exc_traceback = sys.exc_info()[2]
+            self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
+
+    def obter_dados_projeto(self):
+        try:
+            cliente = self.combo_Cliente.currentText()
+            if cliente:
+                pos = cliente.find(" - ")
+                id_cliente = cliente[:pos]
+            else:
+                id_cliente = None
+
+            solicitante = self.line_Solicitante.text()
+            solic = solicitante.upper() if solicitante else None
+
+            num_desenho = self.line_Num_Desenho.text()
+
+            id_arquivo = self.line_Cod_Arq.text()
+            id_arq = id_arquivo if id_arquivo else None
+
+            observacao = self.plain_Obs.toPlainText()
+            obs = observacao.upper() if observacao else None
+
+            qtde = self.line_Qtde.text()
+            qtde_f = valores_para_float(qtde) if qtde else None
+
+            nome_pc = socket.gethostname()
+
+            emissao = self.date_Emissao.text()
+            emis = datetime.strptime(emissao, '%d/%m/%Y').date()
+
+            entrega = self.date_Entrega.text()
+            entreg = datetime.strptime(entrega, '%d/%m/%Y').date()
+
+            return {
+                "id_cliente": id_cliente,
+                "solicitante": solic,
+                "num_desenho": num_desenho,
+                "id_arquivo": id_arq,
+                "obs": obs,
+                "qtde": qtde_f,
+                "nome_pc": nome_pc,
+                "emissao": emis,
+                "entrega": entreg,
+            }
 
         except Exception as e:
             nome_funcao = inspect.currentframe().f_code.co_name
@@ -497,51 +604,12 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
 
     def salvar_projeto_existente(self, id_projeto):
         try:
-            cliente = self.combo_Cliente.currentText()
-            if cliente:
-                clientetete = cliente.find(" - ")
-                id_cliente = cliente[:clientetete]
-            else:
-                id_cliente = None
-
-            solicitante = self.line_Solicitante.text()
-            if solicitante:
-                solic = solicitante.upper()
-            else:
-                solic = None
-
-            num_desenho = self.line_Num_Desenho.text()
-
-            id_arquivo = self.line_Cod_Arq.text()
-            if id_arquivo:
-                id_arq = id_arquivo
-            else:
-                id_arq = None
-
-            observacao = self.plain_Obs.toPlainText()
-            if observacao:
-                obs = observacao.upper()
-            else:
-                obs = None
-
-            qtde = self.line_Qtde.text()
-            if qtde:
-                qtde_f = valores_para_float(qtde)
-            else:
-                qtde_f = None
-
-            nome_computador = socket.gethostname()
-
-            emissao = self.date_Emissao.text()
-            emis = datetime.strptime(emissao, '%d/%m/%Y').date()
-
-            entrega = self.date_Entrega.text()
-            entreg = datetime.strptime(entrega, '%d/%m/%Y').date()
+            dados = self.obter_dados_projeto()
 
             cursor = conecta_engenharia.cursor()
             cursor.execute("""
-                UPDATE PROJETO SET 
-                    EMISSAO = ?, 
+                UPDATE PROJETO SET
+                    EMISSAO = ?,
                     ID_ARQUIVO = ?,
                     NUM_DESENHO = ?,
                     QTDE = ?,
@@ -553,22 +621,24 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
                     NOME_PC = ?
                 WHERE ID = ?
             """, (
-                emis,
-                id_arq,
-                num_desenho,
-                qtde_f,
-                id_cliente,
-                solic,
-                entreg,
-                obs,  # ← None aqui vira NULL
+                dados["emissao"],
+                dados["id_arquivo"],
+                dados["num_desenho"],
+                dados["qtde"],
+                dados["id_cliente"],
+                dados["solicitante"],
+                dados["entrega"],
+                dados["obs"],
                 'A',
-                nome_computador,
-                id_projeto  # ← importante
+                dados["nome_pc"],
+                id_projeto
             ))
 
             conecta_engenharia.commit()
 
-            self.mensagem_alerta(f'O projeto Nº {id_projeto} - {num_desenho} foi atualizado com sucesso!')
+            self.mensagem_alerta(
+                f'O projeto Nº {id_projeto} - {dados["num_desenho"]} foi atualizado com sucesso!'
+            )
 
             self.limpa_tudo()
 
@@ -579,68 +649,32 @@ class TelaEngenhariaProjeto(QMainWindow, Ui_MainWindow):
 
     def salvar_projeto_novo(self):
         try:
-            cliente = self.combo_Cliente.currentText()
-            if cliente:
-                clientetete = cliente.find(" - ")
-                id_cliente = cliente[:clientetete]
-            else:
-                id_cliente = None
-
-            solicitante = self.line_Solicitante.text()
-            if solicitante:
-                solic = solicitante.upper()
-            else:
-                solic = None
-
-            num_desenho = self.line_Num_Desenho.text()
-            id_arquivo = self.line_Cod_Arq.text()
-            if id_arquivo:
-                id_arq = id_arquivo
-            else:
-                id_arq = None
-
-            observacao = self.plain_Obs.toPlainText()
-            if observacao:
-                obs = observacao.upper()
-            else:
-                obs = None
-
-            qtde = self.line_Qtde.text()
-            if qtde:
-                qtde_f = valores_para_float(qtde)
-            else:
-                qtde_f = None
-
-            nome_computador = socket.gethostname()
-
-            emissao = self.date_Emissao.text()
-            emis = datetime.strptime(emissao, '%d/%m/%Y').date()
-
-            entrega = self.date_Entrega.text()
-            entreg = datetime.strptime(entrega, '%d/%m/%Y').date()
+            dados = self.obter_dados_projeto()
 
             cursor = conecta_engenharia.cursor()
             cursor.execute("""
-                INSERT INTO PROJETO 
-                (EMISSAO, ID_ARQUIVO, NUM_DESENHO, QTDE, ID_CLIENTE, SOLICITANTE,
-                 PREVISAO_ENTREGA, OBS, STATUS, NOME_PC)
+                INSERT INTO PROJETO
+                (EMISSAO, ID_ARQUIVO, NUM_DESENHO, QTDE, ID_CLIENTE,
+                 SOLICITANTE, PREVISAO_ENTREGA, OBS, STATUS, NOME_PC)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                emis,
-                id_arq,
-                num_desenho,
-                qtde_f,
-                id_cliente,
-                solic,
-                entreg,
-                obs,
+                dados["emissao"],
+                dados["id_arquivo"],
+                dados["num_desenho"],
+                dados["qtde"],
+                dados["id_cliente"],
+                dados["solicitante"],
+                dados["entrega"],
+                dados["obs"],
                 'A',
-                nome_computador
+                dados["nome_pc"]
             ))
 
             conecta_engenharia.commit()
 
-            self.mensagem_alerta(f'O projeto {num_desenho} foi criado com sucesso!')
+            self.mensagem_alerta(
+                f'O projeto {dados["num_desenho"]} foi criado com sucesso!'
+            )
 
             self.limpa_tudo()
 

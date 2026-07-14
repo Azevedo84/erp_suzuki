@@ -13,6 +13,7 @@ import os
 from datetime import date
 import traceback
 from unidecode import unidecode
+import re
 
 
 class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
@@ -125,7 +126,7 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
 
             cursor = conecta.cursor()
             cursor.execute(f"select id, criacao, "
-                           f"funcionario, COALESCE(ativo, '') "
+                           f"funcionario, cpf, COALESCE(ativo, '') "
                            f"from funcionarios "
                            f"where id <> 0 "
                            f"order by funcionario;")
@@ -133,11 +134,11 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
 
             if select_numero:
                 for i in select_numero:
-                    id_func, data, nome, ativo = i
+                    id_func, data, nome, cpf, ativo = i
 
                     data_formatada = timestamp_brasileiro(data)
 
-                    dados = (id_func, data_formatada, nome, ativo)
+                    dados = (data_formatada, id_func, nome, cpf, ativo)
                     tabela_nova.append(dados)
 
             if tabela_nova:
@@ -151,6 +152,7 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
     def reiniciando_tela(self):
         try:
             self.line_Descricao.clear()
+            self.line_CPF.clear()
             self.check_Ativo.setChecked(False)
             self.line_Consulta.clear()
 
@@ -176,7 +178,7 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
 
                 cursor = conecta.cursor()
                 cursor.execute(f"SELECT DISTINCT id, criacao, "
-                               f"funcionario, COALESCE(ativo, '') "
+                               f"funcionario, cpf, COALESCE(ativo, '') "
                                f"FROM funcionarios "
                                f"WHERE funcionario LIKE '%{palavra_maiuscula}%' and id <> 0 "
                                f"ORDER BY funcionario;")
@@ -187,11 +189,11 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
                     self.line_Consulta.clear()
                 else:
                     for i in palavra:
-                        id_func, data, nome, ativo = i
+                        id_func, data, nome, cpf, ativo = i
 
                         data_formatada = timestamp_brasileiro(data)
 
-                        dados = (id_func, data_formatada, nome, ativo)
+                        dados = (data_formatada, id_func, nome, cpf, ativo)
                         tabela_nova.append(dados)
 
                 if tabela_nova:
@@ -212,10 +214,13 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
                 extrai_recomendados = extrair_tabela(self.table_Lista)
                 item_selecionado = extrai_recomendados[item.row()]
 
-                id_func, criacao, nome, ativo = item_selecionado
+                criaca, id_func, nome, cpf, ativo = item_selecionado
 
                 self.line_Num.setText(id_func)
                 self.line_Descricao.setText(nome)
+
+                if cpf:
+                    self.line_CPF.setText(cpf)
 
                 if ativo == "S":
                     self.check_Ativo.setChecked(True)
@@ -287,6 +292,7 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
         try:
             num_id = self.line_Num.text()
             nome = self.line_Descricao.text()
+            cpf = self.line_CPF.text()
 
             if not num_id:
                 self.mensagem_alerta('O campo "Código" não pode estar vazio!')
@@ -303,6 +309,9 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
                 self.mensagem_alerta('O campo "Descrição" não pode ser "0"!   ')
                 self.line_Descricao.clear()
                 self.line_Descricao.setFocus()
+            elif cpf == "0" or len(cpf) < 10 or not cpf:
+                self.mensagem_alerta('Preencha o CPF do Funcionário no formato válido!')
+                self.line_CPF.setFocus()
             else:
                 self.salvar_dados()
 
@@ -319,18 +328,20 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
             descr_maiuscula = descr.upper()
             descr_sem_acentos = unidecode(descr_maiuscula)
 
+            cpf = re.sub(r'\D', '', self.line_CPF.text())
+
             if self.check_Ativo.isChecked():
                 ativo = "S"
             else:
                 ativo = "NULL"
 
             cursor = conecta.cursor()
-            cursor.execute(f"select id, criacao, funcionario, COALESCE(ativo, '') "
+            cursor.execute(f"select id, criacao, funcionario, cpf, COALESCE(ativo, '') "
                            f"from funcionarios where id = {num_id};")
             cliente = cursor.fetchall()
 
             if cliente:
-                num_id_b, criacao_b, func_b, ativ = cliente[0]
+                num_id_b, criacao_b, func_b, cpf_b, ativ = cliente[0]
 
                 if ativ:
                     if ativ == " ":
@@ -343,12 +354,13 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
                 campos_atualizados = []
                 if descr_sem_acentos != func_b:
                     campos_atualizados.append(f"funcionario = '{descr_sem_acentos}'")
+                if cpf != cpf_b:
+                    campos_atualizados.append(f"cpf = '{cpf}'")
                 if ativo != ativo_b:
                     if ativo == "NULL":
                         campos_atualizados.append(f"ativo = {ativo}")
                     else:
                         campos_atualizados.append(f"ativo = '{ativo}'")
-
                 if campos_atualizados:
                     msg = f'Deseja realmente atualizar o cadastro do Funcionario?'
                     if self.pergunta_confirmacao(msg):
@@ -367,12 +379,12 @@ class TelaCadastroFuncionario(QMainWindow, Ui_MainWindow):
                 if self.pergunta_confirmacao(msg):
                     if ativo == "NULL":
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into funcionarios (ID, FUNCIONARIO, ATIVO) "
-                                       f"values (GEN_ID(GEN_funcionarios_ID,1), '{descr_sem_acentos}', {ativo});")
+                        cursor.execute(f"Insert into funcionarios (ID, FUNCIONARIO, CPF, ATIVO) "
+                                       f"values (GEN_ID(GEN_funcionarios_ID,1), '{descr_sem_acentos}', '{cpf}', {ativo});")
                     else:
                         cursor = conecta.cursor()
-                        cursor.execute(f"Insert into funcionarios (ID, FUNCIONARIO, ATIVO) "
-                                       f"values (GEN_ID(GEN_funcionarios_ID,1), '{descr_sem_acentos}', '{ativo}');")
+                        cursor.execute(f"Insert into funcionarios (ID, FUNCIONARIO, CPF, ATIVO) "
+                                       f"values (GEN_ID(GEN_funcionarios_ID,1), '{descr_sem_acentos}', '{cpf}', '{ativo}');")
 
                     conecta.commit()
 

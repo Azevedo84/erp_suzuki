@@ -154,12 +154,12 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
                            f"CASE WHEN m.tipo = 210 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 110 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 130 THEN (fornecedores.razao) "
-                           f"WHEN m.tipo = 140 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 140 THEN (COALESCE(funcionarios.funcionario, '')) "
                            f"WHEN m.tipo = 230 THEN (clientes.razao) "
                            f"WHEN m.tipo = 250 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 112 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 220 THEN (funcionarios.funcionario) "
-                           f"WHEN m.tipo = 240 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 240 THEN (COALESCE(funcionarios.funcionario, '')) "
                            f"END AS teste, "
                            f"COALESCE(m.obs, '') "
                            f"FROM movimentacao m "
@@ -235,12 +235,12 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
                            f"CASE WHEN m.tipo = 210 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 110 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 130 THEN (fornecedores.razao) "
-                           f"WHEN m.tipo = 140 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 140 THEN (COALESCE(funcionarios.funcionario, '')) "
                            f"WHEN m.tipo = 230 THEN (clientes.razao) "
                            f"WHEN m.tipo = 250 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 112 THEN (funcionarios.funcionario) "
                            f"WHEN m.tipo = 220 THEN (funcionarios.funcionario) "
-                           f"WHEN m.tipo = 240 THEN (funcionarios.funcionario) "
+                           f"WHEN m.tipo = 240 THEN (COALESCE(funcionarios.funcionario, '')) "
                            f"END AS teste, "
                            f"COALESCE(m.obs, '') "
                            f"FROM movimentacao m "
@@ -438,7 +438,6 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
 
     def select_movimentis_total(self, data_inicio, data_fim):
         try:
-            print("total")
             cursor = conecta.cursor()
             cursor.execute(f"SELECT COALESCE((extract(day from m.data)||'/'||"
                            f"extract(month from m.data)||'/'||extract(year from m.data)), '') AS DATA, "
@@ -708,16 +707,17 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
             self.trata_excecao(nome_funcao, str(e), self.nome_arquivo, exc_traceback)
             return None
 
-    def select_mistura_op(self, cod, num_op):
+    def select_mistura_op(self, num_op):
         try:
             dados_para_tabela = []
             campo_br = ""
 
             cur = conecta.cursor()
-            cur.execute(f"SELECT id, descricao, id_versao FROM produto where codigo = {cod};")
-            detalhes_produtos = cur.fetchall()
+            cur.execute(f"SELECT produto, ID_ESTRUTURA "
+                        f"FROM ordemservico where numero = {num_op};")
+            detalhes_op = cur.fetchall()
 
-            id_prod, descricao, id_estrutura = detalhes_produtos[0]
+            id_prod, id_estrutura = detalhes_op[0]
 
             cursor = conecta.cursor()
             cursor.execute(f"SELECT estprod.id, prod.codigo, prod.descricao, "
@@ -1079,7 +1079,7 @@ class TelaEstMovimentacaoV2(QMainWindow, Ui_MainWindow):
                         extrair_dados = cur.fetchall()
                         id_os, numero_os, data_emissao, status_os, produto_os, qtde_os, obs_2 = extrair_dados[0]
 
-                        tabela_consumo_os, tabela_estrutura = self.select_mistura_op(cod, op_int)
+                        tabela_consumo_os, tabela_estrutura = self.select_mistura_op(op_int)
 
                         lista_para_op = [data, op_int, cod, descr, ref, um, entrada, obs_2,
                                          tabela_consumo_os, tabela_estrutura, caminho, op]
